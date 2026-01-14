@@ -4,6 +4,7 @@ import { parseCurrencyToNumber } from "@/lib/utils";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { calcularValorTotal } from "@/lib/parcelamento-calculator";
 import { ParcelamentoPreview } from "@/components/ParcelamentoPreview";
+import { ProprietarioWizard } from "@/components/ProprietarioWizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -80,6 +81,9 @@ export function AuctionForm({
   const [missingFields, setMissingFields] = useState<string[]>([]);
   const [hasUserChanges, setHasUserChanges] = useState(false);
   
+  // Estado para o wizard de proprietário
+  const [proprietarioWizardOpen, setProprietarioWizardOpen] = useState(false);
+  const [loteParaProprietario, setLoteParaProprietario] = useState<LoteInfo | null>(null);
   
   // Set para rastrear URLs blob temporárias que precisam ser limpas
   const tempBlobUrlsRef = useRef(new Set<string>());
@@ -427,6 +431,7 @@ export function AuctionForm({
       setSponsorItems(initial.detalhePatrocinios);
     }
   }, [initial.detalhePatrocinios, hasUserChanges]);
+  
   
   // Sincronizar sponsorItems quando o dialog abrir ou quando detalhePatrocinios mudar
   useEffect(() => {
@@ -1081,7 +1086,8 @@ export function AuctionForm({
                                 id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
                                 nomePatrocinador: "",
                                 valor: "",
-                                valorNumerico: 0
+                                valorNumerico: 0,
+                                formaPagamento: 'a_vista' // Define À Vista como padrão
                               };
                               setSponsorItems([...sponsorItems, novoItem]);
                             }}
@@ -1198,6 +1204,64 @@ export function AuctionForm({
               </div>
             </div>
 
+            <Separator className="my-6" />
+
+            {/* Comissão do Leiloeiro */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="percentualComissaoLeiloeiro" className="text-sm font-medium text-gray-700">
+                  Comissão do Leiloeiro
+                </Label>
+                <p className="text-xs text-gray-500 mt-1 mb-3">
+                  Percentual adicional que cada arrematante pagará sobre o valor da mercadoria arrematada como comissão do leiloeiro
+                </p>
+                <div className="relative max-w-md">
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm font-medium text-gray-500">
+                    %
+                  </span>
+                  <Input 
+                    id="percentualComissaoLeiloeiro"
+                    type="text" 
+                    value={values.percentualComissaoLeiloeiro?.toString() || ""} 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Permite apenas números e vírgula/ponto decimal
+                      if (value === "" || /^[\d.,]*$/.test(value)) {
+                        // Converte vírgula para ponto e parseia
+                        const numericValue = value === "" ? undefined : parseFloat(value.replace(",", "."));
+                        // Limita entre 0 e 100
+                        if (numericValue === undefined || (numericValue >= 0 && numericValue <= 100)) {
+                          update("percentualComissaoLeiloeiro", numericValue);
+                          setHasUserChanges(true);
+                        }
+                      }
+                    }}
+                    className="h-11 pr-12 border-gray-300 focus:border-black focus:ring-0 focus-visible:ring-0 bg-white"
+                    placeholder="Ex: 5"
+                  />
+                </div>
+                {values.percentualComissaoLeiloeiro && values.percentualComissaoLeiloeiro > 0 && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Cada arrematante pagará {values.percentualComissaoLeiloeiro}% a mais sobre o valor de cada mercadoria arrematada
+                  </p>
+                )}
+              </div>
+            </div>
+            </CardContent>
+          </Card>
+
+          {/* Configuração de Lotes */}
+          <Card className="border-0 shadow-sm bg-gray-50/50">
+            <CardHeader className="pb-4">
+              <CardTitle className="flex items-center gap-3 text-lg font-semibold text-gray-800">
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  <List className="h-5 w-5 text-gray-600" />
+                </div>
+                Configuração de Lotes
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+
               {/* Lotes do Leilão */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
@@ -1251,9 +1315,19 @@ export function AuctionForm({
                 )}
 
                 {(values.lotes || []).map((lote, loteIndex) => (
-                  <div key={lote.id} className="p-4 border border-gray-200 rounded-lg bg-white space-y-4">
+                  <div 
+                    key={lote.id} 
+                    className="p-4 border border-gray-200 rounded-lg bg-white space-y-4"
+                  >
                     <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
                       <h4 className="text-sm font-medium text-gray-900">Lote {lote.numero}</h4>
+                        {lote.isConvidado && lote.guestLotId && (
+                          <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                            ✓ Salvo em Lotes Convidados
+                          </Badge>
+                        )}
+                      </div>
                       <Button
                         type="button"
                         variant="ghost"
@@ -1301,6 +1375,41 @@ export function AuctionForm({
                           placeholder="Ex: Lote de Gado Nelore"
                         />
                       </div>
+                    </div>
+
+                    {/* Tipo de Lote */}
+                    <div className="inline-flex rounded-md border border-gray-200 bg-gray-50 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          const updatedLotes = (values.lotes || []).map(l => 
+                            l.id === lote.id ? { ...l, isConvidado: false } : l
+                          );
+                          update("lotes", updatedLotes);
+                        }}
+                        className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                          !lote.isConvidado
+                            ? "bg-white text-gray-900 shadow-sm"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Anfitrião
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Sempre abrir o wizard ao clicar em Convidado
+                          setLoteParaProprietario(lote);
+                          setProprietarioWizardOpen(true);
+                        }}
+                        className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                          lote.isConvidado
+                            ? "bg-white text-gray-900 shadow-sm"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Convidado
+                      </button>
                     </div>
 
                     {/* Mercadorias do Lote */}
@@ -1416,7 +1525,7 @@ export function AuctionForm({
                               ) : (
                                 <>
                                   <h5 className="text-xs font-medium text-gray-700">
-                                    {mercadoria.nome || `Mercadoria ${mercadoriaIndex + 1}`}
+                                    {mercadoria.titulo || mercadoria.nome || `Mercadoria ${mercadoriaIndex + 1}`}
                                   </h5>
                                   <Button
                                     type="button"
@@ -1424,7 +1533,7 @@ export function AuctionForm({
                                     size="sm"
                                     onClick={() => {
                                       setEditingMercadoria(mercadoria.id);
-                                      setTempMercadoriaNome(mercadoria.nome || `Mercadoria ${mercadoriaIndex + 1}`);
+                                      setTempMercadoriaNome(mercadoria.titulo || mercadoria.nome || `Mercadoria ${mercadoriaIndex + 1}`);
                                     }}
                                     className="h-5 w-5 p-0 text-gray-600 hover:text-gray-800 hover:bg-gray-100"
                                     title="Editar nome da mercadoria"
@@ -1934,6 +2043,40 @@ export function AuctionForm({
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+
+      {/* Wizard de Proprietário */}
+      {proprietarioWizardOpen && loteParaProprietario && (
+        <ProprietarioWizard
+          initialData={{
+            proprietario: loteParaProprietario.proprietario || "",
+            codigoPais: loteParaProprietario.codigoPais || "+55",
+            celularProprietario: loteParaProprietario.celularProprietario || "",
+            emailProprietario: loteParaProprietario.emailProprietario || "",
+            documentos: loteParaProprietario.documentos || [],
+          }}
+          onSubmit={(data) => {
+            // Atualizar o lote com as informações do proprietário
+            const updatedLotes = (values.lotes || []).map(l => 
+              l.id === loteParaProprietario.id ? {
+                ...l,
+                isConvidado: true,
+                proprietario: data.proprietario,
+                codigoPais: data.codigoPais,
+                celularProprietario: data.celularProprietario,
+                emailProprietario: data.emailProprietario,
+                documentos: data.documentos,
+              } : l
+            );
+            update("lotes", updatedLotes);
+            setProprietarioWizardOpen(false);
+            setLoteParaProprietario(null);
+          }}
+          onCancel={() => {
+            setProprietarioWizardOpen(false);
+            setLoteParaProprietario(null);
+          }}
+        />
+      )}
     </div>
   );
 }

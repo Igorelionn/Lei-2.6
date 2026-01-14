@@ -539,15 +539,16 @@ Atenciosamente,
       const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
       const tipoPagamento = loteArrematado?.tipoPagamento || "parcelamento";
       
-      // NOVO: Usar função que considera fator multiplicador se disponível
+      // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
       const valorTotal = obterValorTotalArrematante({
         usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
         valorLance: arrematante?.valorLance,
         fatorMultiplicador: arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
         valorPagarNumerico: arrematante?.valorPagarNumerico !== undefined 
         ? arrematante.valorPagarNumerico 
-          : (typeof arrematante?.valorPagar === 'number' ? arrematante.valorPagar : 0)
-      });
+          : (typeof arrematante?.valorPagar === 'number' ? arrematante.valorPagar : 0),
+        percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+      }, auction.percentualComissaoLeiloeiro);
       
       let parcelasPagas = arrematante.parcelasPagas || 0;
       let quantidadeParcelas = arrematante.quantidadeParcelas || 1;
@@ -893,19 +894,23 @@ Atenciosamente,
     // Encontrar o lote arrematado para obter as configurações específicas de pagamento
     const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
     
+    // ✅ CORREÇÃO: Usar tipoPagamento do lote, do arrematante ou do leilão como fallback
+    const tipoPagamento = loteArrematado?.tipoPagamento || arrematante.tipoPagamento || auction.tipoPagamento || 'parcelamento';
+    
     console.log(`🔍 [isOverdue] Lote encontrado para ${arrematante.nome}:`, {
       loteEncontrado: !!loteArrematado,
       loteId: arrematante.loteId,
-      tipoPagamento: loteArrematado?.tipoPagamento,
+      tipoPagamentoLote: loteArrematado?.tipoPagamento,
+      tipoPagamentoArrematante: arrematante.tipoPagamento,
+      tipoPagamentoLeilao: auction.tipoPagamento,
+      tipoPagamentoUsado: tipoPagamento,
       lotesDisponiveis: auction.lotes?.map(l => ({ id: l.id, numero: l.numero })) || []
     });
     
-    if (!loteArrematado || !loteArrematado.tipoPagamento) {
-      console.log(`❌ [isOverdue] ${arrematante.nome} - Lote não encontrado ou sem tipo de pagamento`);
+    if (!loteArrematado) {
+      console.log(`❌ [isOverdue] ${arrematante.nome} - Lote não encontrado`);
       return false;
     }
-    
-    const tipoPagamento = loteArrematado.tipoPagamento;
     const now = new Date();
     
     switch (tipoPagamento) {
@@ -1057,9 +1062,10 @@ Atenciosamente,
     
     // Encontrar o lote arrematado para obter as configurações específicas de pagamento
     const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
-    if (!loteArrematado || !loteArrematado.tipoPagamento) return { maxDays: 0, avgDays: 0 };
+    if (!loteArrematado) return { maxDays: 0, avgDays: 0 };
     
-    const tipoPagamento = loteArrematado.tipoPagamento;
+    // ✅ CORREÇÃO: Usar tipoPagamento do lote, do arrematante ou do leilão como fallback
+    const tipoPagamento = loteArrematado.tipoPagamento || arrematante.tipoPagamento || auction.tipoPagamento || 'parcelamento';
     const now = new Date();
     const allOverdueDays: number[] = [];
     
@@ -1161,7 +1167,12 @@ Atenciosamente,
     console.log('🔍 [Inadimplência] Analisando leilões ativos:', {
       totalAuctions: auctions.length,
       activeAuctions: activeAuctions.length,
-      archivedAuctions: auctions.filter(a => a.arquivado).length
+      archivedAuctions: auctions.filter(a => a.arquivado).length,
+      dataAtual: new Date().toISOString(),
+      leiloesComArrematantes: activeAuctions.map(a => ({
+        nome: a.nome,
+        totalArrematantes: (a.arrematantes?.length || 0) + (a.arrematante ? 1 : 0)
+      }))
     });
     
     const overdueResults = activeAuctions
@@ -1228,15 +1239,16 @@ Atenciosamente,
         if (loteArrematado && loteArrematado.tipoPagamento) {
           const tipoPagamento = loteArrematado.tipoPagamento;
           
-          // NOVO: Usar função que considera fator multiplicador se disponível
+          // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
           const valorTotal = obterValorTotalArrematante({
             usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
             valorLance: arrematante?.valorLance,
             fatorMultiplicador: arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
             valorPagarNumerico: arrematante?.valorPagarNumerico !== undefined 
             ? arrematante.valorPagarNumerico 
-              : (typeof arrematante?.valorPagar === 'number' ? arrematante.valorPagar : 0)
-          });
+              : (typeof arrematante?.valorPagar === 'number' ? arrematante.valorPagar : 0),
+            percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+          }, auction.percentualComissaoLeiloeiro);
           
           switch (tipoPagamento) {
             case 'a_vista': {

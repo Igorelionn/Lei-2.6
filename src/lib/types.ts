@@ -22,6 +22,30 @@ export interface ItemPatrocinioInfo {
   nomePatrocinador: string; // nome do patrocinador
   valor: string; // valor como string para preservar formatação
   valorNumerico: number; // valor numérico para cálculos
+  recebido?: boolean; // indica se o patrocínio foi recebido
+  formaPagamento?: 'a_vista' | 'parcelamento' | 'entrada_parcelamento'; // forma de pagamento do patrocínio
+  
+  // Campos para À Vista
+  dataVencimentoVista?: string; // data de pagamento para À Vista
+  
+  // Campos para Entrada + Parcelamento
+  valorEntrada?: string; // valor da entrada (como string)
+  valorEntradaNumerico?: number; // valor da entrada numérico
+  dataEntrada?: string; // data de pagamento da entrada
+  
+  // Campos para sistema de Fator Multiplicador (parcelamento e entrada_parcelamento)
+  valorLance?: string; // valor do lance (como string)
+  valorLanceNumerico?: number; // valor do lance numérico
+  fatorMultiplicador?: number; // fator multiplicador
+  parcelasTriplas?: number; // quantidade de parcelas triplas (valor × 3)
+  parcelasDuplas?: number; // quantidade de parcelas duplas (valor × 2)
+  parcelasSimples?: number; // quantidade de parcelas simples (valor × 1)
+  mesInicioPagamento?: string; // mês de início do pagamento (YYYY-MM)
+  diaVencimentoMensal?: number; // dia do mês para vencimento (1-31)
+  
+  // Controle de parcelas recebidas
+  parcelas?: number; // total de parcelas calculadas
+  parcelasRecebidas?: number; // quantidade de parcelas já recebidas
 }
 
 export interface MercadoriaInfo {
@@ -31,8 +55,9 @@ export interface MercadoriaInfo {
   tipo?: string; // tipo de mercadoria (ex: Gado Nelore, Veículos)
   descricao: string; // descrição detalhada da mercadoria
   quantidade?: number; // quantidade de unidades da mercadoria
-  valor: string; // valor como string para preservar formatação
-  valorNumerico: number; // valor numérico para cálculos
+  valor?: string; // valor como string para preservar formatação (opcional para lotes de convidados)
+  valorNumerico?: number; // valor numérico para cálculos (opcional para lotes de convidados)
+  valorEstimado?: number; // valor estimado (para lotes de convidados)
 }
 
 export interface LoteInfo {
@@ -42,6 +67,15 @@ export interface LoteInfo {
   mercadorias: MercadoriaInfo[]; // mercadorias dentro do lote
   imagens?: string[]; // URLs ou caminhos das imagens do lote
   status?: 'disponivel' | 'arrematado' | 'arquivado'; // status do lote
+  isConvidado?: boolean; // se o lote pertence a um convidado
+  guestLotId?: string; // ID na tabela guest_lots (se já foi salvo como lote convidado)
+  
+  // Informações do proprietário (para lotes convidados)
+  proprietario?: string; // Nome do proprietário
+  codigoPais?: string; // Código do país (ex: '+55')
+  celularProprietario?: string; // Celular do proprietário
+  emailProprietario?: string; // E-mail do proprietário
+  documentos?: string[]; // Documentos em base64
   
   // Configurações de pagamento específicas do lote (opcionais)
   tipoPagamento?: "a_vista" | "parcelamento" | "entrada_parcelamento"; // tipo de pagamento específico deste lote
@@ -53,6 +87,7 @@ export interface LoteInfo {
   parcelasPadrao?: number; // quantidade padrão de parcelas para este lote
   quantidadeParcelas?: number; // quantidade de parcelas (compatibilidade)
   fatorMultiplicador?: number; // fator multiplicador para cálculo de valores
+  percentualComissaoLeiloeiro?: number; // percentual de comissão do leiloeiro (ex: 10 para 10%)
 }
 
 export interface ArrematanteInfo {
@@ -97,6 +132,9 @@ export interface ArrematanteInfo {
   parcelasTriplas?: number;     // Quantidade de parcelas triplas (valor × 3)
   parcelasDuplas?: number;      // Quantidade de parcelas duplas (valor × 2)
   parcelasSimples?: number;     // Quantidade de parcelas simples (valor × 1)
+  
+  // Comissão do leiloeiro
+  percentualComissaoLeiloeiro?: number; // percentual de comissão do leiloeiro (ex: 10 para 10%)
 }
 
 export interface Auction {
@@ -119,6 +157,7 @@ export interface Auction {
   detalheCustos?: ItemCustoInfo[]; // detalhamento dos custos
   detalhePatrocinios?: ItemPatrocinioInfo[]; // detalhamento dos patrocínios
   patrociniosTotal?: number; // total de patrocínios recebidos
+  percentualComissaoLeiloeiro?: number; // percentual de comissão do leiloeiro (ex: 5 para 5%)
   lotes?: LoteInfo[]; // informações dos lotes do leilão
   fotosMercadoria?: DocumentoInfo[]; // fotos da mercadoria
   historicoNotas?: string[];
@@ -173,4 +212,18 @@ export interface DomainState {
   invoices: Invoice[];
 }
 
-
+// Interface para formulário de lotes de convidados
+export interface LoteConvidadoFormData {
+  id?: string; // Adicionado para edição
+  numero: string;
+  descricao: string;
+  proprietario: string;
+  codigoPais: string;
+  celularProprietario: string;
+  emailProprietario: string;
+  mercadorias: MercadoriaInfo[];
+  documentos?: string[]; // URLs ou nomes de arquivos de documentos
+  imagens?: string[];
+  leilaoId?: string;
+  observacoes?: string;
+}

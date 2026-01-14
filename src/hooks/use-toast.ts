@@ -188,4 +188,8 @@ function useToast() {
   }
 }
 
-export { useToast, toast }
+function dismiss(toastId?: string) {
+  dispatch({ type: "DISMISS_TOAST", toastId })
+}
+
+export { useToast, toast, dismiss }

@@ -55,9 +55,19 @@ const parseCurrencyToNumber = (currencyString: string): number => {
 const normalizarMesInicioPagamento = (mesInicioPagamento: string): string => {
   if (!mesInicioPagamento) return '';
   
-  // Se já está no formato correto (YYYY-MM), retornar como está
-  if (mesInicioPagamento.includes('-') && mesInicioPagamento.split('-').length === 2) {
+  // ✅ CORREÇÃO: Se veio com dia (YYYY-MM-DD), extrair apenas ano e mês
+  if (mesInicioPagamento.includes('-')) {
+    const partes = mesInicioPagamento.split('-');
+    
+    // Se tem 3 partes (YYYY-MM-DD), pegar apenas as 2 primeiras
+    if (partes.length === 3) {
+      return `${partes[0]}-${partes[1]}`;
+    }
+    
+    // Se tem 2 partes (YYYY-MM), já está no formato correto
+    if (partes.length === 2) {
     return mesInicioPagamento;
+    }
   }
   
   // Se veio apenas o mês (ex: "11"), adicionar o ano atual
@@ -192,13 +202,14 @@ function Faturas() {
           return;
         }
         
-        // NOVO: Usar função que considera fator multiplicador se disponível
+        // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
         const valorTotal = obterValorTotalArrematante({
           usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
           valorLance: arrematante?.valorLance,
           fatorMultiplicador: arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
-          valorPagarNumerico: arrematante.valorPagarNumerico || 0
-        });
+          valorPagarNumerico: arrematante.valorPagarNumerico || 0,
+          percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+        }, auction.percentualComissaoLeiloeiro);
         
         // Gerar faturas baseadas no tipo de pagamento (prioriza arrematante, depois lote)
         switch (tipoPagamento) {
@@ -467,15 +478,46 @@ function Faturas() {
             // Gerar apenas a próxima parcela não paga
             const i = parcelasPagas; // Índice da próxima parcela (0-based)
             const parcelaNumero = parcelasPagas + 1; // Número da próxima parcela (1-based)
-            const dueDate = new Date(startYear, startMonth - 1 + i, diaVencimento, 23, 59, 59);
+            
+            // ✅ CORREÇÃO: Calcular data usando Date.UTC para evitar problemas de fuso horário
+            const mesCalculado = startMonth - 1 + i; // Mês no formato Date (0-11)
+            const dueDate = new Date(startYear, mesCalculado, diaVencimento, 23, 59, 59);
+            
+            console.log('🔍 DEBUG FATURAS - Cálculo de data:', {
+              arrematante: arrematante.nome,
+              mesInicioPagamento: mesInicioPagamento,
+              mesInicioPagamentoNormalizado: mesInicioPagamentoNormalizado,
+              startYear,
+              startMonth,
+              i,
+              parcelaNumero,
+              mesCalculado,
+              diaVencimento,
+              dueDateCalculado: dueDate.toISOString(),
+              dueDateFormatado: dueDate.toLocaleDateString('pt-BR')
+            });
             
             // Validar se a data criada é válida
             if (isNaN(dueDate.getTime())) {
-              console.error('Data de vencimento inválida criada:', {
+              console.error('❌ Data de vencimento inválida criada:', {
                 startYear,
                 startMonth,
                 i,
-                diaVencimento
+                diaVencimento,
+                mesCalculado
+              });
+              return;
+            }
+            
+            // ✅ Validar se o ano está no intervalo razoável
+            const anoCalculado = dueDate.getFullYear();
+            if (anoCalculado < 2020 || anoCalculado > 2100) {
+              console.error('❌ Ano calculado fora do intervalo esperado:', {
+                anoCalculado,
+                startYear,
+                startMonth,
+                i,
+                mesInicioPagamento: mesInicioPagamento
               });
               return;
             }

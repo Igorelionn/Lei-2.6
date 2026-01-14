@@ -1559,12 +1559,16 @@ function Relatorios() {
                                   }, 0) || 0;
                                   
                                   // Adicionar patrocínios ao faturamento (total recebido de patrocinadores)
+                                  // ✅ Considerar APENAS patrocínios confirmados como recebidos
                                   const totalPatrocinios = auctions?.reduce((sum, auction) => {
                                     if (!auction.arquivado) {
                                       const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
                                       if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                        const patrociniosTotal = auction.patrociniosTotal || 0;
-                                        return sum + patrociniosTotal;
+                                        // Somar apenas patrocínios que foram confirmados como recebidos
+                                        const patrociniosRecebidos = (auction.detalhePatrocinios || [])
+                                          .filter(p => p.recebido === true)
+                                          .reduce((sumPatrocinios, p) => sumPatrocinios + (p.valorNumerico || 0), 0);
+                                        return sum + patrociniosRecebidos;
                                       }
                                     }
                                     return sum;
@@ -2436,27 +2440,37 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                 )}
 
                 {/* Patrocínios Recebidos */}
-                {auction.detalhePatrocinios && auction.detalhePatrocinios.length > 0 && (
+                {auction.detalhePatrocinios && auction.detalhePatrocinios.length > 0 && (() => {
+                  // ✅ Filtrar apenas patrocínios recebidos
+                  const patrociniosRecebidos = auction.detalhePatrocinios.filter(p => p.recebido === true);
+                  
+                  // Se não houver patrocínios recebidos, não mostrar a seção
+                  if (patrociniosRecebidos.length === 0) return null;
+                  
+                  // Calcular total de patrocínios recebidos
+                  const totalRecebido = patrociniosRecebidos.reduce((sum, p) => sum + (p.valorNumerico || 0), 0);
+                  
+                  return (
                 <div className="mb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
                   <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em' }}>
                       Patrocínios Recebidos
                   </h3>
                   <div className="p-4 break-inside-avoid" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px', pageBreakInside: 'avoid' }}>
-                    {/* Total de Patrocínios */}
+                        {/* Total de Patrocínios Recebidos */}
                     <div className="mb-4 pb-3 border-b border-gray-200">
                       <div className="flex justify-between items-center">
-                        <div className="text-xs text-slate-500 uppercase tracking-wider" style={{ fontWeight: 500 }}>Total de Patrocínios</div>
+                            <div className="text-xs text-slate-500 uppercase tracking-wider" style={{ fontWeight: 500 }}>Total de Patrocínios Recebidos</div>
                         <div className="text-lg font-light text-slate-900 tracking-tight">
-                          {formatCurrency(auction.patrociniosTotal || 0)}
+                              {formatCurrency(totalRecebido)}
                         </div>
                       </div>
                     </div>
 
-                    {/* Lista de Patrocinadores */}
+                        {/* Lista de Patrocinadores que pagaram */}
                     <div className="border-t border-gray-200 pt-4">
                       <div className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-3">Patrocinadores</div>
                       <div className="space-y-2">
-                      {auction.detalhePatrocinios.map((item: ItemPatrocinioInfo, index: number) => (
+                            {patrociniosRecebidos.map((item: ItemPatrocinioInfo, index: number) => (
                         <div key={item.id || index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded border border-gray-200">
                           <div className="flex items-center gap-3">
                             <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-200 text-xs font-semibold text-gray-700">
@@ -2475,7 +2489,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                     </div>
                   </div>
                 </div>
-              )}
+                  );
+                })()}
 
               {/* Configurações de Pagamento por Mercadoria */}
               <div className="mb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>

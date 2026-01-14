@@ -511,6 +511,37 @@ All colors MUST be HSL.
       opacity: 0.85;
     }
   }
+
+  /* Animação ultra suave e minimalista para submenu da sidebar */
+  .submenu-fade-in {
+    animation: submenuFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  .submenu-fade-out {
+    animation: submenuFadeOut 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  @keyframes submenuFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes submenuFadeOut {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+  }
 }
 
 /* CORREÇÃO CRÍTICA: Estilos para inputs do wizard - FORA do @layer para maior especificidade */
@@ -556,4 +587,61 @@ input[type="tel"].wizard-input {
   color: #111827 !important;
   -webkit-text-fill-color: #111827 !important;
   opacity: 1 !important;
+}
+
+/* ========================================
+   REMOVER TODOS OS CONTORNOS/OUTLINES
+   ======================================== */
+
+/* Remover outline de TODOS os elementos ao focar */
+*:focus,
+*:focus-visible,
+*:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remover outline especificamente de elementos de formulário */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+button:focus,
+button:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  ring: 0 !important;
+  ring-offset: 0 !important;
+}
+
+/* Remover ring do Tailwind */
+input,
+textarea,
+select,
+button,
+[role="button"],
+[role="combobox"],
+[role="option"],
+[role="menuitem"] {
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* Remover outline de elementos Radix UI */
+[data-radix-select-trigger]:focus,
+[data-radix-select-trigger]:focus-visible,
+[data-radix-select-content]:focus,
+[data-radix-select-content]:focus-visible,
+[data-radix-select-item]:focus,
+[data-radix-select-item]:focus-visible,
+[data-radix-dialog-trigger]:focus,
+[data-radix-dialog-trigger]:focus-visible,
+[data-radix-dropdown-menu-trigger]:focus,
+[data-radix-dropdown-menu-trigger]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
 }

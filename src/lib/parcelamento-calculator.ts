@@ -7,13 +7,20 @@ export interface ParcelaInfo {
 }
 
 /**
- * Calcular valor total: lance × fator
+ * Calcular valor total: lance × fator × (1 + comissão)
+ * @param lance - Valor do lance
+ * @param fator - Fator multiplicador
+ * @param percentualComissao - Percentual de comissão do leiloeiro (ex: 10 para 10%)
  */
-export function calcularValorTotal(lance: number, fator: number): number {
+export function calcularValorTotal(lance: number, fator: number, percentualComissao: number = 0): number {
   if (lance <= 0 || fator <= 0) {
     return 0;
   }
-  return Math.round(lance * fator * 100) / 100;
+  const valorBase = lance * fator;
+  const valorComComissao = percentualComissao > 0 
+    ? valorBase * (1 + percentualComissao / 100)
+    : valorBase;
+  return Math.round(valorComComissao * 100) / 100;
 }
 
 /**
@@ -80,7 +87,7 @@ export function obterQuantidadeTotalParcelas(
 }
 
 /**
- * Função helper para obter valor total considerando fator multiplicador
+ * Função helper para obter valor total considerando fator multiplicador e comissão
  */
 export function obterValorTotalArrematante(
   arrematante: {
@@ -88,11 +95,15 @@ export function obterValorTotalArrematante(
     valorLance?: number;
     fatorMultiplicador?: number;
     valorPagarNumerico: number;
-  }
+    percentualComissaoLeiloeiro?: number;
+  },
+  percentualComissaoLeilao?: number
 ): number {
   // Se usa fator multiplicador (novo sistema)
   if (arrematante.usaFatorMultiplicador && arrematante.valorLance && arrematante.fatorMultiplicador) {
-    return calcularValorTotal(arrematante.valorLance, arrematante.fatorMultiplicador);
+    // Usar comissão do arrematante, ou do leilão, ou 0
+    const comissao = arrematante.percentualComissaoLeiloeiro ?? percentualComissaoLeilao ?? 0;
+    return calcularValorTotal(arrematante.valorLance, arrematante.fatorMultiplicador, comissao);
   }
   
   // Sistema antigo (valor direto)

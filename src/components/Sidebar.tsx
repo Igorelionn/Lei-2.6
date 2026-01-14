@@ -1,5 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useState } from "react";
 import {
   Home,
   Gavel,
@@ -12,15 +13,32 @@ import {
   ChevronsLeft,
   ChevronsRight,
   LogOut,
+  Mail,
+  Handshake,
 } from "lucide-react";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "./ui/button";
 
-const menuItems = [
+type MenuItem = {
+  icon: any;
+  label: string;
+  path: string;
+  subitems?: { icon: any; label: string; path: string }[];
+};
+
+const menuItems: MenuItem[] = [
   { icon: Home, label: "Dashboard", path: "/" },
   { icon: Gavel, label: "Leilões", path: "/leiloes" },
-  { icon: Package, label: "Lotes", path: "/lotes" },
+  { 
+    icon: Package, 
+    label: "Lotes", 
+    path: "/lotes",
+    subitems: [
+      { icon: Mail, label: "Lotes Convidados", path: "/lotes-convidados" }
+    ]
+  },
+  { icon: Handshake, label: "Patrocinadores", path: "/patrocinadores" },
   { icon: Users, label: "Arrematantes", path: "/arrematantes" },
   { icon: FileText, label: "Faturas", path: "/faturas" },
   { icon: AlertTriangle, label: "Inadimplência", path: "/inadimplencia" },
@@ -32,6 +50,8 @@ export function Sidebar() {
   const location = useLocation();
   const { isCollapsed, toggleSidebar } = useSidebar();
   const { logout } = useAuth();
+  const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const [isExiting, setIsExiting] = useState(false);
 
   return (
     <div className="relative">
@@ -72,12 +92,16 @@ export function Sidebar() {
             {menuItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
+              const hasSubitems = item.subitems && item.subitems.length > 0;
+              const isHovered = hoveredItem === item.path;
               
               // Definir animação específica para cada ícone
               const iconAnimation = {
                 Home: "group-hover:scale-110 group-hover:rotate-[8deg] transition-all duration-300",
                 Gavel: "group-hover:rotate-[15deg] group-hover:scale-110 transition-all duration-300",
                 Package: "group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300",
+                Mail: "group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-[5deg] transition-all duration-300",
+                Handshake: "group-hover:scale-110 group-hover:rotate-[-5deg] transition-all duration-300",
                 Users: "group-hover:scale-125 transition-all duration-300",
                 FileText: "group-hover:rotate-[10deg] group-hover:scale-110 transition-all duration-300",
                 AlertTriangle: "group-hover:animate-bounce",
@@ -87,6 +111,23 @@ export function Sidebar() {
               
               return (
                 <li key={item.path}>
+                  <div
+                    onMouseEnter={() => {
+                      setIsExiting(false);
+                      setHoveredItem(item.path);
+                    }}
+                    onMouseLeave={() => {
+                      if (hasSubitems) {
+                        setIsExiting(true);
+                        setTimeout(() => {
+                          setHoveredItem(null);
+                          setIsExiting(false);
+                        }, 250);
+                      } else {
+                        setHoveredItem(null);
+                      }
+                    }}
+                  >
                   <Link
                     to={item.path}
                     className={cn(
@@ -101,6 +142,36 @@ export function Sidebar() {
                     <Icon className={cn("h-5 w-5 flex-shrink-0", iconAnimation)} />
                     {!isCollapsed && <span className="group-hover:translate-x-1 transition-transform duration-300">{item.label}</span>}
                   </Link>
+
+                    {/* Submenu - aparece embaixo de forma minimalista */}
+                    {hasSubitems && isHovered && !isCollapsed && (
+                      <div className={cn(
+                        "mt-1 space-y-1",
+                        isExiting ? "submenu-fade-out" : "submenu-fade-in"
+                      )}>
+                        {item.subitems!.map((subitem) => {
+                          const SubIcon = subitem.icon;
+                          const isSubActive = location.pathname === subitem.path;
+                          
+                          return (
+                            <Link
+                              key={subitem.path}
+                              to={subitem.path}
+                              className={cn(
+                                "flex items-center space-x-2 px-3 py-2 pl-10 text-sm rounded-lg transition-all duration-300 ease-in-out",
+                                isSubActive
+                                  ? "bg-gray-100 text-black"
+                                  : "text-muted-foreground hover:text-foreground hover:bg-gray-50"
+                              )}
+                            >
+                              <SubIcon className="h-4 w-4 flex-shrink-0" />
+                              <span className="transition-transform duration-300 ease-out hover:translate-x-0.5">{subitem.label}</span>
+                            </Link>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
                 </li>
               );
             })}

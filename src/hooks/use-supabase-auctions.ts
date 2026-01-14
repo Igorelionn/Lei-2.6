@@ -69,6 +69,7 @@ interface ExtendedAuctionRow extends AuctionRow {
   detalhe_custos?: ItemCustoInfo[] | null;
   detalhe_patrocinios?: ItemPatrocinioInfo[] | null;
   patrocinios_total?: number | null;
+  percentual_comissao_leiloeiro?: number | null;
   documents?: DocumentRow[];
   bidders?: BidderRow[];
 }
@@ -77,12 +78,14 @@ interface ExtendedAuctionInsert extends AuctionInsert {
   detalhe_custos?: ItemCustoInfo[] | null;
   detalhe_patrocinios?: ItemPatrocinioInfo[] | null;
   patrocinios_total?: number | null;
+  percentual_comissao_leiloeiro?: number | null;
 }
 
 interface ExtendedAuctionUpdate extends AuctionUpdate {
   detalhe_custos?: ItemCustoInfo[] | null;
   detalhe_patrocinios?: ItemPatrocinioInfo[] | null;
   patrocinios_total?: number | null;
+  percentual_comissao_leiloeiro?: number | null;
 }
 
 interface BidderInsert {
@@ -182,6 +185,7 @@ function mapSupabaseAuctionToApp(auction: ExtendedAuctionRow): Auction {
     detalheCustos: auction.detalhe_custos || undefined,
     detalhePatrocinios: auction.detalhe_patrocinios || undefined,
     patrociniosTotal: auction.patrocinios_total ? Number(auction.patrocinios_total) : undefined,
+    percentualComissaoLeiloeiro: auction.percentual_comissao_leiloeiro ? Number(auction.percentual_comissao_leiloeiro) : undefined,
     lotes: (auction.lotes as unknown as LoteInfo[]) || [],
     fotosMercadoria: auction.documents?.filter((doc) => doc.categoria === 'leilao_fotos_mercadoria').map((doc) => ({
       id: doc.id.toString(),
@@ -225,6 +229,7 @@ function mapAppAuctionToSupabase(auction: Omit<Auction, "id">): ExtendedAuctionI
     detalhe_custos: auction.detalheCustos || undefined,
     detalhe_patrocinios: auction.detalhePatrocinios || undefined,
     patrocinios_total: auction.patrociniosTotal,
+    percentual_comissao_leiloeiro: auction.percentualComissaoLeiloeiro,
     lotes: (auction.lotes as unknown as Database['public']['Tables']['auctions']['Insert']['lotes']) || undefined,
     historico_notas: auction.historicoNotas,
     arquivado: auction.arquivado,
@@ -237,15 +242,40 @@ export function useSupabaseAuctions() {
   // Query para listar leilões com arrematantes
   const listQuery = useQuery({
     queryKey: AUCTIONS_KEY,
-    staleTime: 1000 * 10, // Considerar dados "frescos" por 10 segundos
-    gcTime: 1000 * 60 * 5, // Manter em cache por 5 minutos (antes era cacheTime)
-    refetchOnWindowFocus: false, // Não refazer query ao focar na janela
-    refetchOnMount: false, // Não refazer query ao montar componente se já tem cache
+    staleTime: 0, // Sempre considerar dados como "velhos" para forçar refetch
+    gcTime: 0, // NÃO manter em cache - forçar busca fresca sempre
+    refetchOnWindowFocus: true, // Refazer query ao focar na janela
+    refetchOnMount: 'always', // SEMPRE refazer query ao montar componente
+    refetchInterval: false, // Não usar polling automático
     queryFn: async () => {
       const { data, error } = await supabaseClient
         .from('auctions')
         .select(`
-          *,
+          id,
+          nome,
+          identificacao,
+          local,
+          endereco,
+          data_inicio,
+          data_encerramento,
+          tipo_pagamento,
+          mes_inicio_pagamento,
+          dia_vencimento_padrao,
+          data_entrada,
+          data_vencimento_vista,
+          parcelas_padrao,
+          status,
+          custos_texto,
+          custos_numerico,
+          detalhe_custos,
+          detalhe_patrocinios,
+          patrocinios_total,
+          percentual_comissao_leiloeiro,
+          lotes,
+          historico_notas,
+          arquivado,
+          created_at,
+          updated_at,
           bidders (
             id,
             nome,
@@ -585,33 +615,8 @@ export function useSupabaseAuctions() {
 
   // Mutation para atualizar leilão
   const updateMutation = useMutation({
-    // Atualização otimista: atualizar cache antes de confirmar no servidor
-    onMutate: async ({ id, data }: { id: string; data: Partial<Auction> }) => {
-      // Cancelar refetch em andamento
-      await queryClient.cancelQueries({ queryKey: AUCTIONS_KEY });
-      
-      // Snapshot do estado anterior
-      const previousAuctions = queryClient.getQueryData(AUCTIONS_KEY);
-      
-      // Atualizar cache otimisticamente
-      queryClient.setQueryData<Auction[]>(AUCTIONS_KEY, (old) => {
-        if (!old) return old;
-        return old.map((auction) => 
-          auction.id === id 
-            ? { ...auction, ...data }
-            : auction
-        );
-      });
-      
-      // Retornar contexto com snapshot para rollback se necessário
-      return { previousAuctions };
-    },
-    // Se mutation falhar, fazer rollback
-    onError: (_err, _variables, context) => {
-      if (context?.previousAuctions) {
-        queryClient.setQueryData(AUCTIONS_KEY, context.previousAuctions);
-      }
-    },
+    // ❌ ATUALIZAÇÃO OTIMISTA DESABILITADA - estava causando conflito com refetch
+    // Agora usamos fluxo síncrono: salvar no banco -> invalidar cache -> refetch
     mutationFn: async ({ id, data }: { id: string; data: Partial<Auction> }) => {
       // Separar campos de documentos dos demais dados
       const { fotosMercadoria, documentos, ...sanitizedData } = data;
@@ -639,6 +644,7 @@ export function useSupabaseAuctions() {
       if (sanitizedData.detalheCustos !== undefined) extendedUpdateData.detalhe_custos = sanitizedData.detalheCustos;
       if (sanitizedData.detalhePatrocinios !== undefined) extendedUpdateData.detalhe_patrocinios = sanitizedData.detalhePatrocinios;
       if (sanitizedData.patrociniosTotal !== undefined) extendedUpdateData.patrocinios_total = sanitizedData.patrociniosTotal;
+      if (sanitizedData.percentualComissaoLeiloeiro !== undefined) extendedUpdateData.percentual_comissao_leiloeiro = sanitizedData.percentualComissaoLeiloeiro;
       
       if (sanitizedData.lotes !== undefined) updateData.lotes = sanitizedData.lotes as unknown as Database['public']['Tables']['auctions']['Update']['lotes'];
       if (sanitizedData.historicoNotas !== undefined) updateData.historico_notas = sanitizedData.historicoNotas;
@@ -782,21 +788,9 @@ export function useSupabaseAuctions() {
               // MODO CRIAÇÃO: Inserir novo arrematante
               console.log('➕ MODO CRIAÇÃO: Inserindo novo arrematante');
               
-              // ✅ VALIDAÇÃO: Verificar se já existe arrematante para esta mercadoria
-              if (arrematante.mercadoriaId) {
-                // @ts-expect-error - Supabase type inference issue, funcionalmente correto
-                const validationResult = await supabaseClient
-                  .from('bidders')
-                  .select('id, nome')
-                  .eq('auction_id', id)
-                  .eq('mercadoria_id', arrematante.mercadoriaId);
-
-                // Se não houver erro de consulta e encontrar registros existentes
-                if (!validationResult.error && validationResult.data && validationResult.data.length > 0) {
-                  const existingBidder = validationResult.data[0] as { id: string; nome: string };
-                  throw new Error(`Esta mercadoria já possui um arrematante (${existingBidder.nome}). Cada mercadoria só pode ter um arrematante.`);
-                }
-              }
+              // ✅ VALIDAÇÃO REMOVIDA: Agora permitimos múltiplos arrematantes por mercadoria
+              // Isso é necessário para o recurso de "Divisão de Mercadoria"
+              // onde vários arrematantes podem compartilhar a mesma mercadoria
 
               // ✅ INSERT e obter o ID retornado para usar nos documentos
               const { data: insertedBidder, error: bidderError } = await supabaseClient
@@ -1097,7 +1091,33 @@ export function useSupabaseAuctions() {
           .from('auctions')
           .update(updateData)
           .eq('id', id)
-          .select()
+          .select(`
+            id,
+            nome,
+            identificacao,
+            local,
+            endereco,
+            data_inicio,
+            data_encerramento,
+            tipo_pagamento,
+            mes_inicio_pagamento,
+            dia_vencimento_padrao,
+            data_entrada,
+            data_vencimento_vista,
+            parcelas_padrao,
+            status,
+            custos_texto,
+            custos_numerico,
+            detalhe_custos,
+            detalhe_patrocinios,
+            patrocinios_total,
+            percentual_comissao_leiloeiro,
+            lotes,
+            historico_notas,
+            arquivado,
+            created_at,
+            updated_at
+          `)
           .maybeSingle();
 
         if (error) throw error;
@@ -1114,7 +1134,31 @@ export function useSupabaseAuctions() {
         const { data: current, error } = await supabaseClient
           .from('auctions')
           .select(`
-            *,
+            id,
+            nome,
+            identificacao,
+            local,
+            endereco,
+            data_inicio,
+            data_encerramento,
+            tipo_pagamento,
+            mes_inicio_pagamento,
+            dia_vencimento_padrao,
+            data_entrada,
+            data_vencimento_vista,
+            parcelas_padrao,
+            status,
+            custos_texto,
+            custos_numerico,
+            detalhe_custos,
+            detalhe_patrocinios,
+            patrocinios_total,
+            percentual_comissao_leiloeiro,
+            lotes,
+            historico_notas,
+            arquivado,
+            created_at,
+            updated_at,
             bidders (
               id,
               nome,
@@ -1223,17 +1267,9 @@ export function useSupabaseAuctions() {
         return mappedAuction;
       }
     },
-    // Invalidar queries sem aguardar (background)
-    onSuccess: async () => {
-      // Limpar cache completamente
-      queryClient.removeQueries({ queryKey: AUCTIONS_KEY });
-      
-      // Invalidar e forçar refetch imediato
-      await queryClient.invalidateQueries({ queryKey: AUCTIONS_KEY });
-      await queryClient.refetchQueries({ queryKey: AUCTIONS_KEY });
-    },
-    // Sempre invalidar ao finalizar (mesmo com erro)
-    onSettled: () => {
+    // Invalidar queries após atualização
+    onSuccess: () => {
+      // Invalidar queries para próxima montagem do componente (após reload)
       queryClient.invalidateQueries({ queryKey: AUCTIONS_KEY });
     }
   });

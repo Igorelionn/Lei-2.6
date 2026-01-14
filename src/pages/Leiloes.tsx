@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
+import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { AuctionForm, AuctionFormValues, createEmptyAuctionForm } from "@/components/AuctionForm";
@@ -93,6 +94,26 @@ function Leiloes() {
   const [initialStep, setInitialStep] = useState<number | undefined>(undefined);
   const [initialLoteIndex, setInitialLoteIndex] = useState<number | undefined>(undefined);
   
+  // 🔍 LOG: Monitorar mudanças no editingAuction
+  useEffect(() => {
+    console.log('🔄 [Leiloes.tsx] editingAuction mudou:', {
+      hasEditingAuction: !!editingAuction,
+      auctionId: editingAuction?.id,
+      auctionNome: editingAuction?.nome,
+      auctionIdentificacao: editingAuction?.identificacao,
+      qtdLotes: editingAuction?.lotes?.length || 0
+    });
+  }, [editingAuction]);
+
+  // 🔍 LOG: Monitorar mudanças no initialStep e initialLoteIndex
+  useEffect(() => {
+    console.log('🔄 [Leiloes.tsx] initialStep/initialLoteIndex mudaram:', {
+      initialStep,
+      initialLoteIndex,
+      hasEditingAuction: !!editingAuction
+    });
+  }, [initialStep, initialLoteIndex, editingAuction]);
+  
   // Estados para o modal de exportação
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedAuctionForExport, setSelectedAuctionForExport] = useState<string>("");
@@ -103,19 +124,69 @@ function Leiloes() {
   
   // 🔄 Detectar navegação da página de Lotes para editar lote específico
   useEffect(() => {
-    const state = location.state as { editAuctionId?: string; editLoteIndex?: number; openStep?: number } | null;
+    const state = location.state as { 
+      editAuctionId?: string; 
+      editLoteIndex?: number; 
+      openStep?: number;
+      openTab?: string; // ✅ NOVO: Suporte para abrir em aba específica
+      createNewLote?: boolean; // ✅ NOVO: Flag para criar novo lote
+    } | null;
+    
     if (state?.editAuctionId && auctions) {
       const auction = auctions.find(a => a.id === state.editAuctionId);
       if (auction) {
-        console.log("📍 Abrindo formulário do leilão para editar lote:", {
+        console.log("📍 Abrindo formulário do leilão:", {
           auctionId: state.editAuctionId,
           loteIndex: state.editLoteIndex,
-          step: state.openStep
+          step: state.openStep,
+          tab: state.openTab,
+          createNewLote: state.createNewLote
         });
         
-        setEditingAuction(auction);
-        setInitialStep(state.openStep);
-        setInitialLoteIndex(state.editLoteIndex);
+        // Mapear openTab para o step correto
+        let stepToOpen = state.openStep;
+        if (state.openTab === 'custos-patrocinios') {
+          stepToOpen = 5; // "Custos e Patrocínios" é o step 5 (índice começa em 0)
+        } else if (state.openTab === 'lotes') {
+          stepToOpen = 4; // "Configuração de Lotes" é o step 4 (índice começa em 0)
+        }
+        
+        // ✅ Se createNewLote for true, preparar um novo lote vazio
+        let auctionToEdit = auction;
+        let loteIndexToOpen = state.editLoteIndex;
+        
+        if (state.createNewLote) {
+          const novoLote = {
+            id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+            numero: String((auction.lotes || []).length + 1).padStart(3, '0'),
+            descricao: "",
+            mercadorias: [],
+            status: 'disponivel' as const
+          };
+          
+          console.log("✨ Criando novo lote automaticamente:", novoLote);
+          
+          // Adicionar o novo lote temporariamente ao auction
+          auctionToEdit = {
+            ...auction,
+            lotes: [...(auction.lotes || []), novoLote]
+          };
+          
+          // Selecionar o último lote (o recém-criado)
+          loteIndexToOpen = (auctionToEdit.lotes?.length || 1) - 1;
+        }
+        
+        console.log('✨ [Leiloes.tsx] Setando editingAuction (navigation state):', {
+          auctionId: auctionToEdit.id,
+          auctionNome: auctionToEdit.nome,
+          stepToOpen,
+          loteIndexToOpen,
+          createNewLote: state.createNewLote
+        });
+
+        setEditingAuction(auctionToEdit);
+        setInitialStep(stepToOpen);
+        setInitialLoteIndex(loteIndexToOpen);
         setIsCreateModalOpen(true);
         
         // Limpar o estado de navegação
@@ -900,7 +971,109 @@ function Leiloes() {
 
   const handleCreateAuction = async (values: AuctionFormValues) => {
     try {
-      const newAuction = await createAuction(values);
+      // ✅ Separar lotes de convidados dos lotes normais
+      const lotesAnfitriao = (values.lotes || []).filter(l => !l.isConvidado);
+      const lotesConvidados = (values.lotes || []).filter(l => l.isConvidado);
+      
+      console.log('📊 Separação de lotes:', {
+        total: values.lotes?.length || 0,
+        anfitriao: lotesAnfitriao.length,
+        convidados: lotesConvidados.length
+      });
+      
+      // ✅ Criar leilão com TODOS os lotes para aparecerem no formulário
+      // Lotes convidados também ficam no array para serem editáveis
+      const valuesParaLeilao = {
+        ...values,
+        lotes: values.lotes // Manter todos os lotes
+      };
+      
+      const newAuction = await createAuction(valuesParaLeilao);
+      
+      // ✅ Criar lotes de convidados separadamente na tabela guest_lots
+      if (lotesConvidados.length > 0) {
+        console.log('🎯 Processando lotes de convidados:', lotesConvidados.length);
+        
+        // Filtrar apenas lotes que ainda não foram salvos como guest_lots
+        const lotesNovos = lotesConvidados.filter(l => !l.guestLotId);
+        console.log('📝 Lotes novos para criar:', lotesNovos.length);
+        
+        for (const loteConvidado of lotesNovos) {
+          try {
+            console.log('📝 Criando lote de convidado:', loteConvidado.numero);
+            
+            // Criar o lote de convidado no Supabase
+            const { data: guestLot, error: guestLotError} = await supabase
+              // @ts-expect-error - guest_lots table não está no database.types.ts gerado
+              .from('guest_lots')
+              // @ts-expect-error - campos customizados para guest_lots
+              .insert({
+                numero: loteConvidado.numero,
+                descricao: loteConvidado.descricao,
+                leilao_id: newAuction.id,
+                status: 'disponivel',
+                proprietario: loteConvidado.proprietario || '',
+                codigo_pais: loteConvidado.codigoPais || '+55',
+                celular_proprietario: loteConvidado.celularProprietario || '',
+                email_proprietario: loteConvidado.emailProprietario || '',
+                imagens: loteConvidado.imagens || [],
+                documentos: loteConvidado.documentos || [],
+                observacoes: '',
+                arquivado: false,
+              })
+              .select()
+              .single();
+            
+            if (guestLotError) {
+              console.error('❌ Erro ao criar lote de convidado:', guestLotError);
+              throw guestLotError;
+            }
+            
+            console.log('✅ Lote de convidado criado:', guestLot.id);
+            
+            // Atualizar o lote no array values.lotes com o guestLotId
+            // Isso será refletido no próximo save
+            loteConvidado.guestLotId = guestLot.id;
+            
+            // Criar as mercadorias do lote
+            if (loteConvidado.mercadorias && loteConvidado.mercadorias.length > 0) {
+              const mercadoriasParaInserir = loteConvidado.mercadorias.map(m => ({
+                guest_lot_id: guestLot.id,
+                nome: m.titulo || m.tipo || m.nome || '',
+                descricao: m.descricao || '',
+                quantidade: m.quantidade || 1,
+                valor_estimado: m.valorNumerico || 0,
+              }));
+              
+              const { error: mercadoriaError } = await supabase
+                // @ts-expect-error - guest_lot_merchandise table não está no database.types.ts gerado
+                .from('guest_lot_merchandise')
+                // @ts-expect-error - campos customizados para guest_lot_merchandise
+                .insert(mercadoriasParaInserir);
+              
+              if (mercadoriaError) {
+                console.error('❌ Erro ao criar mercadorias:', mercadoriaError);
+              } else {
+                console.log(`✅ ${mercadoriasParaInserir.length} mercadorias criadas`);
+              }
+            }
+            
+            console.log(`✅ Lote de convidado ${loteConvidado.numero} criado com sucesso`);
+          } catch (error) {
+            console.error(`❌ Erro ao criar lote de convidado ${loteConvidado.numero}:`, error);
+            toast({
+              title: "Aviso",
+              description: `Não foi possível criar o lote de convidado ${loteConvidado.numero}. Você pode criá-lo manualmente depois.`,
+              variant: "destructive",
+            });
+          }
+        }
+        
+        toast({
+          title: "Lotes de convidados criados",
+          description: `${lotesConvidados.length} lote(s) de convidado(s) foram criados e estão disponíveis na aba "Lotes de Convidados".`,
+        });
+      }
       
       // Log da criação do leilão
       await logAuctionAction('create', values.nome, newAuction.id, {
@@ -908,20 +1081,17 @@ function Leiloes() {
           local: values.local,
           data_inicio: values.dataInicio,
           status: values.status,
-          total_lotes: values.lotes?.length || 0
+          total_lotes: lotesAnfitriao.length,
+          lotes_convidados: lotesConvidados.length
         }
       });
       
       setIsCreateModalOpen(false);
-      toast({
-        title: "Leilão criado",
-        description: `O leilão "${values.nome}" foi criado com sucesso.`,
-      });
     } catch (error) {
       console.error("Erro ao criar leilão:", error);
       toast({
-        title: "Erro ao criar leilão",
-        description: "Não foi possível criar o leilão. Tente novamente.",
+        title: "Erro ao criar",
+        description: "Não foi possível criar o leilão.",
         variant: "destructive",
       });
     }
@@ -929,33 +1099,195 @@ function Leiloes() {
 
   const handleEditAuction = async (values: AuctionFormValues) => {
     if (!editingAuction) return;
+    
+    // Ativar estado de carregamento
+    setIsRefreshing(true);
+    
     try {
-      await updateAuction({ id: editingAuction.id, data: values });
+      console.log('🔄 [Leiloes.tsx] Iniciando atualização do leilão:', editingAuction.id);
+      const auctionId = editingAuction.id;
+      
+      // ✅ Detectar lotes que mudaram de Convidado → Anfitrião
+      const lotesOriginais = editingAuction.lotes || [];
+      const lotesAtuais = values.lotes || [];
+      
+      // Encontrar lotes que eram convidados e agora são anfitriões
+      const lotesMudadosParaAnfitriao = lotesAtuais.filter(loteAtual => {
+        // Encontrar o lote correspondente nos dados originais
+        const loteOriginal = lotesOriginais.find(
+          lo => lo.id === loteAtual.id || lo.guestLotId === loteAtual.guestLotId
+        );
+        
+        // Verificar se era convidado antes e agora é anfitrião
+        return loteOriginal?.isConvidado && !loteAtual.isConvidado && loteOriginal.guestLotId;
+      });
+      
+      console.log('🔄 Lotes mudados para Anfitrião:', lotesMudadosParaAnfitriao.length);
+      
+      // Deletar esses lotes da tabela guest_lots
+      for (const lote of lotesMudadosParaAnfitriao) {
+        if (lote.guestLotId) {
+          try {
+            console.log(`🗑️ Deletando lote convidado #${lote.numero} (guestLotId: ${lote.guestLotId})`);
+            
+            const { error: deleteError } = await supabase
+              // @ts-expect-error - guest_lots table não está no database.types.ts gerado
+              .from('guest_lots')
+              .delete()
+              .eq('id', lote.guestLotId);
+            
+            if (deleteError) {
+              console.error('❌ Erro ao deletar lote convidado:', deleteError);
+            } else {
+              console.log(`✅ Lote convidado #${lote.numero} deletado com sucesso`);
+              // Remover o guestLotId do lote
+              delete lote.guestLotId;
+              delete lote.isConvidado;
+            }
+          } catch (error) {
+            console.error(`❌ Erro ao processar deleção do lote ${lote.numero}:`, error);
+          }
+        }
+      }
+      
+      // ✅ Separar lotes de convidados dos lotes normais
+      const lotesAnfitriao = (values.lotes || []).filter(l => !l.isConvidado);
+      const lotesConvidados = (values.lotes || []).filter(l => l.isConvidado);
+      
+      console.log('📊 Separação de lotes na edição:', {
+        total: values.lotes?.length || 0,
+        anfitriao: lotesAnfitriao.length,
+        convidados: lotesConvidados.length,
+        mudadosParaAnfitriao: lotesMudadosParaAnfitriao.length
+      });
+      
+      // ✅ Atualizar leilão com TODOS os lotes para aparecerem no formulário
+      // Lotes convidados também ficam no array para serem editáveis
+      const valuesParaLeilao = {
+        ...values,
+        lotes: values.lotes // Manter todos os lotes
+      };
+      
+      // Salvar no banco de dados
+      const updated = await updateAuction({ id: auctionId, data: valuesParaLeilao });
+      console.log('✅ [Leiloes.tsx] Leilão atualizado no banco:', updated);
+      
+      // ✅ Processar lotes de convidados (criar apenas novos)
+      if (lotesConvidados.length > 0) {
+        console.log('🎯 Processando lotes de convidados:', lotesConvidados.length);
+        
+        // Filtrar apenas lotes que ainda não foram salvos como guest_lots
+        const lotesNovos = lotesConvidados.filter(l => !l.guestLotId);
+        console.log('📝 Lotes novos para criar:', lotesNovos.length);
+        
+        for (const loteConvidado of lotesNovos) {
+          try {
+            console.log('📝 Criando lote de convidado:', loteConvidado.numero);
+            
+            // Criar o lote de convidado no Supabase
+            const { data: guestLot, error: guestLotError} = await supabase
+              // @ts-expect-error - guest_lots table não está no database.types.ts gerado
+              .from('guest_lots')
+              // @ts-expect-error - campos customizados para guest_lots
+              .insert({
+                numero: loteConvidado.numero,
+                descricao: loteConvidado.descricao,
+                leilao_id: auctionId,
+                status: 'disponivel',
+                proprietario: loteConvidado.proprietario || '',
+                codigo_pais: loteConvidado.codigoPais || '+55',
+                celular_proprietario: loteConvidado.celularProprietario || '',
+                email_proprietario: loteConvidado.emailProprietario || '',
+                imagens: loteConvidado.imagens || [],
+                documentos: loteConvidado.documentos || [],
+                observacoes: '',
+                arquivado: false,
+              })
+              .select()
+              .single();
+            
+            if (guestLotError) {
+              console.error('❌ Erro ao criar lote de convidado:', guestLotError);
+              throw guestLotError;
+            }
+            
+            console.log('✅ Lote de convidado criado:', guestLot.id);
+            
+            // Atualizar o lote no array values.lotes com o guestLotId
+            loteConvidado.guestLotId = guestLot.id;
+            
+            // Criar as mercadorias do lote
+            if (loteConvidado.mercadorias && loteConvidado.mercadorias.length > 0) {
+              const mercadoriasParaInserir = loteConvidado.mercadorias.map(m => ({
+                guest_lot_id: guestLot.id,
+                nome: m.titulo || m.tipo || m.nome || '',
+                descricao: m.descricao || '',
+                quantidade: m.quantidade || 1,
+                valor_estimado: m.valorNumerico || 0,
+              }));
+              
+              const { error: mercadoriaError } = await supabase
+                // @ts-expect-error - guest_lot_merchandise table não está no database.types.ts gerado
+                .from('guest_lot_merchandise')
+                // @ts-expect-error - campos customizados para guest_lot_merchandise
+                .insert(mercadoriasParaInserir);
+              
+              if (mercadoriaError) {
+                console.error('❌ Erro ao criar mercadorias:', mercadoriaError);
+              } else {
+                console.log(`✅ ${mercadoriasParaInserir.length} mercadorias criadas`);
+              }
+            }
+            
+            console.log(`✅ Lote de convidado ${loteConvidado.numero} criado com sucesso`);
+          } catch (error) {
+            console.error(`❌ Erro ao criar lote de convidado ${loteConvidado.numero}:`, error);
+          }
+        }
+        
+        if (lotesConvidados.length > 0) {
+          toast({
+            title: "Lotes de convidados criados",
+            description: `${lotesConvidados.length} lote(s) de convidado(s) foram criados e estão disponíveis na aba "Lotes de Convidados".`,
+          });
+        }
+      }
       
       // Log da edição do leilão
-      await logAuctionAction('update', values.nome, editingAuction.id, {
+      await logAuctionAction('update', values.nome, auctionId, {
         metadata: {
           local: values.local,
           data_inicio: values.dataInicio,
           status: values.status,
-          total_lotes: values.lotes?.length || 0,
+          total_lotes: lotesAnfitriao.length,
+          lotes_convidados: lotesConvidados.length,
           changes: auctionFormChanges
         }
       });
       
+      console.log('✅ [Leiloes.tsx] Atualização completa! Fechando modal...');
+      
+      // Desativar estado de carregamento
+      setIsRefreshing(false);
+      
+      // Fechar modal e limpar estado
+      console.log('✨ [Leiloes.tsx] handleEditAuction - Limpando editingAuction após salvar');
       setEditingAuction(null);
       setIsFormBeingEdited(false);
-      setAuctionFormChanges({}); // Limpar mudanças após salvar
+      setAuctionFormChanges({});
+      
+      // Forçar reload da página para garantir que todos os dados sejam atualizados
+      console.log('🔄 [Leiloes.tsx] Recarregando página...');
+      window.location.reload();
+    } catch (error) {
+      console.error("❌ [Leiloes.tsx] Erro ao atualizar leilão:", error);
+      
+      // Desativar estado de carregamento
+      setIsRefreshing(false);
       
       toast({
-        title: "Leilão atualizado",
-        description: `O leilão "${values.nome}" foi atualizado com sucesso.`,
-      });
-    } catch (error) {
-      console.error("Erro ao atualizar leilão:", error);
-      toast({
-        title: "Erro ao atualizar leilão",
-        description: "Não foi possível atualizar o leilão. Tente novamente.",
+        title: "Erro ao atualizar",
+        description: "Não foi possível salvar as alterações.",
         variant: "destructive",
       });
       // Manter modal aberto em caso de erro
@@ -1021,6 +1353,7 @@ function Leiloes() {
 
   // Função para cancelar edição e limpar estado
   const handleCancelEdit = () => {
+    console.log('❌ [Leiloes.tsx] handleCancelEdit - Limpando editingAuction');
     setEditingAuction(null);
     setIsFormBeingEdited(false);
     setAuctionFormChanges({}); // Limpar mudanças ao cancelar
@@ -1028,6 +1361,11 @@ function Leiloes() {
 
   // Função para iniciar edição de leilão
   const startEditingAuction = (auction: Auction) => {
+    console.log('✏️ [Leiloes.tsx] startEditingAuction chamado:', {
+      auctionId: auction.id,
+      auctionNome: auction.nome,
+      auctionIdentificacao: auction.identificacao
+    });
     setEditingAuction(auction);
     setIsFormBeingEdited(true);
   };
@@ -1189,6 +1527,48 @@ function Leiloes() {
     try {
       const auction = auctions.find(a => a.id === id);
       if (auction) {
+        console.log('🗑️ Deletando leilão e seus lotes convidados:', id);
+        
+        // ✅ PASSO 1: Deletar lotes convidados associados ao leilão
+        try {
+          // Buscar lotes convidados usando query dinâmica para evitar erro de tipagem
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const fetchResult: any = await (supabase as any)
+            .from('guest_lots')
+            .select('id, numero')
+            .eq('leilao_id', id);
+          
+          const guestLots = fetchResult.data as Array<{ id: string; numero: string }> | null;
+          const fetchError = fetchResult.error;
+          
+          if (fetchError) {
+            console.error('❌ Erro ao buscar lotes convidados:', fetchError);
+          } else if (guestLots && guestLots.length > 0) {
+            console.log(`🗑️ Encontrados ${guestLots.length} lote(s) convidado(s) para deletar:`, guestLots.map(l => l.numero));
+            
+            // Deletar todos os lotes convidados associados
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const deleteResult: any = await (supabase as any)
+              .from('guest_lots')
+              .delete()
+              .eq('leilao_id', id);
+            
+            const deleteError = deleteResult.error;
+            
+            if (deleteError) {
+              console.error('❌ Erro ao deletar lotes convidados:', deleteError);
+            } else {
+              console.log(`✅ ${guestLots.length} lote(s) convidado(s) deletado(s) com sucesso`);
+            }
+          } else {
+            console.log('ℹ️ Nenhum lote convidado associado a este leilão');
+          }
+        } catch (error) {
+          console.error('❌ Erro ao processar lotes convidados:', error);
+          // Continuar com a exclusão do leilão mesmo se houver erro
+        }
+        
+        // ✅ PASSO 2: Deletar o leilão
         await deleteAuction(id);
         
         // Log da exclusão do leilão
@@ -1203,7 +1583,7 @@ function Leiloes() {
         
         toast({
           title: "Leilão excluído",
-          description: `O leilão "${auction.nome}" foi excluído com sucesso.`,
+          description: `O leilão "${auction.nome}" e seus lotes convidados foram excluídos com sucesso.`,
         });
       }
     } catch (error) {
@@ -1905,9 +2285,8 @@ function Leiloes() {
       </Card>
 
       {/* Wizard de Edição */}
-          {editingAuction && (
-        <AuctionWizard
-              initial={{
+          {editingAuction && (() => {
+            const initialData = {
                 nome: editingAuction.nome,
                 identificacao: editingAuction.identificacao,
                 local: editingAuction.local,
@@ -1926,18 +2305,37 @@ function Leiloes() {
                 detalheCustos: editingAuction.detalheCustos || [],
                 detalhePatrocinios: editingAuction.detalhePatrocinios || [],
                 patrociniosTotal: editingAuction.patrociniosTotal,
+              percentualComissaoLeiloeiro: editingAuction.percentualComissaoLeiloeiro,
                 lotes: editingAuction.lotes || [],
             fotosMercadoria: editingAuction.fotosMercadoria || [],
             documentos: editingAuction.documentos || [],
                 historicoNotas: editingAuction.historicoNotas || [],
                 arquivado: editingAuction.arquivado || false
-              }}
+            };
+
+            console.log('🏗️ [Leiloes.tsx] Renderizando AuctionWizard de Edição:', {
+              hasEditingAuction: !!editingAuction,
+              editingAuctionId: editingAuction?.id,
+              editingAuctionNome: editingAuction?.nome,
+              initialStep,
+              initialLoteIndex,
+              initialData: {
+                nome: initialData.nome,
+                identificacao: initialData.identificacao,
+                qtdLotes: initialData.lotes.length
+              }
+            });
+
+            return (
+              <AuctionWizard
+                initial={initialData}
               initialStep={initialStep}
               initialLoteIndex={initialLoteIndex}
               onSubmit={handleEditAuction}
               onCancel={handleCancelEdit}
             />
-          )}
+            );
+          })()}
 
       {/* Modal de Visualização de Detalhes */}
       <Dialog open={!!viewingAuction} onOpenChange={(open) => !open && setViewingAuction(null)}>
@@ -2193,11 +2591,9 @@ function Leiloes() {
             } catch (error) {
               console.error('Erro ao salvar arrematante:', error);
               
-              // ✅ Tratamento específico para erro de duplicação
+              // ✅ Tratamento de erros
               const errorObj = error as { code?: string; message?: string };
-              if (errorObj?.code === '23505' || errorObj?.message?.includes('duplicate key')) {
-                alert('❌ Esta mercadoria já possui um arrematante. Cada mercadoria só pode ter um arrematante por leilão.');
-              } else if (errorObj?.message) {
+              if (errorObj?.message) {
                 alert(`❌ Erro ao salvar arrematante: ${errorObj.message}`);
               } else {
                 alert('❌ Erro ao salvar arrematante. Por favor, tente novamente.');

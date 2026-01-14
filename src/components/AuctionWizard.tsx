@@ -5,13 +5,28 @@ import { LoteInfo, MercadoriaInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/l
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { StringDatePicker } from "@/components/ui/date-picker";
-import { ChevronLeft, ChevronRight, Check, Plus, X as XIcon, Trash2, Image as ImageIcon } from "lucide-react";
-import { calcularValorTotal } from "@/lib/parcelamento-calculator";
+import { ProprietarioWizard } from "@/components/ProprietarioWizard";
+import { ChevronLeft, ChevronRight, Check, Plus, X as XIcon, Trash2, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { calcularValorTotal, obterQuantidadeTotalParcelas } from "@/lib/parcelamento-calculator";
 import { ParcelamentoPreview } from "@/components/ParcelamentoPreview";
 import { parseCurrencyToNumber } from "@/lib/utils";
+
+// Helper para converter números brasileiros (1.000,50) para número
+const parseBrazilianNumber = (value: string): number | undefined => {
+  if (value === "") return undefined;
+  // Remove espaços
+  let cleaned = value.trim();
+  // Substitui vírgula por ponto (vírgula é decimal no Brasil)
+  // Mas primeiro, remove pontos (separadores de milhar)
+  cleaned = cleaned.replace(/\./g, '');
+  cleaned = cleaned.replace(/,/g, '.');
+  const parsed = parseFloat(cleaned);
+  return isNaN(parsed) ? undefined : parsed;
+};
 
 interface AuctionWizardProps {
   initial: AuctionFormValues;
@@ -22,12 +37,31 @@ interface AuctionWizardProps {
 }
 
 export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initialLoteIndex }: AuctionWizardProps) {
+  console.log('🎬 [AuctionWizard] Componente montado/atualizado:', {
+    initialStep,
+    initialLoteIndex,
+    initialValues: {
+      nome: initial.nome,
+      identificacao: initial.identificacao,
+      hasLotes: !!initial.lotes?.length,
+      qtdLotes: initial.lotes?.length || 0
+    }
+  });
+
   const [currentStep, setCurrentStep] = useState(initialStep ?? 0);
   const [values, setValues] = useState<AuctionFormValues>(initial);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedLoteIndex, setSelectedLoteIndex] = useState(initialLoteIndex ?? 0);
   const [selectedMercadoriaIndex, setSelectedMercadoriaIndex] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
+
+  console.log('📊 [AuctionWizard] Estado inicial definido:', {
+    currentStep,
+    selectedLoteIndex,
+    valuesNome: values.nome,
+    valuesIdentificacao: values.identificacao,
+    valuesQtdLotes: values.lotes?.length || 0
+  });
   
   // Estados para custos e patrocínios
   const [costItems, setCostItems] = useState<ItemCustoInfo[]>(initial.detalheCustos || []);
@@ -35,8 +69,53 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   const [selectedCostIndex, setSelectedCostIndex] = useState(0);
   const [selectedSponsorIndex, setSelectedSponsorIndex] = useState(0);
   
+  // Estado para o wizard de proprietário
+  const [proprietarioWizardOpen, setProprietarioWizardOpen] = useState(false);
+  const [loteParaProprietario, setLoteParaProprietario] = useState<LoteInfo | null>(null);
+  
   // Estado para validação de datas
   const [dataInvalida, setDataInvalida] = useState(false);
+
+  // 🔍 LOG: Monitorar mudanças no currentStep
+  useEffect(() => {
+    console.log('🔄 [AuctionWizard] currentStep mudou:', {
+      newStep: currentStep,
+      stepName: steps[currentStep]?.title,
+      valuesNome: values.nome,
+      valuesIdentificacao: values.identificacao,
+      valuesStatus: values.status,
+      valuesQtdLotes: values.lotes?.length || 0
+    });
+  }, [currentStep]);
+
+  // 🔍 LOG: Monitorar mudanças nos values (nome e identificacao especificamente)
+  useEffect(() => {
+    console.log('📝 [AuctionWizard] values mudaram:', {
+      currentStep,
+      stepName: steps[currentStep]?.title,
+      nome: values.nome,
+      identificacao: values.identificacao,
+      status: values.status,
+      qtdLotes: values.lotes?.length || 0
+    });
+  }, [values.nome, values.identificacao, values.status]);
+
+  // 🔍 LOG: Monitorar re-renderizações gerais do componente
+  useEffect(() => {
+    console.log('🔁 [AuctionWizard] Componente re-renderizou:', {
+      currentStep,
+      stepName: steps[currentStep]?.title,
+      valuesCompletos: {
+        nome: values.nome,
+        identificacao: values.identificacao,
+        status: values.status,
+        dataInicio: values.dataInicio,
+        dataEncerramento: values.dataEncerramento,
+        local: values.local,
+        qtdLotes: values.lotes?.length || 0
+      }
+    });
+  });
 
   // Verificar se data de início é posterior à data de término
   useEffect(() => {
@@ -111,7 +190,25 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   }, [values.dataInicio, values.dataEncerramento, values.status]);
 
   const updateField = (field: keyof AuctionFormValues, value: AuctionFormValues[keyof AuctionFormValues]) => {
-    setValues(prev => ({ ...prev, [field]: value }));
+    console.log('🔧 [AuctionWizard] updateField chamado:', {
+      field,
+      value: field === 'lotes' ? `Array com ${(value as LoteInfo[])?.length || 0} lotes` : value,
+      currentStep,
+      stepName: steps[currentStep]?.title,
+      beforeNome: values.nome,
+      beforeIdentificacao: values.identificacao
+    });
+    
+    setValues(prev => {
+      const newValues = { ...prev, [field]: value };
+      console.log('✨ [AuctionWizard] values atualizados:', {
+        field,
+        afterNome: newValues.nome,
+        afterIdentificacao: newValues.identificacao,
+        afterStatus: newValues.status
+      });
+      return newValues;
+    });
   };
 
   const updateLote = <K extends keyof LoteInfo>(index: number, field: K, value: LoteInfo[K]) => {
@@ -203,29 +300,76 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         return true; // Opcional
       case 6: // Custos e Patrocínios
         return costItems.length > 0 && sponsorItems.length > 0;
+      case 7: // Forma de Pagamento dos Patrocínios
+        return true; // Opcional
+      case 8: // Comissão do Leiloeiro
+        return true; // Opcional
       default:
         return true;
     }
   };
 
   const handleNext = () => {
+    console.log('➡️ [AuctionWizard] handleNext chamado:', {
+      currentStep,
+      stepName: steps[currentStep]?.title,
+      valuesNome: values.nome,
+      valuesIdentificacao: values.identificacao
+    });
+
     if (!validateCurrentStep()) {
       alert("Por favor, preencha todos os campos obrigatórios antes de avançar.");
       return;
     }
     
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
+    // Encontrar próximo step visível
+    let nextStep = currentStep + 1;
+    while (nextStep < steps.length && steps[nextStep].show === false) {
+      nextStep++;
+    }
+    
+    if (nextStep < steps.length) {
+      console.log('✅ [AuctionWizard] Avançando para step:', {
+        from: currentStep,
+        to: nextStep,
+        stepName: steps[nextStep]?.title
+      });
+      setCurrentStep(nextStep);
     }
   };
 
   const goToStep = (stepIndex: number) => {
+    console.log('🎯 [AuctionWizard] goToStep chamado:', {
+      from: currentStep,
+      to: stepIndex,
+      stepName: steps[stepIndex]?.title,
+      valuesNome: values.nome,
+      valuesIdentificacao: values.identificacao
+    });
     setCurrentStep(stepIndex);
   };
 
   const handleBack = () => {
-    if (currentStep > 0) {
-      setCurrentStep(currentStep - 1);
+    console.log('⬅️ [AuctionWizard] handleBack chamado:', {
+      currentStep,
+      stepName: steps[currentStep]?.title,
+      valuesNome: values.nome,
+      valuesIdentificacao: values.identificacao
+    });
+
+    // Encontrar step anterior visível
+    let prevStep = currentStep - 1;
+    while (prevStep >= 0 && steps[prevStep].show === false) {
+      prevStep--;
+    }
+    
+    if (prevStep >= 0) {
+      console.log('✅ [AuctionWizard] Voltando para step:', {
+        from: currentStep,
+        to: prevStep,
+        stepName: steps[prevStep]?.title
+      });
+      setCurrentStep(prevStep);
     }
   };
 
@@ -250,7 +394,16 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     {
       id: "basico",
       title: "Informações Básicas do Leilão",
-      content: (
+      content: (() => {
+        console.log('🎨 [AuctionWizard] Renderizando Step 0 (Informações Básicas):', {
+          currentStep,
+          valuesNome: values.nome,
+          valuesIdentificacao: values.identificacao,
+          valuesStatus: values.status,
+          valuesQtdLotes: values.lotes?.length || 0
+        });
+        
+        return (
           <div className="space-y-8">
           <div className="space-y-3">
             <Label className="text-lg font-normal text-gray-600">Como devemos chamar este leilão?</Label>
@@ -274,7 +427,8 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
             />
           </div>
         </div>
-      )
+        );
+      })()
     },
     {
       id: "datas",
@@ -410,7 +564,9 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                     <SelectContent position="popper" sideOffset={5} className="z-[100000]">
                       {(values.lotes || []).map((lote, index) => (
                         <SelectItem key={lote.id} value={index.toString()}>
-                          Lote {lote.numero} {lote.descricao ? `- ${lote.descricao.substring(0, 30)}...` : ""}
+                          <div className="flex items-center gap-2">
+                            <span>Lote {lote.numero} {lote.descricao ? `- ${lote.descricao.substring(0, 30)}...` : ""}</span>
+                          </div>
                         </SelectItem>
                       ))}
                     </SelectContent>
@@ -439,9 +595,16 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
               {values.lotes && values.lotes[selectedLoteIndex] && (
                 <div className="p-6 border border-gray-200 rounded-lg space-y-6 bg-gray-50/30">
                   <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
                     <h3 className="text-lg font-medium text-gray-900">
                       Lote {values.lotes[selectedLoteIndex].numero}
                     </h3>
+                      {values.lotes[selectedLoteIndex].isConvidado && values.lotes[selectedLoteIndex].guestLotId && (
+                        <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
+                          ✓ Salvo em Lotes Convidados
+                        </Badge>
+                      )}
+                    </div>
                     {(values.lotes || []).length > 1 && (
                       <Button
                         type="button"
@@ -480,6 +643,37 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                         onChange={(e) => updateLote(selectedLoteIndex, "descricao", e.target.value)}
                         className="min-h-[100px] focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-black focus-visible:border-black"
                       />
+                    </div>
+
+                    {/* Tipo de Lote */}
+                    <div className="inline-flex rounded-md border border-gray-200 bg-gray-50 p-0.5">
+                      <button
+                        type="button"
+                        onClick={() => updateLote(selectedLoteIndex, "isConvidado", false)}
+                        className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                          !values.lotes[selectedLoteIndex].isConvidado
+                            ? "bg-white text-gray-900 shadow-sm"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Anfitrião
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          // Sempre abrir o wizard ao clicar em Convidado
+                          const currentLote = values.lotes[selectedLoteIndex];
+                          setLoteParaProprietario(currentLote);
+                          setProprietarioWizardOpen(true);
+                        }}
+                        className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
+                          values.lotes[selectedLoteIndex].isConvidado
+                            ? "bg-white text-gray-900 shadow-sm"
+                            : "text-gray-600 hover:text-gray-900"
+                        }`}
+                      >
+                        Convidado
+                      </button>
                     </div>
 
                     {/* Seção de Imagens do Lote */}
@@ -796,7 +990,8 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                     id: Date.now().toString(),
                     nomePatrocinador: "",
                     valor: "",
-                    valorNumerico: 0
+                    valorNumerico: 0,
+                    formaPagamento: 'a_vista' // Define À Vista como padrão
                   };
                   const newItems = [...sponsorItems, newItem];
                   setSponsorItems(newItems);
@@ -903,7 +1098,630 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         </div>
       )
     },
+    {
+      id: "pagamento-patrocinios",
+      title: "Pagamento dos Patrocinadores",
+      content: (
+        <div className="space-y-8">
+          <div className="space-y-4">
+            <Label className="text-lg font-normal text-gray-600">Configure a forma de pagamento dos patrocínios</Label>
+          </div>
+
+          {/* Lista de Patrocinadores */}
+          {sponsorItems.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <p>Nenhum patrocinador cadastrado ainda.</p>
+              <p className="text-sm mt-2">Adicione patrocinadores na etapa anterior.</p>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {/* Seletor de Patrocinador */}
+              <div className="space-y-3">
+                <Label className="text-lg font-normal text-gray-600">Selecione o Patrocinador</Label>
+                <Select
+                  value={selectedSponsorIndex.toString()}
+                  onValueChange={(value) => setSelectedSponsorIndex(parseInt(value))}
+                >
+                  <SelectTrigger className="h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus:border-gray-800 focus-visible:ring-0 focus-visible:outline-none focus:outline-none active:outline-none outline-none ring-0 px-0 bg-transparent [&:focus]:ring-0 [&:active]:ring-0">
+                    <SelectValue placeholder="Selecione um patrocinador" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={5} className="bg-white z-[100000]">
+                    {sponsorItems.map((sponsor, index) => (
+                      <SelectItem key={sponsor.id} value={index.toString()}>
+                        {sponsor.nomePatrocinador} - {sponsor.valorNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Formulário do Patrocinador Selecionado */}
+              {sponsorItems[selectedSponsorIndex] && (
+                <div className="space-y-8">
+                  {/* Forma de Pagamento */}
+                  <div className="space-y-3">
+                    <Label className="text-lg font-normal text-gray-600">Como deseja pagar?</Label>
+                    <Select
+                      value={sponsorItems[selectedSponsorIndex].formaPagamento || 'a_vista'}
+                      onValueChange={(value: 'a_vista' | 'parcelamento' | 'entrada_parcelamento') => {
+                        const newItems = [...sponsorItems];
+                        newItems[selectedSponsorIndex].formaPagamento = value;
+                        
+                        // Limpar campos ao trocar forma de pagamento
+                        if (value === 'a_vista') {
+                          newItems[selectedSponsorIndex].valorLance = undefined;
+                          newItems[selectedSponsorIndex].valorLanceNumerico = undefined;
+                          newItems[selectedSponsorIndex].fatorMultiplicador = undefined;
+                          newItems[selectedSponsorIndex].parcelasTriplas = undefined;
+                          newItems[selectedSponsorIndex].parcelasDuplas = undefined;
+                          newItems[selectedSponsorIndex].parcelasSimples = undefined;
+                          newItems[selectedSponsorIndex].valorEntrada = undefined;
+                          newItems[selectedSponsorIndex].valorEntradaNumerico = undefined;
+                        } else if (value === 'parcelamento') {
+                          newItems[selectedSponsorIndex].valorEntrada = undefined;
+                          newItems[selectedSponsorIndex].valorEntradaNumerico = undefined;
+                          newItems[selectedSponsorIndex].dataEntrada = undefined;
+                        }
+                        
+                        newItems[selectedSponsorIndex].recebido = false;
+                        newItems[selectedSponsorIndex].parcelasRecebidas = 0;
+                        setSponsorItems(newItems);
+                        updateField("detalhePatrocinios", newItems);
+                      }}
+                    >
+                      <SelectTrigger className="h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus:border-gray-800 focus-visible:ring-0 focus-visible:outline-none focus:outline-none active:outline-none outline-none ring-0 px-0 bg-transparent [&:focus]:ring-0 [&:active]:ring-0">
+                        <SelectValue placeholder="Selecione a forma" />
+                      </SelectTrigger>
+                      <SelectContent position="popper" sideOffset={5} className="bg-white z-[100000]">
+                        <SelectItem value="a_vista">À Vista</SelectItem>
+                        <SelectItem value="parcelamento">Parcelamento</SelectItem>
+                        <SelectItem value="entrada_parcelamento">Entrada + Parcelamento</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* À Vista */}
+                  {(sponsorItems[selectedSponsorIndex].formaPagamento === 'a_vista' || !sponsorItems[selectedSponsorIndex].formaPagamento) && (
+                    <div className="space-y-3">
+                      <Label className="text-lg font-normal text-gray-600">Data de Pagamento</Label>
+                      <StringDatePicker
+                        value={sponsorItems[selectedSponsorIndex].dataVencimentoVista || ""}
+                        onChange={(v) => {
+                          const newItems = [...sponsorItems];
+                          newItems[selectedSponsorIndex].dataVencimentoVista = v;
+                          setSponsorItems(newItems);
+                          updateField("detalhePatrocinios", newItems);
+                        }}
+                        placeholder="Selecione a data"
+                        className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent"
+                      />
+                    </div>
+                  )}
+
+                  {/* Entrada + Parcelamento */}
+                  {sponsorItems[selectedSponsorIndex].formaPagamento === 'entrada_parcelamento' && (
+                    <>
+                      <div className="space-y-3">
+                        <Label className="text-lg font-normal text-gray-600">Valor da Entrada</Label>
+                        <Input
+                          type="text"
+                          placeholder="Ex: R$ 5.000,00"
+                          value={sponsorItems[selectedSponsorIndex].valorEntrada || ''}
+                          onChange={(e) => {
+                            const newItems = [...sponsorItems];
+                            newItems[selectedSponsorIndex].valorEntrada = e.target.value;
+                            newItems[selectedSponsorIndex].valorEntradaNumerico = parseBrazilianNumber(e.target.value) || 0;
+                            setSponsorItems(newItems);
+                            updateField("detalhePatrocinios", newItems);
+                          }}
+                          className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent placeholder:text-gray-400"
+                        />
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label className="text-lg font-normal text-gray-600">Data de pagamento da entrada</Label>
+                        <StringDatePicker
+                          value={sponsorItems[selectedSponsorIndex].dataEntrada || ""}
+                          onChange={(v) => {
+                            const newItems = [...sponsorItems];
+                            newItems[selectedSponsorIndex].dataEntrada = v;
+                            setSponsorItems(newItems);
+                            updateField("detalhePatrocinios", newItems);
+                          }}
+                          placeholder="Selecione a data"
+                          className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent"
+                        />
+                      </div>
+                    </>
+                  )}
+
+                  {/* Sistema de Fator Multiplicador - Para parcelamento e entrada_parcelamento */}
+                  {(sponsorItems[selectedSponsorIndex].formaPagamento === 'parcelamento' || 
+                    sponsorItems[selectedSponsorIndex].formaPagamento === 'entrada_parcelamento') && (
+                    <>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-3">
+                          <Label className="text-lg font-normal text-gray-600">Valor do Lance (R$)</Label>
+                          <Input
+                            type="text"
+                            placeholder="Ex: 1.000,00"
+                            value={sponsorItems[selectedSponsorIndex].valorLance || ""}
+                            onChange={(e) => {
+                              const newItems = [...sponsorItems];
+                              newItems[selectedSponsorIndex].valorLance = e.target.value;
+                              newItems[selectedSponsorIndex].valorLanceNumerico = parseBrazilianNumber(e.target.value) || 0;
+                              setSponsorItems(newItems);
+                              updateField("detalhePatrocinios", newItems);
+                            }}
+                            className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent placeholder:text-gray-400"
+                          />
+                          {sponsorItems[selectedSponsorIndex].valorLance && (() => {
+                            const parsed = parseBrazilianNumber(sponsorItems[selectedSponsorIndex].valorLance || '');
+                            if (parsed !== undefined && parsed <= 0) {
+                              return (
+                                <p className="text-sm text-red-600 flex items-center gap-1">
+                                  <AlertCircle className="h-4 w-4" />
+                                  O valor do lance deve ser maior que zero
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+
+                        <div className="space-y-3">
+                          <Label className="text-lg font-normal text-gray-600">Fator Multiplicador</Label>
+                          <Input
+                            type="text"
+                            placeholder="Ex: 30"
+                            value={sponsorItems[selectedSponsorIndex].fatorMultiplicador || ""}
+                            onChange={(e) => {
+                              const newItems = [...sponsorItems];
+                              newItems[selectedSponsorIndex].fatorMultiplicador = parseBrazilianNumber(e.target.value);
+                              setSponsorItems(newItems);
+                              updateField("detalhePatrocinios", newItems);
+                            }}
+                            className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent placeholder:text-gray-400"
+                          />
+                          {sponsorItems[selectedSponsorIndex].fatorMultiplicador && (() => {
+                            const fator = sponsorItems[selectedSponsorIndex].fatorMultiplicador;
+                            if (fator !== undefined && fator <= 0) {
+                              return (
+                                <p className="text-sm text-red-600 flex items-center gap-1">
+                                  <AlertCircle className="h-4 w-4" />
+                                  O fator multiplicador deve ser maior que zero
+                                </p>
+                              );
+                            }
+                            return null;
+                          })()}
+                        </div>
+                      </div>
+
+                      {/* Preview do Valor Total */}
+                      {sponsorItems[selectedSponsorIndex].valorLance && 
+                       sponsorItems[selectedSponsorIndex].fatorMultiplicador && (() => {
+                        const valorLanceParsed = parseBrazilianNumber(sponsorItems[selectedSponsorIndex].valorLance || '');
+                        const fatorParsed = sponsorItems[selectedSponsorIndex].fatorMultiplicador;
+                        if (valorLanceParsed && fatorParsed && valorLanceParsed > 0 && fatorParsed > 0) {
+                          const valorTotalParcelas = calcularValorTotal(valorLanceParsed, fatorParsed);
+                          const valorEntrada = sponsorItems[selectedSponsorIndex].valorEntradaNumerico || 0;
+                          
+                          return (
+                            <div className="space-y-1 text-sm text-gray-600">
+                              <div className="flex justify-between font-medium text-gray-900 pt-1">
+                                <span>Total das Parcelas</span>
+                                <span>
+                                  {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorTotalParcelas)}
+                                  {sponsorItems[selectedSponsorIndex].formaPagamento === 'entrada_parcelamento' && valorEntrada > 0 && (
+                                    <span className="text-gray-600 font-normal">
+                                      {" + "}
+                                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorEntrada)}
+                                      {" entrada"}
+                                    </span>
+                                  )}
+                                </span>
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
+
+                      {/* Configuração de Parcelas */}
+                      <div className="space-y-4">
+                        <Label className="text-lg font-normal text-gray-900">Configuração de Parcelas</Label>
+                        
+                        <div className="grid grid-cols-3 gap-4">
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600">Parcelas Triplas</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={sponsorItems[selectedSponsorIndex].parcelasTriplas || ""}
+                              onChange={(e) => {
+                                const newItems = [...sponsorItems];
+                                const value = e.target.value === "" ? undefined : parseInt(e.target.value);
+                                newItems[selectedSponsorIndex].parcelasTriplas = value;
+                                
+                                // Atualizar total de parcelas
+                                const triplas = value || 0;
+                                const duplas = newItems[selectedSponsorIndex].parcelasDuplas || 0;
+                                const simples = newItems[selectedSponsorIndex].parcelasSimples || 0;
+                                newItems[selectedSponsorIndex].parcelas = triplas + duplas + simples;
+                                
+                                setSponsorItems(newItems);
+                                updateField("detalhePatrocinios", newItems);
+                              }}
+                              className="h-12 text-sm focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-black focus-visible:border-black"
+                            />
+                            <p className="text-xs text-gray-400">Valor × 3</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600">Parcelas Duplas</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={sponsorItems[selectedSponsorIndex].parcelasDuplas || ""}
+                              onChange={(e) => {
+                                const newItems = [...sponsorItems];
+                                const value = e.target.value === "" ? undefined : parseInt(e.target.value);
+                                newItems[selectedSponsorIndex].parcelasDuplas = value;
+                                
+                                // Atualizar total de parcelas
+                                const triplas = newItems[selectedSponsorIndex].parcelasTriplas || 0;
+                                const duplas = value || 0;
+                                const simples = newItems[selectedSponsorIndex].parcelasSimples || 0;
+                                newItems[selectedSponsorIndex].parcelas = triplas + duplas + simples;
+                                
+                                setSponsorItems(newItems);
+                                updateField("detalhePatrocinios", newItems);
+                              }}
+                              className="h-12 text-sm focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-black focus-visible:border-black"
+                            />
+                            <p className="text-xs text-gray-400">Valor × 2</p>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label className="text-sm text-gray-600">Parcelas Simples</Label>
+                            <Input
+                              type="number"
+                              min="0"
+                              placeholder="0"
+                              value={sponsorItems[selectedSponsorIndex].parcelasSimples || ""}
+                              onChange={(e) => {
+                                const newItems = [...sponsorItems];
+                                const value = e.target.value === "" ? undefined : parseInt(e.target.value);
+                                newItems[selectedSponsorIndex].parcelasSimples = value;
+                                
+                                // Atualizar total de parcelas
+                                const triplas = newItems[selectedSponsorIndex].parcelasTriplas || 0;
+                                const duplas = newItems[selectedSponsorIndex].parcelasDuplas || 0;
+                                const simples = value || 0;
+                                newItems[selectedSponsorIndex].parcelas = triplas + duplas + simples;
+                                
+                                setSponsorItems(newItems);
+                                updateField("detalhePatrocinios", newItems);
+                              }}
+                              className="h-12 text-sm focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:border-black focus-visible:border-black"
+                            />
+                            <p className="text-xs text-gray-400">Valor × 1</p>
+                          </div>
+                        </div>
+
+                        {/* Validação de compatibilidade das parcelas */}
+                        {sponsorItems[selectedSponsorIndex].valorLance && 
+                         sponsorItems[selectedSponsorIndex].fatorMultiplicador && (() => {
+                          const fatorParsed = sponsorItems[selectedSponsorIndex].fatorMultiplicador;
+                          if (!fatorParsed) return null;
+                          
+                          const triplas = sponsorItems[selectedSponsorIndex].parcelasTriplas || 0;
+                          const duplas = sponsorItems[selectedSponsorIndex].parcelasDuplas || 0;
+                          const simples = sponsorItems[selectedSponsorIndex].parcelasSimples || 0;
+                          const totalParcelas = triplas + duplas + simples;
+                          const somaCalculada = (triplas * 3) + (duplas * 2) + (simples * 1);
+                          
+                          if (totalParcelas > 0 && somaCalculada !== fatorParsed) {
+                            return (
+                              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                                <p className="text-sm text-red-800 flex items-center gap-2">
+                                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
+                                  <span>
+                                    <strong>Atenção:</strong> A soma calculada ({somaCalculada}) não corresponde ao fator multiplicador ({fatorParsed}).
+                                  </span>
+                                </p>
+                                <p className="text-xs text-red-700 mt-1 ml-6">
+                                  Ajuste as parcelas para que (Triplas × 3) + (Duplas × 2) + (Simples × 1) = {fatorParsed}
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          if (totalParcelas > 0 && somaCalculada === fatorParsed) {
+                            return (
+                              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                                <p className="text-sm text-green-800 flex items-center gap-2">
+                                  <Check className="h-4 w-4 flex-shrink-0" />
+                                  <span>
+                                    Configuração válida: {totalParcelas} {totalParcelas === 1 ? 'parcela' : 'parcelas'} totalizando fator {fatorParsed}
+                                  </span>
+                                </p>
+                              </div>
+                            );
+                          }
+
+                          return null;
+                        })()}
+                      </div>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )
+    },
+    {
+      id: "dia-vencimento-patrocinios",
+      title: "Dia do Vencimento",
+      show: sponsorItems.length > 0 && sponsorItems.some(s => s.formaPagamento === 'parcelamento' || s.formaPagamento === 'entrada_parcelamento'),
+      content: (
+        <div className="space-y-8">
+          {sponsorItems.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <p>Nenhum patrocinador cadastrado ainda.</p>
+            </div>
+          ) : (
+            <>
+              {/* Seletor de Patrocinador */}
+              <div className="space-y-3">
+                <Label className="text-lg font-normal text-gray-600">Selecione o Patrocinador</Label>
+                <Select
+                  value={selectedSponsorIndex.toString()}
+                  onValueChange={(value) => setSelectedSponsorIndex(parseInt(value))}
+                >
+                  <SelectTrigger className="h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus:border-gray-800 focus-visible:ring-0 focus-visible:outline-none focus:outline-none active:outline-none outline-none ring-0 px-0 bg-transparent [&:focus]:ring-0 [&:active]:ring-0">
+                    <SelectValue placeholder="Selecione um patrocinador" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={5} className="bg-white z-[100000]">
+                    {sponsorItems
+                      .filter(s => s.formaPagamento === 'parcelamento' || s.formaPagamento === 'entrada_parcelamento')
+                      .map((sponsor, index) => {
+                        const originalIndex = sponsorItems.indexOf(sponsor);
+                        return (
+                          <SelectItem key={sponsor.id} value={originalIndex.toString()}>
+                            {sponsor.nomePatrocinador}
+                          </SelectItem>
+                        );
+                      })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Formulário do Patrocinador Selecionado */}
+              {sponsorItems[selectedSponsorIndex] && 
+               (sponsorItems[selectedSponsorIndex].formaPagamento === 'parcelamento' || 
+                sponsorItems[selectedSponsorIndex].formaPagamento === 'entrada_parcelamento') && (
+                <div className="space-y-3">
+                  <Label className="text-lg font-normal text-gray-600">Dia do vencimento mensal</Label>
+                  <p className="text-sm text-gray-500 -mt-1">Este dia será usado automaticamente para o início do pagamento</p>
+                  <Input
+                    type="number"
+                    min="1"
+                    max="31"
+                    placeholder="Ex: 15"
+                    value={sponsorItems[selectedSponsorIndex].diaVencimentoMensal || ""}
+                    onChange={(e) => {
+                      const inputValue = e.target.value;
+                      const newItems = [...sponsorItems];
+                      
+                      if (inputValue === "") {
+                        newItems[selectedSponsorIndex].diaVencimentoMensal = undefined;
+                        setSponsorItems(newItems);
+                        updateField("detalhePatrocinios", newItems);
+                        return;
+                      }
+                      
+                      const numValue = parseInt(inputValue);
+                      
+                      if (!isNaN(numValue)) {
+                        if (numValue < 1) {
+                          newItems[selectedSponsorIndex].diaVencimentoMensal = 1;
+                        } else if (numValue > 31) {
+                          newItems[selectedSponsorIndex].diaVencimentoMensal = 31;
+                        } else {
+                          newItems[selectedSponsorIndex].diaVencimentoMensal = numValue;
+                        }
+                        setSponsorItems(newItems);
+                        updateField("detalhePatrocinios", newItems);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      if (!e.target.value || !sponsorItems[selectedSponsorIndex].diaVencimentoMensal) {
+                        const newItems = [...sponsorItems];
+                        newItems[selectedSponsorIndex].diaVencimentoMensal = 15;
+                        setSponsorItems(newItems);
+                        updateField("detalhePatrocinios", newItems);
+                      }
+                    }}
+                    className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent placeholder:text-gray-400"
+                  />
+                  {sponsorItems[selectedSponsorIndex].diaVencimentoMensal && 
+                   (sponsorItems[selectedSponsorIndex].diaVencimentoMensal < 1 || 
+                    sponsorItems[selectedSponsorIndex].diaVencimentoMensal > 31) && (
+                    <p className="text-sm text-red-600">
+                      O dia deve estar entre 1 e 31.
+                    </p>
+                  )}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )
+    },
+    {
+      id: "data-inicio-patrocinios",
+      title: "Data de Início",
+      show: sponsorItems.length > 0 && sponsorItems.some(s => s.formaPagamento === 'parcelamento' || s.formaPagamento === 'entrada_parcelamento'),
+      content: (
+        <div className="space-y-8">
+          {sponsorItems.length === 0 ? (
+            <div className="text-center py-12 text-gray-400">
+              <p>Nenhum patrocinador cadastrado ainda.</p>
+            </div>
+          ) : (
+            <>
+              {/* Seletor de Patrocinador */}
+              <div className="space-y-3">
+                <Label className="text-lg font-normal text-gray-600">Selecione o Patrocinador</Label>
+                <Select
+                  value={selectedSponsorIndex.toString()}
+                  onValueChange={(value) => setSelectedSponsorIndex(parseInt(value))}
+                >
+                  <SelectTrigger className="h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus:border-gray-800 focus-visible:ring-0 focus-visible:outline-none focus:outline-none active:outline-none outline-none ring-0 px-0 bg-transparent [&:focus]:ring-0 [&:active]:ring-0">
+                    <SelectValue placeholder="Selecione um patrocinador" />
+                  </SelectTrigger>
+                  <SelectContent position="popper" sideOffset={5} className="bg-white z-[100000]">
+                    {sponsorItems
+                      .filter(s => s.formaPagamento === 'parcelamento' || s.formaPagamento === 'entrada_parcelamento')
+                      .map((sponsor, index) => {
+                        const originalIndex = sponsorItems.indexOf(sponsor);
+                        return (
+                          <SelectItem key={sponsor.id} value={originalIndex.toString()}>
+                            {sponsor.nomePatrocinador}
+                          </SelectItem>
+                        );
+                      })}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Formulário do Patrocinador Selecionado */}
+              {sponsorItems[selectedSponsorIndex] && 
+               (sponsorItems[selectedSponsorIndex].formaPagamento === 'parcelamento' || 
+                sponsorItems[selectedSponsorIndex].formaPagamento === 'entrada_parcelamento') && (
+                <div className="space-y-3">
+                  <Label className="text-lg font-normal text-gray-600">Quando inicia o pagamento das parcelas?</Label>
+                  <StringDatePicker
+                    value={sponsorItems[selectedSponsorIndex].mesInicioPagamento || ""}
+                    onChange={(v) => {
+                      const newItems = [...sponsorItems];
+                      if (v && newItems[selectedSponsorIndex].diaVencimentoMensal) {
+                        const [ano, mes, dia] = v.split('-').map(Number);
+                        
+                        if (dia !== newItems[selectedSponsorIndex].diaVencimentoMensal) {
+                          // Data incompatível - não atualizar
+                          return;
+                        }
+                        
+                        const novaData = new Date(ano, mes - 1, newItems[selectedSponsorIndex].diaVencimentoMensal);
+                        const novaDataISO = novaData.toISOString().slice(0, 10);
+                        newItems[selectedSponsorIndex].mesInicioPagamento = novaDataISO;
+                      } else {
+                        newItems[selectedSponsorIndex].mesInicioPagamento = v;
+                      }
+                      setSponsorItems(newItems);
+                      updateField("detalhePatrocinios", newItems);
+                    }}
+                    placeholder="Ex: 01/01/2024"
+                    className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent"
+                  />
+                  {sponsorItems[selectedSponsorIndex].mesInicioPagamento && (() => {
+                    const [ano, mes, dia] = sponsorItems[selectedSponsorIndex].mesInicioPagamento.split('-').map(Number);
+                    const dataInicio = new Date(ano, mes - 1, dia);
+                    const hoje = new Date();
+                    hoje.setHours(0, 0, 0, 0);
+                    
+                    if (dataInicio < hoje) {
+                      return (
+                        <p className="text-sm text-amber-600 flex items-center gap-1">
+                          <AlertCircle className="h-4 w-4" />
+                          A data de início está no passado
+                        </p>
+                      );
+                    }
+                    return null;
+                  })()}
+                </div>
+              )}
+            </>
+          )}
+        </div>
+      )
+    },
+    {
+      id: "comissao",
+      title: "Comissão do Leiloeiro",
+      content: (
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <Label className="text-lg font-normal text-gray-600">Qual a porcentagem de comissão do leiloeiro?</Label>
+            <p className="text-sm text-gray-400 mb-4">
+              Percentual adicional que cada arrematante pagará sobre o valor da mercadoria arrematada como comissão do leiloeiro
+            </p>
+            <div className="relative">
+              <span className="absolute right-0 top-1/2 transform -translate-y-1/2 text-base text-gray-400">
+                %
+              </span>
+              <Input
+                type="text"
+                placeholder="Ex: 5"
+                value={values.percentualComissaoLeiloeiro?.toString() || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Permite apenas números e vírgula/ponto decimal
+                  if (value === "" || /^[\d.,]*$/.test(value)) {
+                    // Converte vírgula para ponto e parseia
+                    const numericValue = value === "" ? undefined : parseFloat(value.replace(",", "."));
+                    // Limita entre 0 e 100
+                    if (numericValue === undefined || (numericValue >= 0 && numericValue <= 100)) {
+                      updateField("percentualComissaoLeiloeiro", numericValue);
+                    }
+                  }
+                }}
+                className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none pl-0 pr-10 bg-transparent placeholder:text-gray-400"
+              />
+            </div>
+            
+            {values.percentualComissaoLeiloeiro && values.percentualComissaoLeiloeiro > 0 && (
+              <p className="text-sm text-gray-500 mt-4">
+                Cada arrematante pagará {values.percentualComissaoLeiloeiro}% a mais sobre o valor de cada mercadoria arrematada
+              </p>
+            )}
+          </div>
+        </div>
+      )
+    },
   ];
+
+  // Garantir que currentStep sempre aponta para uma etapa visível
+  useEffect(() => {
+    if (steps[currentStep]?.show === false) {
+      // Se a etapa atual não deve ser mostrada, encontrar a próxima visível
+      let nextVisibleStep = currentStep + 1;
+      while (nextVisibleStep < steps.length && steps[nextVisibleStep].show === false) {
+        nextVisibleStep++;
+      }
+      
+      if (nextVisibleStep < steps.length) {
+        setCurrentStep(nextVisibleStep);
+      } else {
+        // Se não há próxima visível, voltar para a anterior
+        let prevVisibleStep = currentStep - 1;
+        while (prevVisibleStep >= 0 && steps[prevVisibleStep].show === false) {
+          prevVisibleStep--;
+        }
+        if (prevVisibleStep >= 0) {
+          setCurrentStep(prevVisibleStep);
+        }
+      }
+    }
+  }, [currentStep, sponsorItems]); // Dependência em sponsorItems para reagir a mudanças
 
   const currentStepData = steps[currentStep];
 
@@ -939,7 +1757,10 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         {/* Indicadores de Etapas - Lateral Esquerda */}
         <div className="hidden md:flex flex-col justify-center w-80 px-12">
           <div className="space-y-4">
-            {steps.map((step, index) => (
+            {steps
+              .map((step, index) => ({ step, index }))
+              .filter(({ step }) => step.show !== false)
+              .map(({ step, index }) => (
               <div
                 key={index}
                 onClick={() => goToStep(index)}
@@ -996,6 +1817,42 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
           </div>
         </div>
       </div>
+
+      {/* Wizard de Proprietário */}
+      {proprietarioWizardOpen && loteParaProprietario && (
+        <ProprietarioWizard
+          initialData={{
+            proprietario: loteParaProprietario.proprietario || "",
+            codigoPais: loteParaProprietario.codigoPais || "+55",
+            celularProprietario: loteParaProprietario.celularProprietario || "",
+            emailProprietario: loteParaProprietario.emailProprietario || "",
+            documentos: loteParaProprietario.documentos || [],
+          }}
+          onSubmit={(data) => {
+            // Atualizar o lote com as informações do proprietário
+            const updatedLotes = [...(values.lotes || [])];
+            const loteIndex = updatedLotes.findIndex(l => l.id === loteParaProprietario.id);
+            if (loteIndex !== -1) {
+              updatedLotes[loteIndex] = {
+                ...updatedLotes[loteIndex],
+                isConvidado: true,
+                proprietario: data.proprietario,
+                codigoPais: data.codigoPais,
+                celularProprietario: data.celularProprietario,
+                emailProprietario: data.emailProprietario,
+                documentos: data.documentos,
+              };
+              updateField("lotes", updatedLotes);
+            }
+            setProprietarioWizardOpen(false);
+            setLoteParaProprietario(null);
+          }}
+          onCancel={() => {
+            setProprietarioWizardOpen(false);
+            setLoteParaProprietario(null);
+          }}
+        />
+      )}
     </div>,
     document.body
   );

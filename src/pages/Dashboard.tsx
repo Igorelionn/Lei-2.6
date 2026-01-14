@@ -23,7 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
-import { obterValorTotalArrematante } from "@/lib/parcelamento-calculator";
+import { obterValorTotalArrematante, calcularEstruturaParcelas, calcularValorTotal, obterQuantidadeTotalParcelas } from "@/lib/parcelamento-calculator";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -215,13 +215,14 @@ export default function Dashboard() {
         const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
         const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
         
-        // NOVO: Usar função que considera fator multiplicador se disponível
+        // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
         const valorTotal = obterValorTotalArrematante({
           usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
           valorLance: arrematante?.valorLance,
           fatorMultiplicador: arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
-          valorPagarNumerico: arrematante?.valorPagarNumerico || 0
-        });
+          valorPagarNumerico: arrematante?.valorPagarNumerico || 0,
+          percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+        }, auction.percentualComissaoLeiloeiro);
         
         // Função helper para calcular juros progressivos
         const calcularJurosProgressivos = (valorOriginal: number, percentualJuros: number, mesesAtraso: number) => {
@@ -341,14 +342,62 @@ export default function Dashboard() {
       return total;
     }, 0);
 
-  // Calcular total de patrocínios integralmente (não apenas superávit)
+  // Calcular total de patrocínios integralmente APENAS OS RECEBIDOS
   const totalPatrocinios = activeAuctions.reduce((total, auction) => {
-    const patrociniosTotal = auction.patrociniosTotal || 0;
-    return total + patrociniosTotal;
+    // Somar apenas patrocínios que foram confirmados como recebidos
+    const patrociniosRecebidos = (auction.detalhePatrocinios || [])
+      .filter(p => p.recebido === true)
+      .reduce((sum, p) => sum + (p.valorNumerico || 0), 0);
+    
+    return total + patrociniosRecebidos;
+  }, 0);
+
+  // Calcular total de patrocínios PENDENTES (não recebidos)
+  const totalPatrociniosPendentes = activeAuctions.reduce((total, auction) => {
+    // Somar apenas patrocínios que NÃO foram confirmados como recebidos
+    const patrociniosPendentes = (auction.detalhePatrocinios || [])
+      .filter(p => p.recebido !== true)
+      .reduce((sum, p) => sum + (p.valorNumerico || 0), 0);
+    
+    return total + patrociniosPendentes;
   }, 0);
 
   // Total recebido final = pagamentos dos arrematantes + patrocínios (integralmente)
   const totalRecebidoComSuperavit = localTotalRecebido + totalPatrocinios;
+
+  // Calcular valor total da comissão do leiloeiro (a receber - não pagos)
+  const totalComissaoAReceber = todosArrematantes
+    .filter(({ arrematante }) => !arrematante.pago)
+    .reduce((total, { auction, arrematante }) => {
+      if (arrematante?.usaFatorMultiplicador && arrematante?.valorLance && arrematante?.fatorMultiplicador) {
+        const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
+        const percentualComissao = arrematante?.percentualComissaoLeiloeiro ?? loteArrematado?.percentualComissaoLeiloeiro ?? auction.percentualComissaoLeiloeiro ?? 0;
+        
+        if (percentualComissao > 0) {
+          const valorBase = arrematante.valorLance * arrematante.fatorMultiplicador;
+          const valorComissao = valorBase * (percentualComissao / 100);
+          return total + valorComissao;
+        }
+      }
+      return total;
+    }, 0);
+
+  // Calcular valor total da comissão do leiloeiro (recebida - pagos)
+  const totalComissaoRecebida = todosArrematantes
+    .filter(({ arrematante }) => arrematante.pago || (arrematante.parcelasPagas && arrematante.parcelasPagas > 0))
+    .reduce((total, { auction, arrematante }) => {
+      if (arrematante?.usaFatorMultiplicador && arrematante?.valorLance && arrematante?.fatorMultiplicador) {
+        const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
+        const percentualComissao = arrematante?.percentualComissaoLeiloeiro ?? loteArrematado?.percentualComissaoLeiloeiro ?? auction.percentualComissaoLeiloeiro ?? 0;
+        
+        if (percentualComissao > 0) {
+          const valorBase = arrematante.valorLance * arrematante.fatorMultiplicador;
+          const valorComissao = valorBase * (percentualComissao / 100);
+          return total + valorComissao;
+        }
+      }
+      return total;
+    }, 0);
 
   // Calcular inadimplentes localmente com lógica correta
   const localOverdueCount = todosArrematantes
@@ -366,13 +415,14 @@ export default function Dashboard() {
       const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante?.loteId);
       const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
       
-      // NOVO: Usar função que considera fator multiplicador se disponível
+      // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
       const valorTotal = obterValorTotalArrematante({
         usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
         valorLance: arrematante?.valorLance,
         fatorMultiplicador: arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
-        valorPagarNumerico: arrematante?.valorPagarNumerico || 0
-      });
+        valorPagarNumerico: arrematante?.valorPagarNumerico || 0,
+        percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+      }, auction.percentualComissaoLeiloeiro);
       
       const parcelasPagas = arrematante?.parcelasPagas || 0;
       const now = new Date();
@@ -453,7 +503,8 @@ export default function Dashboard() {
               }
             }
           } else {
-            valorAReceber += valorRestante;
+            // Sem data de vencimento mensal, somar todas as parcelas
+            valorAReceber += valorPorParcela * quantidadeParcelas;
           }
         } else {
           // Entrada já paga, calcular parcelas restantes
@@ -518,7 +569,8 @@ export default function Dashboard() {
   const localTotalArrematantes = todosArrematantes.length;
 
   // Usar cálculos locais para evitar duplicatas
-  const totalReceiverNumber = localTotalAReceber;
+  // ✅ Incluir patrocínios pendentes no total a receber
+  const totalReceiverNumber = localTotalAReceber + totalPatrociniosPendentes;
   const auctionCostsNumber = stats?.total_custos || 0;
   const overdueCount = localOverdueCount;
   const totalRecebido = totalRecebidoComSuperavit;
@@ -572,7 +624,7 @@ export default function Dashboard() {
           if (dataEntradaStr) {
             const parts = dataEntradaStr.split('-');
             if (parts.length === 3) {
-              const [year, month, day] = parts.map(Number);
+          const [year, month, day] = parts.map(Number);
               if (!isNaN(year) && !isNaN(month) && !isNaN(day)) {
                 dataEntrada = new Date(year, month - 1, day);
               }
@@ -778,23 +830,14 @@ export default function Dashboard() {
       
       let valorPorParcela = 0;
       if (arrematante) {
-        // Obter valor total - tentar várias fontes
-        let valorTotal = 0;
-        
-        // Tentar valorPagarNumerico primeiro
-        if (arrematante.valorPagarNumerico && arrematante.valorPagarNumerico > 0) {
-          valorTotal = arrematante.valorPagarNumerico;
-        } 
-        // Tentar valorPagar como número
-        else if (typeof arrematante.valorPagar === 'number' && arrematante.valorPagar > 0) {
-          valorTotal = arrematante.valorPagar;
-        } 
-        // Tentar parsear valorPagar como string
-        else if (typeof arrematante.valorPagar === 'string' && arrematante.valorPagar.trim() !== '') {
-          // Remover tudo exceto números e vírgula, depois substituir vírgula por ponto
-          const cleaned = arrematante.valorPagar.replace(/[^\d,]/g, '').replace(',', '.');
-          valorTotal = parseFloat(cleaned) || 0;
-        }
+        // ✅ Usar função que considera fator multiplicador e comissão do leiloeiro
+        const valorTotal = obterValorTotalArrematante({
+          usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
+          valorLance: arrematante?.valorLance,
+          fatorMultiplicador: arrematante?.fatorMultiplicador,
+          valorPagarNumerico: arrematante?.valorPagarNumerico || 0,
+          percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+        }, auction.percentualComissaoLeiloeiro);
         
         // Se não tiver lote ou tipo de pagamento, assumir parcelamento simples
         const tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
@@ -808,32 +851,65 @@ export default function Dashboard() {
             const parcelasPagas = arrematante.parcelasPagas || 0;
             const quantidadeParcelas = arrematante.quantidadeParcelas || (loteArrematado?.parcelasPadrao || 1) + 1;
             
-            let valorEntrada = 0;
-            if (arrematante.valorEntrada) {
-              if (typeof arrematante.valorEntrada === 'number') {
-                valorEntrada = arrematante.valorEntrada;
-              } else if (typeof arrematante.valorEntrada === 'string') {
-                const cleaned = arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.');
-                valorEntrada = parseFloat(cleaned) || (valorTotal * 0.3);
-              }
-            } else {
-              valorEntrada = valorTotal * 0.3;
-            }
+            // ✅ Usar função parseCurrencyToNumber que é mais robusta
+            const valorEntrada = arrematante.valorEntrada 
+              ? parseCurrencyToNumber(arrematante.valorEntrada)
+              : valorTotal * 0.3;
             
             if (parcelasPagas === 0) {
               // Valor da entrada
               valorPorParcela = valorEntrada;
             } else {
-              // Parcelas mensais (SEM subtrair entrada - são independentes)
-              // quantidadeParcelas já é o total de parcelas MENSAIS
+              // ✅ Calcular valor por parcela considerando sistema de parcelas triplas/duplas/simples
+              const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+                (arrematante?.parcelasTriplas != null || 
+                 arrematante?.parcelasDuplas != null || 
+                 arrematante?.parcelasSimples != null);
+              
+              if (temEstruturaParcelas) {
+                // Sistema novo: calcular baseado na estrutura de parcelas
+                const triplas = arrematante?.parcelasTriplas || 0;
+                const duplas = arrematante?.parcelasDuplas || 0;
+                const simples = arrematante?.parcelasSimples || 0;
+                
+                const estrutura = calcularEstruturaParcelas(valorTotal, triplas, duplas, simples);
+                
+                // Determinar qual parcela mostrar (baseado em parcelasPagas)
+                const parcelaAtualIndex = Math.max(0, parcelasPagas - 1); // -1 porque entrada é a "parcela 1"
+                valorPorParcela = estrutura[parcelaAtualIndex]?.valor || estrutura[0]?.valor || (valorTotal / quantidadeParcelas);
+              } else {
+                // Sistema antigo: divisão simples
               valorPorParcela = valorTotal / quantidadeParcelas;
+              }
             }
             break;
           }
           case 'parcelamento':
           default: {
             const qtdParcelas = arrematante.quantidadeParcelas || loteArrematado?.parcelasPadrao || 1;
+            
+            // ✅ Calcular valor por parcela considerando sistema de parcelas triplas/duplas/simples
+            const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+              (arrematante?.parcelasTriplas != null || 
+               arrematante?.parcelasDuplas != null || 
+               arrematante?.parcelasSimples != null);
+            
+            if (temEstruturaParcelas) {
+              // Sistema novo: calcular baseado na estrutura de parcelas
+              const triplas = arrematante?.parcelasTriplas || 0;
+              const duplas = arrematante?.parcelasDuplas || 0;
+              const simples = arrematante?.parcelasSimples || 0;
+              
+              const estrutura = calcularEstruturaParcelas(valorTotal, triplas, duplas, simples);
+              
+              // Determinar qual parcela mostrar (baseado em parcelasPagas)
+              const parcelasPagas = arrematante?.parcelasPagas || 0;
+              const parcelaAtualIndex = Math.max(0, parcelasPagas); // Próxima parcela a vencer
+              valorPorParcela = estrutura[parcelaAtualIndex]?.valor || estrutura[0]?.valor || (valorTotal / qtdParcelas);
+            } else {
+              // Sistema antigo: divisão simples
             valorPorParcela = valorTotal / qtdParcelas;
+            }
             break;
           }
         }
@@ -1095,6 +1171,45 @@ export default function Dashboard() {
                   </p>
                   <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
                   <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalReceiverNumber)}</p>
+                  {(() => {
+                    // Verificar se há leilões com comissão do leiloeiro
+                    const leiloesComComissao = activeAuctions.filter(a => 
+                      (a.percentualComissaoLeiloeiro && a.percentualComissaoLeiloeiro > 0) ||
+                      (a.arrematantes?.some(arr => arr.percentualComissaoLeiloeiro && arr.percentualComissaoLeiloeiro > 0))
+                    );
+                    
+                    const temPatrociniosPendentes = totalPatrociniosPendentes > 0;
+                    const temComissao = totalComissaoAReceber > 0;
+                    
+                    // Se tem ambos (patrocínios pendentes + comissão), combinar em um único texto
+                    if (temPatrociniosPendentes && temComissao) {
+                      return (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Inclui {currency.format(totalPatrociniosPendentes)} de patrocínios e {currency.format(totalComissaoAReceber)} de comissão do leiloeiro
+                        </p>
+                      );
+                    }
+                    
+                    // Se tem apenas comissão (sem patrocínios pendentes)
+                    if (temComissao) {
+                      return (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Inclui {currency.format(totalComissaoAReceber)} de comissão do leiloeiro
+                        </p>
+                      );
+                    }
+                    
+                    // Se tem apenas patrocínios pendentes (sem comissão)
+                    if (temPatrociniosPendentes) {
+                      return (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Inclui {currency.format(totalPatrociniosPendentes)} de patrocínios
+                        </p>
+                      );
+                    }
+                    
+                    return null;
+                  })()}
                 </div>
 
                 <div className="text-center px-2">
@@ -1122,11 +1237,45 @@ export default function Dashboard() {
                   </p>
                   <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
                   <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalRecebido)}</p>
-                  {totalPatrocinios > 0 && (
+                  {(() => {
+                    // Verificar se há leilões com comissão do leiloeiro
+                    const leiloesComComissao = activeAuctions.filter(a => 
+                      (a.percentualComissaoLeiloeiro && a.percentualComissaoLeiloeiro > 0) ||
+                      (a.arrematantes?.some(arr => arr.percentualComissaoLeiloeiro && arr.percentualComissaoLeiloeiro > 0))
+                    );
+                    
+                    const temPatrocinios = totalPatrocinios > 0;
+                    const temComissao = totalComissaoRecebida > 0;
+                    
+                    // Se tem ambos, combinar em um único texto
+                    if (temPatrocinios && temComissao) {
+                      return (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Inclui {currency.format(totalPatrocinios)} de patrocínios e {currency.format(totalComissaoRecebida)} de comissão do leiloeiro
+                        </p>
+                      );
+                    }
+                    
+                    // Se tem apenas comissão (sem patrocínios)
+                    if (temComissao) {
+                      return (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Inclui {currency.format(totalComissaoRecebida)} de comissão do leiloeiro
+                        </p>
+                      );
+                    }
+                    
+                    // Se tem apenas patrocínios (sem comissão)
+                    if (temPatrocinios) {
+                      return (
                     <p className="text-xs text-gray-500 mt-2">
                       Inclui {currency.format(totalPatrocinios)} de patrocínios
                     </p>
-                  )}
+                      );
+                    }
+                    
+                    return null;
+                  })()}
                 </div>
               </div>
 
@@ -1204,7 +1353,9 @@ export default function Dashboard() {
                               if (!auction) return `Parcelas: ${invoice.parcelas} • ${invoice.amount}`;
                               
                               // Obter o arrematante correto do invoice
-                              const arrematanteId = invoice.id.split('-').slice(2).join('-');
+                              // ✅ Pegar os últimos 5 segmentos que formam o UUID do arrematante (formato: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
+                              const parts = invoice.id.split('-');
+                              const arrematanteId = parts.slice(-5).join('-');
                               const arrematante = auction.arrematantes?.find(arr => arr.id === arrematanteId || arr.nome === arrematanteId) || auction.arrematante;
                               
                               if (!arrematante) return `Parcelas: ${invoice.parcelas} • ${invoice.amount}`;
@@ -1222,15 +1373,55 @@ export default function Dashboard() {
                                   const quantidadeParcelasTotal = arrematante?.quantidadeParcelas || loteArrematado?.parcelasPadrao || 12;
                                   if (parcelasPagas === 0) {
                                     // Mostrar entrada + info das parcelas futuras (INDEPENDENTES)
-                                    const valorTotal = arrematante?.valorPagarNumerico || 0;
-                                    const valorEntrada = arrematante?.valorEntrada ? parseCurrencyToNumber(arrematante.valorEntrada) : valorTotal * 0.3;
-                                    // ✅ Parcelas são independentes da entrada
-                                    const valorPorParcela = valorTotal / quantidadeParcelasTotal;
+                                    // ✅ Usar função que considera fator multiplicador e comissão do leiloeiro
+                                    const valorTotal = obterValorTotalArrematante({
+                                      usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
+                                      valorLance: arrematante?.valorLance,
+                                      fatorMultiplicador: arrematante?.fatorMultiplicador,
+                                      valorPagarNumerico: arrematante?.valorPagarNumerico || 0,
+                                      percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+                                    }, auction.percentualComissaoLeiloeiro);
+                                    
+                                    // ✅ Calcular valor de entrada considerando string ou número
+                                    const valorEntrada = arrematante?.valorEntrada 
+                                      ? parseCurrencyToNumber(String(arrematante.valorEntrada))
+                                      : valorTotal * 0.3;
+                                    
+                                    // ✅ Calcular valor por parcela considerando sistema de parcelas triplas/duplas/simples
+                                    let valorPorParcela = 0;
+                                    const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+                                      (arrematante?.parcelasTriplas != null || 
+                                       arrematante?.parcelasDuplas != null || 
+                                       arrematante?.parcelasSimples != null);
+                                    
+                                    if (temEstruturaParcelas) {
+                                      // Sistema novo: calcular baseado na estrutura de parcelas
+                                      const estrutura = calcularEstruturaParcelas(
+                                        valorTotal,
+                                        arrematante?.parcelasTriplas || 0,
+                                        arrematante?.parcelasDuplas || 0,
+                                        arrematante?.parcelasSimples || 0
+                                      );
+                                      // Pegar valor da primeira parcela como referência
+                                      valorPorParcela = estrutura[0]?.valor || (valorTotal / quantidadeParcelasTotal);
+                                    } else {
+                                      // Sistema antigo: divisão simples
+                                      valorPorParcela = valorTotal / quantidadeParcelasTotal;
+                                    }
+                                    
                                     return `Entrada 0/1 • ${currency.format(valorEntrada)} • Parcelas: 0/${quantidadeParcelasTotal} • ${currency.format(valorPorParcela)} por parcela`;
                                   } else {
                                     const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
-                                    const valorTotal = arrematante?.valorPagarNumerico || 0;
-                                    const valorEntrada = arrematante?.valorEntrada ? parseCurrencyToNumber(arrematante.valorEntrada) : valorTotal * 0.3;
+                                    const valorTotal = obterValorTotalArrematante({
+                                      usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
+                                      valorLance: arrematante?.valorLance,
+                                      fatorMultiplicador: arrematante?.fatorMultiplicador,
+                                      valorPagarNumerico: arrematante?.valorPagarNumerico || 0,
+                                      percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+                                    }, auction.percentualComissaoLeiloeiro);
+                                    const valorEntrada = arrematante?.valorEntrada 
+                                      ? parseCurrencyToNumber(String(arrematante.valorEntrada))
+                                      : valorTotal * 0.3;
                                     return `Entrada 1/1 • ${currency.format(valorEntrada)} • Parcelas: ${parcelasEfetivasPagas}/${quantidadeParcelasTotal} • ${invoice.amount} por parcela`;
                                   }
                                   }
@@ -1247,7 +1438,9 @@ export default function Dashboard() {
                               if (!auction) return `Venc: ${invoice.dueDate}`;
                               
                               // Obter o arrematante correto do invoice
-                              const arrematanteId = invoice.id.split('-').slice(2).join('-');
+                              // ✅ Pegar os últimos 5 segmentos que formam o UUID do arrematante
+                              const parts = invoice.id.split('-');
+                              const arrematanteId = parts.slice(-5).join('-');
                               const arrematante = auction.arrematantes?.find(arr => arr.id === arrematanteId || arr.nome === arrematanteId) || auction.arrematante;
                               
                               if (!arrematante) return `Venc: ${invoice.dueDate}`;
@@ -1439,9 +1632,14 @@ export default function Dashboard() {
                                   // Calcular valor por parcela baseado no tipo de pagamento do lote
                                   const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === auction.arrematante?.loteId);
                                   
-                                  const valorTotal = auction.arrematante?.valorPagarNumerico !== undefined 
-                                    ? auction.arrematante.valorPagarNumerico 
-                                    : (typeof auction.arrematante?.valorPagar === 'number' ? auction.arrematante.valorPagar : 0);
+                                  // ✅ Usar função que considera fator multiplicador e comissão do leiloeiro
+                                  const valorTotal = obterValorTotalArrematante({
+                                    usaFatorMultiplicador: auction.arrematante?.usaFatorMultiplicador,
+                                    valorLance: auction.arrematante?.valorLance,
+                                    fatorMultiplicador: auction.arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
+                                    valorPagarNumerico: auction.arrematante?.valorPagarNumerico || 0,
+                                    percentualComissaoLeiloeiro: auction.arrematante?.percentualComissaoLeiloeiro
+                                  }, auction.percentualComissaoLeiloeiro);
                                   
                                   // Priorizar tipoPagamento do lote, mas usar do arrematante como fallback
                                   const tipoPagamento = loteArrematado?.tipoPagamento || auction.arrematante?.tipoPagamento || 'parcelamento';
@@ -1457,14 +1655,31 @@ export default function Dashboard() {
                                         parseCurrencyToNumber(auction.arrematante.valorEntrada) : 
                                         valorTotal * 0.3;
                                       
+                                      // ✅ Calcular valor por parcela considerando estrutura
+                                      const temEstruturaParcelas = auction.arrematante?.usaFatorMultiplicador && 
+                                        (auction.arrematante?.parcelasTriplas != null || 
+                                         auction.arrematante?.parcelasDuplas != null || 
+                                         auction.arrematante?.parcelasSimples != null);
+                                      
+                                      if (temEstruturaParcelas) {
+                                        const estrutura = calcularEstruturaParcelas(
+                                          valorTotal,
+                                          auction.arrematante?.parcelasTriplas || 0,
+                                          auction.arrematante?.parcelasDuplas || 0,
+                                          auction.arrematante?.parcelasSimples || 0
+                                        );
+                                        const parcelaAtualIndex = Math.max(0, parcelasPagas - 1);
+                                        valorPorParcela = estrutura[parcelaAtualIndex]?.valor || estrutura[0]?.valor || (valorTotal / quantidadeParcelasTotal);
+                                      } else {
+                                        valorPorParcela = valorTotal / quantidadeParcelasTotal;
+                                      }
+                                      
                                       if (parcelasPagas === 0) {
                                         // Entrada pendente - mostrar entrada e info de parcelas (INDEPENDENTES)
-                                        const valorPorParcela = valorTotal / quantidadeParcelasTotal;
                                         return `Entrada 0/1 • ${currency.format(valorEntrada)} • Parcelas: 0/${quantidadeParcelasTotal} • ${currency.format(valorPorParcela)} por parcela`;
                                       } else {
                                         // Entrada paga - mostrar parcelas (INDEPENDENTES da entrada)
                                         const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
-                                        const valorPorParcela = valorTotal / quantidadeParcelasTotal;
                                         return `Entrada 1/1 • ${currency.format(valorEntrada)} • Parcelas: ${parcelasEfetivasPagas}/${quantidadeParcelasTotal} • ${currency.format(valorPorParcela)} por parcela`;
                                       }
                                     }
@@ -1472,7 +1687,26 @@ export default function Dashboard() {
                                     default: {
                                       const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || loteArrematado?.parcelasPadrao || 1;
                                       const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
+                                      
+                                      // ✅ Calcular valor por parcela considerando estrutura
+                                      const temEstruturaParcelas = auction.arrematante?.usaFatorMultiplicador && 
+                                        (auction.arrematante?.parcelasTriplas != null || 
+                                         auction.arrematante?.parcelasDuplas != null || 
+                                         auction.arrematante?.parcelasSimples != null);
+                                      
+                                      if (temEstruturaParcelas) {
+                                        const estrutura = calcularEstruturaParcelas(
+                                          valorTotal,
+                                          auction.arrematante?.parcelasTriplas || 0,
+                                          auction.arrematante?.parcelasDuplas || 0,
+                                          auction.arrematante?.parcelasSimples || 0
+                                        );
+                                        const parcelaAtualIndex = Math.max(0, parcelasPagas);
+                                        valorPorParcela = estrutura[parcelaAtualIndex]?.valor || estrutura[0]?.valor || (valorTotal / quantidadeParcelas);
+                                      } else {
                                       valorPorParcela = valorTotal / quantidadeParcelas;
+                                      }
+                                      
                                       return `Parcelas: ${parcelasPagas}/${quantidadeParcelas} • ${currency.format(valorPorParcela)} por parcela`;
                                     }
                                   }
@@ -1514,9 +1748,15 @@ export default function Dashboard() {
                                   {(() => {
                                     // Adaptar exibição baseado no tipo de pagamento do lote
                                     const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === auction.arrematante?.loteId);
-                                    const valorTotal = auction.arrematante?.valorPagarNumerico !== undefined 
-                                      ? auction.arrematante.valorPagarNumerico 
-                                      : (typeof auction.arrematante?.valorPagar === 'number' ? auction.arrematante.valorPagar : 0);
+                                    
+                                    // ✅ Usar função que considera fator multiplicador e comissão do leiloeiro
+                                    const valorTotal = obterValorTotalArrematante({
+                                      usaFatorMultiplicador: auction.arrematante?.usaFatorMultiplicador,
+                                      valorLance: auction.arrematante?.valorLance,
+                                      fatorMultiplicador: auction.arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
+                                      valorPagarNumerico: auction.arrematante?.valorPagarNumerico || 0,
+                                      percentualComissaoLeiloeiro: auction.arrematante?.percentualComissaoLeiloeiro
+                                    }, auction.percentualComissaoLeiloeiro);
                                     
                                     // Priorizar tipoPagamento do lote, mas usar do arrematante como fallback
                                     const tipoPagamento = loteArrematado?.tipoPagamento || auction.arrematante?.tipoPagamento || 'parcelamento';
@@ -1532,14 +1772,32 @@ export default function Dashboard() {
                                           parseCurrencyToNumber(auction.arrematante.valorEntrada) : 
                                           valorTotal * 0.3; // fallback 30% se não definido
                                         
+                                        // ✅ Calcular valor por parcela considerando estrutura
+                                        let valorPorParcela = 0;
+                                        const temEstruturaParcelas = auction.arrematante?.usaFatorMultiplicador && 
+                                          (auction.arrematante?.parcelasTriplas != null || 
+                                           auction.arrematante?.parcelasDuplas != null || 
+                                           auction.arrematante?.parcelasSimples != null);
+                                        
+                                        if (temEstruturaParcelas) {
+                                          const estrutura = calcularEstruturaParcelas(
+                                            valorTotal,
+                                            auction.arrematante?.parcelasTriplas || 0,
+                                            auction.arrematante?.parcelasDuplas || 0,
+                                            auction.arrematante?.parcelasSimples || 0
+                                          );
+                                          const parcelaAtualIndex = Math.max(0, parcelasPagas - 1);
+                                          valorPorParcela = estrutura[parcelaAtualIndex]?.valor || estrutura[0]?.valor || (valorTotal / quantidadeParcelasTotal);
+                                        } else {
+                                          valorPorParcela = valorTotal / quantidadeParcelasTotal;
+                                        }
+                                        
                                         if (parcelasPagas === 0) {
                                           // Mostra entrada + info das parcelas futuras (INDEPENDENTES)
-                                          const valorPorParcela = valorTotal / quantidadeParcelasTotal;
                                           return `Entrada 0/1 • ${currency.format(valorEntrada)} • Parcelas: 0/${quantidadeParcelasTotal} • ${currency.format(valorPorParcela)} por parcela`;
                                         } else {
                                           // Mostra parcelas após entrada (parcelasPagas-1 porque a primeira "parcela paga" é a entrada)
                                           const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
-                                          const valorPorParcela = valorTotal / quantidadeParcelasTotal;
                                           return `Entrada 1/1 • ${currency.format(valorEntrada)} • Parcelas: ${parcelasEfetivasPagas}/${quantidadeParcelasTotal} • ${currency.format(valorPorParcela)} por parcela`;
                                         }
                                       }
@@ -1548,7 +1806,27 @@ export default function Dashboard() {
                                       default: {
                                         const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || loteArrematado?.parcelasPadrao || 1;
                                         const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
-                                        const valorPorParcela = valorTotal / quantidadeParcelas;
+                                        
+                                        // ✅ Calcular valor por parcela considerando estrutura
+                                        let valorPorParcela = 0;
+                                        const temEstruturaParcelas = auction.arrematante?.usaFatorMultiplicador && 
+                                          (auction.arrematante?.parcelasTriplas != null || 
+                                           auction.arrematante?.parcelasDuplas != null || 
+                                           auction.arrematante?.parcelasSimples != null);
+                                        
+                                        if (temEstruturaParcelas) {
+                                          const estrutura = calcularEstruturaParcelas(
+                                            valorTotal,
+                                            auction.arrematante?.parcelasTriplas || 0,
+                                            auction.arrematante?.parcelasDuplas || 0,
+                                            auction.arrematante?.parcelasSimples || 0
+                                          );
+                                          const parcelaAtualIndex = Math.max(0, parcelasPagas);
+                                          valorPorParcela = estrutura[parcelaAtualIndex]?.valor || estrutura[0]?.valor || (valorTotal / quantidadeParcelas);
+                                        } else {
+                                          valorPorParcela = valorTotal / quantidadeParcelas;
+                                        }
+                                        
                                         return `Parcelas: ${parcelasPagas}/${quantidadeParcelas} • ${currency.format(valorPorParcela)} por parcela`;
                                       }
                                     }

@@ -247,13 +247,14 @@ export function useEmailNotifications() {
     const parcelaAtual = (auction.arrematante.parcelasPagas || 0) + 1;
     const totalParcelas = auction.arrematante.quantidadeParcelas || lote?.parcelasPadrao || 0;
 
-    // NOVO: Calcular valor total considerando fator multiplicador
+    // NOVO: Calcular valor total considerando fator multiplicador e comissão do leiloeiro
     const valorTotalCalculado = obterValorTotalArrematante({
       usaFatorMultiplicador: auction.arrematante?.usaFatorMultiplicador,
       valorLance: auction.arrematante?.valorLance,
       fatorMultiplicador: auction.arrematante?.fatorMultiplicador || lote?.fatorMultiplicador,
-      valorPagarNumerico: auction.arrematante.valorPagarNumerico
-    });
+      valorPagarNumerico: auction.arrematante.valorPagarNumerico,
+      percentualComissaoLeiloeiro: auction.arrematante?.percentualComissaoLeiloeiro
+    }, auction.percentualComissaoLeiloeiro);
 
     const templateData = {
       arrematanteNome: auction.arrematante.nome,

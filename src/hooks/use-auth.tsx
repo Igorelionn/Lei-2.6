@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
+import { toast, dismiss } from "@/hooks/use-toast";
 
 type UserRole = "admin";
 
@@ -58,6 +59,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const lastActivityRef = useRef<number>(Date.now());
   const isActiveRef = useRef<boolean>(true);
+  const isOnlineRef = useRef<boolean>(true);
+  const lastToastTimeRef = useRef<number>(0);
+  const offlineToastIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     try {
@@ -376,7 +380,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         
         console.error('Erro ao atualizar heartbeat:', updateError);
+        
+        // ✅ Detectar erros de conexão e mostrar toast (evitar spam)
+        const now = Date.now();
+        const timeSinceLastToast = now - lastToastTimeRef.current;
+        const shouldShowToast = timeSinceLastToast > 30000; // 30 segundos
+        
+        if (shouldShowToast && isOnlineRef.current) {
+          isOnlineRef.current = false;
+          lastToastTimeRef.current = now;
+          
+          // Guardar ID do toast para poder fechá-lo depois
+          const offlineToast = toast({
+            variant: "destructive",
+            title: "Sem conexão",
+            description: "Verifique sua internet",
+            duration: Infinity, // Fica até reconectar
+          });
+          offlineToastIdRef.current = offlineToast.id;
+        }
+        
         return;
+      }
+      
+      // ✅ Se chegou aqui, conexão foi restabelecida
+      if (!isOnlineRef.current) {
+        isOnlineRef.current = true;
+        
+        // Fechar o toast de "Sem conexão" se existir
+        if (offlineToastIdRef.current) {
+          dismiss(offlineToastIdRef.current);
+          offlineToastIdRef.current = null;
+        }
+        
+        toast({
+          variant: "default",
+          title: "Conectado",
+          description: "Você está online",
+          duration: 2000, // 2 segundos - sai mais rápido
+        });
       }
 
       // Se o usuário foi desativado, fazer logout automático
@@ -448,6 +490,37 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         // Fazer logout imediato
         logout();
+        return;
+      }
+      
+      // ✅ Detectar erros de rede (TypeError: Failed to fetch, NetworkError, etc.)
+      const errorStr = error instanceof Error ? error.message : String(error);
+      const isNetworkError = 
+        errorStr.includes('Failed to fetch') || 
+        errorStr.includes('NetworkError') ||
+        errorStr.includes('Network request failed') ||
+        errorStr.includes('ERR_INTERNET_DISCONNECTED') ||
+        errorStr.includes('ERR_CONNECTION_REFUSED') ||
+        errorStr.includes('fetch failed');
+      
+      if (isNetworkError) {
+        const now = Date.now();
+        const timeSinceLastToast = now - lastToastTimeRef.current;
+        const shouldShowToast = timeSinceLastToast > 30000; // 30 segundos
+        
+        if (shouldShowToast && isOnlineRef.current) {
+          isOnlineRef.current = false;
+          lastToastTimeRef.current = now;
+          
+          // Guardar ID do toast para poder fechá-lo depois
+          const offlineToast = toast({
+            variant: "destructive",
+            title: "Sem conexão",
+            description: "Verifique sua internet",
+            duration: Infinity, // Fica até reconectar
+          });
+          offlineToastIdRef.current = offlineToast.id;
+        }
       }
     }
   }, [user, logout, updatePermissions]);
@@ -477,6 +550,49 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     activityEvents.forEach(event => {
       document.addEventListener(event, handleUserActivity, true);
     });
+
+    // ✅ Detectar mudanças no status de conexão do navegador
+    const handleOnline = () => {
+      console.log('🌐 Navegador detectou conexão online');
+      if (!isOnlineRef.current) {
+        isOnlineRef.current = true;
+        
+        // Fechar o toast de "Sem conexão" se existir
+        if (offlineToastIdRef.current) {
+          dismiss(offlineToastIdRef.current);
+          offlineToastIdRef.current = null;
+        }
+        
+        toast({
+          variant: "default",
+          title: "Conectado",
+          description: "Você está online",
+          duration: 2000, // 2 segundos - sai mais rápido
+        });
+        // Forçar atualização imediata do heartbeat
+        updateHeartbeat();
+      }
+    };
+
+    const handleOffline = () => {
+      console.log('🔴 Navegador detectou perda de conexão');
+      if (isOnlineRef.current) {
+        isOnlineRef.current = false;
+        lastToastTimeRef.current = Date.now();
+        
+        // Guardar ID do toast para poder fechá-lo depois
+        const offlineToast = toast({
+          variant: "destructive",
+          title: "Sem conexão",
+          description: "Verifique sua internet",
+          duration: Infinity, // Fica até reconectar
+        });
+        offlineToastIdRef.current = offlineToast.id;
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
 
     // Detectar quando a janela ganha/perde foco
     const handleVisibilityChange = () => {
@@ -521,6 +637,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('focus', handleWindowFocus);
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
       
       if (heartbeatIntervalRef.current) {
         clearInterval(heartbeatIntervalRef.current);

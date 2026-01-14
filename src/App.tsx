@@ -11,6 +11,8 @@ import Dashboard from "./pages/Dashboard";
 import Leiloes from "./pages/Leiloes";
 import Arrematantes from "./pages/Arrematantes";
 import Lotes from "./pages/Lotes";
+import LotesConvidados from "./pages/LotesConvidados";
+import Patrocinadores from "./pages/Patrocinadores";
 import Faturas from "./pages/Faturas";
 import Relatorios from "./pages/Relatorios";
 import Inadimplencia from "./pages/Inadimplencia";
@@ -80,6 +82,22 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Layout><Lotes /></Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/lotes-convidados"
+                element={
+                  <ProtectedRoute>
+                    <Layout><LotesConvidados /></Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/patrocinadores"
+                element={
+                  <ProtectedRoute>
+                    <Layout><Patrocinadores /></Layout>
                   </ProtectedRoute>
                 }
               />

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import {
   Plus, Search, Eye, Edit, Trash2, FileText, Package, DollarSign, 
   Calendar, Building, Archive, RefreshCw, ArrowLeft, Download, 
-  Image, Upload, File, X, Check, AlertCircle, Gavel
+  Image, Upload, File, X, Check, AlertCircle, Gavel, ChevronRight
 } from "lucide-react";
 import { Lot, Auction, DocumentoInfo, MercadoriaInfo, LoteInfo } from "@/lib/types";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
@@ -98,33 +99,7 @@ function LoteImagesModal({
   useEffect(() => {
     const fetchImages = async () => {
       try {
-        const allImages: LoteDocument[] = [];
-
-        // 1. Buscar imagens do campo 'imagens' do lote
-        const { data: auctionData } = await supabaseClient
-          .from('auctions')
-          .select('lotes')
-          .eq('id', auctionId)
-          .single();
-
-        const lotes = (auctionData?.lotes as unknown as LoteInfo[]) || [];
-        const loteData = lotes.find((l: LoteInfo) => l.numero === loteNumero);
-        const imagensDoLote = loteData?.imagens || [];
-
-        if (imagensDoLote.length > 0) {
-          imagensDoLote.forEach((url: string, index: number) => {
-            allImages.push({
-              id: `img-${loteNumero}-${index}`,
-              nome: `Imagem ${index + 1}`,
-              tipo: 'image/jpeg',
-              tamanho: 0,
-              data_upload: new Date().toISOString(),
-              url: url
-            });
-          });
-        }
-
-        // 2. Buscar imagens do banco de dados (documents)
+        // Buscar imagens do banco de dados (documents) - fonte única oficial
         const { data, error } = await supabaseClient
           .from('documents')
           .select('id, nome, tipo, tamanho, data_upload, url')
@@ -135,11 +110,10 @@ function LoteImagesModal({
 
         if (error) {
           console.error('❌ [Modal] Erro ao buscar imagens do banco:', error);
-        } else if (data && data.length > 0) {
-          allImages.push(...data);
+          setImages([]);
+        } else {
+          setImages(data || []);
         }
-
-        setImages(allImages);
       } catch (error) {
         console.error('❌ [Modal] Erro ao buscar imagens do lote:', error);
         setImages([]);
@@ -338,6 +312,13 @@ function Lotes() {
   const [viewingAuction, setViewingAuction] = useState<Auction | null>(null);
   const [viewingVersion, setViewingVersion] = useState(0);
 
+  // Estados para o wizard de seleção de leilão
+  const [isSelectAuctionModalOpen, setIsSelectAuctionModalOpen] = useState(false);
+  const [auctionSearchTerm, setAuctionSearchTerm] = useState("");
+  const [isTypingAuction, setIsTypingAuction] = useState(false);
+  const [showAllAuctions, setShowAllAuctions] = useState(false);
+  const [isHoveringAuctionButton, setIsHoveringAuctionButton] = useState(false);
+
   // Função para abrir detalhes do leilão
   const handleOpenAuctionDetails = (auctionId: string) => {
     const auction = auctions.find(a => a.id === auctionId);
@@ -371,7 +352,9 @@ function Lotes() {
   const lotesFromAuctions: LoteExtendido[] = (auctions || []).flatMap(auction => {
     if (!auction.lotes || auction.lotes.length === 0) return [];
     
-    return auction.lotes.map((lote) => {
+    return auction.lotes
+      .filter(lote => !lote.isConvidado) // ✅ FILTRAR lotes convidados - não devem aparecer aqui
+      .map((lote) => {
       // Calcular valor inicial baseado na soma das mercadorias do lote
       const valorInicial = lote.mercadorias.reduce((total, mercadoria) => total + mercadoria.valorNumerico, 0);
       
@@ -579,9 +562,8 @@ function Lotes() {
     disponiveis: mockLotes.filter(l => l.statusLote === "disponivel").length,
     arrematados: mockLotes.filter(l => l.statusLote === "arrematado").length,
     arquivados: mockLotes.filter(l => l.statusLote === "arquivado").length,
-    valorTotal: mockLotes.filter(l => l.statusLote !== "arquivado").reduce((sum, l) => {
-      const valorMercadorias = (l.mercadorias || []).reduce((sumMerc, m) => sumMerc + m.valorNumerico, 0);
-      return sum + (valorMercadorias || l.valorInicial);
+    totalMercadorias: mockLotes.filter(l => l.statusLote !== "arquivado").reduce((total, lote) => {
+      return total + (lote.mercadorias || []).length;
     }, 0)
   };
 
@@ -680,10 +662,44 @@ function Lotes() {
     });
   };
 
+  // ✅ Detectar quando está digitando no campo de busca de leilão
+  useEffect(() => {
+    if (auctionSearchTerm) {
+      setIsTypingAuction(true);
+      const timer = setTimeout(() => {
+        setIsTypingAuction(false);
+      }, 800); // Espera 800ms após parar de digitar
+      
+      return () => clearTimeout(timer);
+    } else {
+      setIsTypingAuction(false);
+    }
+  }, [auctionSearchTerm]);
+
+  // Filtrar leilões para o wizard
+  const filteredAuctions = auctions?.filter(auction => {
+    if (!auctionSearchTerm) return showAllAuctions;
+    const searchLower = auctionSearchTerm.toLowerCase();
+    return auction.nome.toLowerCase().includes(searchLower);
+  }) || [];
+
+  // Função para abrir o wizard de seleção de leilão
   const handleCreateLote = () => {
-    resetLoteForm();
-    setIsEditingLote(false);
-    setIsLoteModalOpen(true);
+    setAuctionSearchTerm("");
+    setShowAllAuctions(false);
+    setIsSelectAuctionModalOpen(true);
+  };
+
+  // Função para selecionar um leilão e navegar para a página de leilões na aba de lotes
+  const handleSelectAuction = (auctionId: string) => {
+    setIsSelectAuctionModalOpen(false);
+    navigate('/leiloes', {
+      state: {
+        editAuctionId: auctionId,
+        openTab: 'lotes', // Abre diretamente na aba de lotes
+        createNewLote: true // Flag para indicar que deve criar um novo lote
+      }
+    });
   };
 
   // Função para buscar e combinar fotos do lote e da mercadoria
@@ -726,12 +742,14 @@ function Lotes() {
       console.log("📷 Fotos do lote (banco de dados):", fotosLote?.length || 0);
       console.log("📷 Fotos da mercadoria disponíveis:", lote.fotosMercadoria?.length || 0);
 
-      // Combinar todas as fotos
+      // Combinar todas as fotos evitando duplicatas por URL
       const todasFotos: DocumentoInfo[] = [];
+      const urlsAdicionadas = new Set<string>();
 
       // 1. Adicionar imagens do campo 'imagens' do lote
       if (imagensDoLote && imagensDoLote.length > 0) {
         imagensDoLote.forEach((url: string, index: number) => {
+          if (!urlsAdicionadas.has(url)) {
           todasFotos.push({
             id: `img-${lote.id}-${index}`,
             nome: `Imagem ${index + 1}`,
@@ -741,12 +759,15 @@ function Lotes() {
             url: url,
             categoria: 'lote_imagem'
           });
+            urlsAdicionadas.add(url);
+          }
         });
       }
 
       // 2. Adicionar fotos específicas do lote (banco de dados)
       if (fotosLote && fotosLote.length > 0) {
         fotosLote.forEach(foto => {
+          if (foto.url && !urlsAdicionadas.has(foto.url)) {
           todasFotos.push({
             id: foto.id,
             nome: foto.nome,
@@ -756,16 +777,21 @@ function Lotes() {
             url: foto.url,
             categoria: 'lote'
           });
+            urlsAdicionadas.add(foto.url);
+          }
         });
       }
 
       // 3. Adicionar fotos da mercadoria (do leilão)
       if (lote.fotosMercadoria && lote.fotosMercadoria.length > 0) {
         lote.fotosMercadoria.forEach(foto => {
+          if (foto.url && !urlsAdicionadas.has(foto.url)) {
           todasFotos.push({
             ...foto,
             categoria: 'mercadoria'
           });
+            urlsAdicionadas.add(foto.url);
+          }
         });
       }
 
@@ -1047,11 +1073,19 @@ function Lotes() {
           selectedLote: selectedLote
         });
 
-        // Converter imagens para base64 para salvamento
-        console.log('🔄 Iniciando conversão de imagens:', loteForm.fotos.map(f => ({nome: f.nome, hasUrl: !!f.url, urlType: f.url?.substring(0, 10)})));
+        // Remover fotos duplicadas do array (baseado na URL)
+        const fotosUnicas = loteForm.fotos.filter((foto, index, self) => 
+          index === self.findIndex((f) => f.url === foto.url)
+        );
+        
+        console.log('🔄 Iniciando conversão de imagens:', {
+          totalFotos: loteForm.fotos.length,
+          fotosUnicas: fotosUnicas.length,
+          fotos: fotosUnicas.map(f => ({nome: f.nome, hasUrl: !!f.url, urlType: f.url?.substring(0, 20)}))
+        });
         
         const documentosParaInserir = await Promise.all(
-          loteForm.fotos.map(async (foto, index) => {
+          fotosUnicas.map(async (foto, index) => {
             let base64Data = null;
             
             console.log(`📸 Processando imagem ${index + 1}:`, {
@@ -1142,12 +1176,12 @@ function Lotes() {
             code: insertError.code
           });
         } else {
-          console.log(`✅ ${loteForm.fotos.length} imagens salvas com sucesso para o lote ${loteId}`);
+          console.log(`✅ ${fotosUnicas.length} imagens salvas com sucesso para o lote ${loteId}`);
           
           // Log do upload de documentos/imagens
           await logDocumentAction(
             'upload',
-            `${loteForm.fotos.length} imagem(ns) do Lote ${loteForm.numero}`,
+            `${fotosUnicas.length} imagem(ns) do Lote ${loteForm.numero}`,
             'auction',
             auction.nome,
             auction.id,
@@ -1155,9 +1189,9 @@ function Lotes() {
               metadata: {
                 lote_numero: loteForm.numero,
                 categoria: 'lote_fotos',
-                quantidade_arquivos: loteForm.fotos.length,
-                tipos_arquivo: loteForm.fotos.map(f => f.tipo),
-                tamanho_total: loteForm.fotos.reduce((sum, f) => sum + f.tamanho, 0)
+                quantidade_arquivos: fotosUnicas.length,
+                tipos_arquivo: fotosUnicas.map(f => f.tipo),
+                tamanho_total: fotosUnicas.reduce((sum, f) => sum + f.tamanho, 0)
               }
             }
           );
@@ -1224,7 +1258,7 @@ function Lotes() {
         state: {
           editAuctionId: lote.auctionId,
           editLoteIndex: loteIndex >= 0 ? loteIndex : 0,
-          openStep: 2 // Step de "Configuração de Lotes"
+          openStep: 4 // Step de "Configuração de Lotes" (índice 4)
         }
       });
     } catch (error) {
@@ -1491,11 +1525,11 @@ function Lotes() {
 
           <div className="text-center">
             <div className="mb-4">
-              <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Valor Total</p>
+              <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Mercadorias</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{formatCurrency(statsLotes.valorTotal)}</p>
-            <p className="text-sm text-gray-600 font-medium">Em produtos</p>
+            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.totalMercadorias}</p>
+            <p className="text-sm text-gray-600 font-medium">Cadastradas</p>
           </div>
         </div>
       </div>
@@ -1896,33 +1930,6 @@ function Lotes() {
                 </p>
               </div>
 
-              {/* Imagens do Lote (do campo imagens) */}
-              {(() => {
-                const loteComImagens = selectedLote as LoteExtendido;
-                return loteComImagens.imagens && loteComImagens.imagens.length > 0 ? (
-              <div>
-                    <Label className="text-sm font-medium text-gray-700 mb-3 block">
-                      Imagens do Lote ({loteComImagens.imagens.length})
-                    </Label>
-                    <div className="grid grid-cols-4 gap-3">
-                      {loteComImagens.imagens.map((img: string, index: number) => (
-                        <div key={index} className="relative aspect-square group">
-                          <img
-                            src={img}
-                            alt={`Imagem ${index + 1}`}
-                            className="w-full h-full object-cover rounded-lg border border-gray-200 cursor-pointer hover:opacity-80 transition-opacity"
-                            onClick={() => {
-                              setIsViewLoteModalOpen(false);
-                              handleViewPhotos(selectedLote);
-                            }}
-                          />
-              </div>
-                      ))}
-                    </div>
-                  </div>
-                ) : null;
-              })()}
-
               {/* Imagens do Lote */}
               <LoteImagesModal 
                 key={`modal-${selectedLote.id}-${selectedLote.numero}`}
@@ -2298,6 +2305,186 @@ function Lotes() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Wizard de Seleção de Leilão em Tela Cheia */}
+      {isSelectAuctionModalOpen && createPortal(
+        <div 
+          className="fixed inset-0 top-0 left-0 right-0 bottom-0 bg-white overflow-auto transition-opacity duration-300 opacity-100"
+          style={{ 
+            animation: 'wizardFadeIn 0.3s ease-out', 
+            margin: 0, 
+            padding: 0,
+            zIndex: 100000
+          }}
+        >
+          {/* Botão Fechar - Canto Superior Esquerdo */}
+          <div className="fixed top-8 left-8 z-20">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setIsSelectAuctionModalOpen(false)}
+              className="rounded-full w-12 h-12 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-700"
+            >
+              <X className="h-6 w-6" />
+            </Button>
+          </div>
+
+          <div className="min-h-screen flex">
+            {/* Conteúdo Principal */}
+            <div className="flex-1 flex items-center justify-center px-8 md:px-20 py-16">
+              <div className="w-full max-w-2xl space-y-12">
+                {/* Título */}
+                <div>
+                  <div className="flex items-center gap-4">
+                    <h1 className="text-3xl md:text-4xl font-normal text-gray-900 leading-tight">
+                      Selecione um Leilão
+                    </h1>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => {
+                          setShowAllAuctions(!showAllAuctions);
+                          if (!showAllAuctions) {
+                            setAuctionSearchTerm(''); // Limpar busca ao mostrar todos
+                          }
+                        }}
+                        onMouseEnter={() => setIsHoveringAuctionButton(true)}
+                        onMouseLeave={() => setIsHoveringAuctionButton(false)}
+                        className={`p-2.5 rounded-lg transition-all duration-200 ${
+                          showAllAuctions 
+                            ? 'bg-gray-900 text-white hover:bg-gray-800' 
+                            : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                        }`}
+                      >
+                        <Gavel className="h-5 w-5" />
+                      </button>
+                      <span 
+                        className={`text-sm font-medium whitespace-nowrap transition-all duration-200 ${
+                          isHoveringAuctionButton 
+                            ? 'opacity-100 translate-x-0' 
+                            : 'opacity-0 -translate-x-2 pointer-events-none'
+                        } ${showAllAuctions ? 'text-gray-900' : 'text-gray-600'}`}
+                      >
+                        {showAllAuctions ? 'Ocultar lista' : 'Mostrar todos leilões'}
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-lg text-gray-600 mt-4">
+                    {showAllAuctions 
+                      ? 'Navegue pela lista completa ou use a busca por nome para filtrar'
+                      : 'Digite o nome do leilão para buscar ou clique no ícone para ver todos'
+                    }
+                  </p>
+                </div>
+
+                {/* Campo de Busca */}
+                <div className="space-y-3">
+                  <Label className="text-lg font-normal text-gray-600">
+                    Nome do Leilão
+                  </Label>
+                  <Input
+                    type="text"
+                    placeholder="Buscar leilão por nome..."
+                    value={auctionSearchTerm}
+                    onChange={(e) => setAuctionSearchTerm(e.target.value)}
+                    className="h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent placeholder:text-gray-400"
+                  />
+                  {auctionSearchTerm && filteredAuctions.length === 0 && (
+                    <p className="text-sm text-amber-600 flex items-center gap-2">
+                      <AlertCircle className="h-4 w-4" />
+                      Nenhum leilão encontrado com este nome
+                    </p>
+                  )}
+                </div>
+
+                {/* Título da Lista - Só aparece quando há busca ou showAllAuctions */}
+                {(auctionSearchTerm || showAllAuctions) && (
+                  <div className="flex items-center justify-between">
+                    <h2 className="text-2xl font-normal text-gray-900">
+                      {isLoading ? (
+                        <>
+                          Carregando
+                          <span className="inline-flex ml-1">
+                            <span className="animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}>.</span>
+                            <span className="animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}>.</span>
+                            <span className="animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}>.</span>
+                          </span>
+                        </>
+                      ) : isTypingAuction ? (
+                        <>
+                          Buscando Leilão
+                          <span className="inline-flex ml-1">
+                            <span className="animate-bounce" style={{ animationDelay: '0ms', animationDuration: '1s' }}>.</span>
+                            <span className="animate-bounce" style={{ animationDelay: '150ms', animationDuration: '1s' }}>.</span>
+                            <span className="animate-bounce" style={{ animationDelay: '300ms', animationDuration: '1s' }}>.</span>
+                          </span>
+                        </>
+                      ) : (
+                        `Leilões ${auctionSearchTerm ? 'Encontrados' : 'Disponíveis'} ${filteredAuctions.length > 0 ? `(${filteredAuctions.length})` : ''}`
+                      )}
+                    </h2>
+                  </div>
+                )}
+
+                {/* Lista de Leilões - Só aparece quando há busca ou showAllAuctions */}
+                {(auctionSearchTerm || showAllAuctions) && (isLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <div className="text-center">
+                      <div className="inline-block h-8 w-8 animate-spin rounded-full border-4 border-solid border-black border-r-transparent"></div>
+                    </div>
+                  </div>
+                ) : filteredAuctions.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Gavel className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                    <p className="text-gray-600">
+                      {auctionSearchTerm ? 'Nenhum leilão encontrado' : 'Nenhum leilão disponível'}
+                    </p>
+                    {auctionSearchTerm && (
+                      <p className="text-sm text-gray-500 mt-2">
+                        Tente buscar com outros termos
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {filteredAuctions.map((auction) => {
+                      const dataLeilao = auction.dataInicio 
+                        ? new Date(auction.dataInicio).toLocaleDateString('pt-BR')
+                        : 'Data não definida';
+                      
+                      const totalLotes = auction.lotes?.filter(l => !l.isConvidado)?.length || 0;
+
+                      return (
+                        <div
+                          key={auction.id}
+                          onClick={() => handleSelectAuction(auction.id)}
+                          className="group p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <h3 className="text-lg font-medium text-gray-900 truncate group-hover:text-gray-950">
+                                {auction.nome}
+                              </h3>
+                              <div className="mt-2 flex items-center gap-4 text-sm text-gray-500">
+                                <span>
+                                  {totalLotes} {totalLotes === 1 ? 'lote' : 'lotes'}
+                                </span>
+                                <span>•</span>
+                                <span>{dataLeilao}</span>
+                              </div>
+                            </div>
+                            <ChevronRight className="h-5 w-5 text-gray-300 group-hover:text-gray-600 flex-shrink-0 ml-4 transition-colors" />
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
