@@ -19,7 +19,7 @@ import {
 import { Invoice, InvoiceStatus, ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { useToast } from "@/hooks/use-toast";
-import { obterValorTotalArrematante } from "@/lib/parcelamento-calculator";
+import { obterValorTotalArrematante, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 
 interface FaturaExtendida extends Invoice {
   leilaoNome: string;
@@ -287,8 +287,23 @@ function Faturas() {
             const quantidadeParcelasTotal = arrematante.quantidadeParcelas || loteArrematado?.parcelasPadrao || 12;
             const quantidadeParcelas = quantidadeParcelasTotal + 1; // Total incluindo entrada
             const valorEntrada = arrematante.valorEntrada ? parseCurrencyToNumber(arrematante.valorEntrada) : valorTotal * 0.3;
-            // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-            const valorParcela = valorTotal / quantidadeParcelasTotal;
+            
+            // ✅ Verificar se usa estrutura de parcelas (triplas/duplas/simples)
+            const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+              (arrematante?.parcelasTriplas != null || 
+               arrematante?.parcelasDuplas != null || 
+               arrematante?.parcelasSimples != null);
+            
+            let estruturaParcelas: Array<{ numero: number; tipo: string; valor: number; multiplicador: number }> = [];
+            if (temEstruturaParcelas) {
+              estruturaParcelas = calcularEstruturaParcelas(
+                valorTotal,
+                arrematante?.parcelasTriplas || 0,
+                arrematante?.parcelasDuplas || 0,
+                arrematante?.parcelasSimples || 0
+              );
+            }
+            
             const parcelasPagas = arrematante.parcelasPagas || 0;
             
              // Se ainda não pagou a entrada (parcelasPagas === 0), exibir apenas a entrada
@@ -387,6 +402,12 @@ function Faturas() {
                   break; // Sair do case
                 }
                 
+                // ✅ Calcular valor da parcela baseado na estrutura (se disponível)
+                let valorParcela = valorTotal / quantidadeParcelasTotal;
+                if (temEstruturaParcelas && estruturaParcelas[i]) {
+                  valorParcela = estruturaParcelas[i].valor;
+                }
+                
                 // Calcular valor da parcela com juros se atrasado
                 const now = new Date();
                 let valorParcelaComJuros = valorParcela;
@@ -454,7 +475,22 @@ function Faturas() {
               return;
             }
             
-            const valorParcela = valorTotal / quantidadeParcelas;
+            // ✅ Verificar se usa estrutura de parcelas (triplas/duplas/simples)
+            const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+              (arrematante?.parcelasTriplas != null || 
+               arrematante?.parcelasDuplas != null || 
+               arrematante?.parcelasSimples != null);
+            
+            let estruturaParcelas: Array<{ numero: number; tipo: string; valor: number; multiplicador: number }> = [];
+            if (temEstruturaParcelas) {
+              estruturaParcelas = calcularEstruturaParcelas(
+                valorTotal,
+                arrematante?.parcelasTriplas || 0,
+                arrematante?.parcelasDuplas || 0,
+                arrematante?.parcelasSimples || 0
+              );
+            }
+            
             const parcelasPagas = arrematante.parcelasPagas || 0;
             
             // Se já pagou todas as parcelas, não gerar nenhuma fatura
@@ -522,6 +558,12 @@ function Faturas() {
               return;
             }
             
+            // ✅ Calcular valor da parcela baseado na estrutura (se disponível)
+            let valorParcela = valorTotal / quantidadeParcelas;
+            if (temEstruturaParcelas && estruturaParcelas[i]) {
+              valorParcela = estruturaParcelas[i].valor;
+            }
+            
             // Calcular valor da parcela com juros se atrasado
             const now = new Date();
             let valorParcelaComJuros = valorParcela;
@@ -532,6 +574,7 @@ function Faturas() {
                 valorTotal: arrematante.valorPagarNumerico,
                 quantidadeParcelas,
                 valorParcela,
+                usaEstrutura: temEstruturaParcelas,
                 dueDate: dueDate.toISOString(),
                 dataHoje: now.toISOString(),
                 mesesAtraso,
@@ -625,6 +668,51 @@ function Faturas() {
       return new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime();
     });
 
+  // Função para calcular valor da parcela específica baseado na estrutura real
+  const calcularValorDaParcela = (fatura: FaturaExtendida): number => {
+    const auction = auctions.find(a => a.id === fatura.auctionId);
+    const arrematante = auction?.arrematante;
+    
+    if (!arrematante || !fatura.parcela) {
+      return fatura.valorLiquido;
+    }
+    
+    const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
+    const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
+    
+    // Para à vista, retornar valor total
+    if (tipoPagamento === "a_vista") {
+      return fatura.valorLiquido;
+    }
+    
+    // Calcular estrutura real de parcelas
+    const estruturaParcelas = calcularEstruturaParcelas(
+      arrematante.valorPagarNumerico,
+      arrematante?.parcelasTriplas || 0,
+      arrematante?.parcelasDuplas || 0,
+      arrematante?.parcelasSimples || 0
+    );
+    
+    // Para entrada + parcelamento, parcela 1 = entrada
+    if (tipoPagamento === "entrada_parcelamento") {
+      if (fatura.parcela === 1) {
+        // Entrada
+        const valorEntrada = arrematante.valorEntrada ? 
+          parseCurrencyToNumber(arrematante.valorEntrada) : 
+          arrematante.valorPagarNumerico * 0.3;
+        return valorEntrada;
+      } else {
+        // Parcelas mensais (parcela 2 = índice 0, parcela 3 = índice 1, etc.)
+        const indice = fatura.parcela - 2;
+        return estruturaParcelas[indice]?.valor || fatura.valorLiquido;
+      }
+    }
+    
+    // Para parcelamento simples
+    const indice = fatura.parcela - 1;
+    return estruturaParcelas[indice]?.valor || fatura.valorLiquido;
+  };
+
   // Função para calcular valor TOTAL do leilão (entrada + todas as parcelas) com juros se houver atraso
   const calcularValorTotalLeilaoComJuros = (fatura: FaturaExtendida) => {
     const now = new Date();
@@ -660,14 +748,20 @@ function Faturas() {
         valorTotalComJuros = arrematante.valorPagarNumerico;
       }
     } else if (tipoPagamento === "entrada_parcelamento") {
-      // Entrada + Parcelamento: calcular entrada + todas as parcelas com juros se atrasadas
-      // Entrada e parcelas são INDEPENDENTES
+      // Entrada + Parcelamento - usar estrutura real de parcelas
       const valorEntrada = arrematante.valorEntrada ? 
         parseCurrencyToNumber(arrematante.valorEntrada) : 
         arrematante.valorPagarNumerico * 0.3;
       const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-      // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-      const valorPorParcela = arrematante.valorPagarNumerico / quantidadeParcelas;
+      
+      // Calcular estrutura real de parcelas
+      const estruturaParcelas = calcularEstruturaParcelas(
+        arrematante.valorPagarNumerico,
+        arrematante?.parcelasTriplas || 0,
+        arrematante?.parcelasDuplas || 0,
+        arrematante?.parcelasSimples || 0
+      );
+      
       const parcelasPagas = arrematante.parcelasPagas || 0;
 
       // Calcular valor da entrada (com juros se atrasada)
@@ -692,7 +786,7 @@ function Faturas() {
         }
       }
 
-      // Calcular valor de todas as parcelas (com juros se atrasadas)
+      // Calcular valor de todas as parcelas com estrutura real (juros se atrasadas)
       const parcelasEfetivasPagas = parcelasPagas > 0 ? Math.max(0, parcelasPagas - 1) : 0;
       
       if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
@@ -700,48 +794,61 @@ function Faturas() {
         const [startYear, startMonth] = mesNormalizado.split('-').map(Number);
         
         for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+          const valorDaParcela = estruturaParcelas[i]?.valor || 0;
           const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
           if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
             const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
             if (mesesAtraso >= 1) {
-              valorTotalComJuros += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+              valorTotalComJuros += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
             } else {
-              valorTotalComJuros += valorPorParcela;
+              valorTotalComJuros += valorDaParcela;
             }
           } else {
-            valorTotalComJuros += valorPorParcela;
+            valorTotalComJuros += valorDaParcela;
           }
         }
       } else {
         // Se não tem dados de vencimento, somar valor restante sem juros
-        valorTotalComJuros += (quantidadeParcelas - parcelasEfetivasPagas) * valorPorParcela;
+        for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+          valorTotalComJuros += estruturaParcelas[i]?.valor || 0;
+        }
       }
     } else {
-      // Parcelamento simples: calcular todas as parcelas com juros se atrasadas
+      // Parcelamento simples - usar estrutura real de parcelas
       const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-      const valorPorParcela = arrematante.valorPagarNumerico / quantidadeParcelas;
       const parcelasPagas = arrematante.parcelasPagas || 0;
+      
+      // Calcular estrutura real de parcelas
+      const estruturaParcelas = calcularEstruturaParcelas(
+        arrematante.valorPagarNumerico,
+        arrematante?.parcelasTriplas || 0,
+        arrematante?.parcelasDuplas || 0,
+        arrematante?.parcelasSimples || 0
+      );
       
       if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
         const mesNormalizado = normalizarMesInicioPagamento(arrematante.mesInicioPagamento);
         const [startYear, startMonth] = mesNormalizado.split('-').map(Number);
         
         for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+          const valorDaParcela = estruturaParcelas[i]?.valor || 0;
           const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
           if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
             const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
             if (mesesAtraso >= 1) {
-              valorTotalComJuros += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+              valorTotalComJuros += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
             } else {
-              valorTotalComJuros += valorPorParcela;
+              valorTotalComJuros += valorDaParcela;
             }
           } else {
-            valorTotalComJuros += valorPorParcela;
+            valorTotalComJuros += valorDaParcela;
           }
         }
       } else {
         // Se não tem dados de vencimento, somar valor restante sem juros
-        valorTotalComJuros += (quantidadeParcelas - parcelasPagas) * valorPorParcela;
+        for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+          valorTotalComJuros += estruturaParcelas[i]?.valor || 0;
+        }
       }
     }
     
@@ -779,13 +886,20 @@ function Faturas() {
             valorAReceber = arrematante.valorPagarNumerico;
           }
         } else if (tipoPagamento === "entrada_parcelamento") {
-          // Entrada + Parcelamento (entrada e parcelas são INDEPENDENTES)
+          // Entrada + Parcelamento - usar estrutura real de parcelas
           const valorEntrada = arrematante.valorEntrada ? 
             parseCurrencyToNumber(arrematante.valorEntrada) : 
             arrematante.valorPagarNumerico * 0.3;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-          const valorPorParcela = arrematante.valorPagarNumerico / quantidadeParcelas;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            arrematante.valorPagarNumerico,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
+          
           const parcelasPagas = arrematante.parcelasPagas || 0;
 
           // Se entrada não foi paga
@@ -809,77 +923,93 @@ function Faturas() {
               valorAReceber += valorEntrada;
             }
             
-            // Calcular cada parcela mensal com juros se atrasada
+            // Calcular cada parcela mensal com estrutura real (juros se atrasada)
             if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
               const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
               
               for (let i = 0; i < quantidadeParcelas; i++) {
+                const valorDaParcela = estruturaParcelas[i]?.valor || 0;
                 const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
                 if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                   const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                   if (mesesAtraso >= 1) {
-                    valorAReceber += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                    valorAReceber += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                   } else {
-                    valorAReceber += valorPorParcela;
+                    valorAReceber += valorDaParcela;
                   }
                 } else {
-                  valorAReceber += valorPorParcela;
+                  valorAReceber += valorDaParcela;
                 }
               }
             } else {
               // Se não tem dados de vencimento, somar valor total das parcelas sem juros
-            valorAReceber += valorParcelas;
+              for (let i = 0; i < quantidadeParcelas; i++) {
+                valorAReceber += estruturaParcelas[i]?.valor || 0;
+              }
             }
           } else {
-            // Entrada já paga, calcular parcelas restantes
+            // Entrada já paga, calcular parcelas restantes com estrutura real
             const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
             
             if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
               const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
               
               for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+                const valorDaParcela = estruturaParcelas[i]?.valor || 0;
                 const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
                 if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                   const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                   if (mesesAtraso >= 1) {
-                    valorAReceber += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                    valorAReceber += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                   } else {
-                    valorAReceber += valorPorParcela;
+                    valorAReceber += valorDaParcela;
                   }
                 } else {
-                  valorAReceber += valorPorParcela;
+                  valorAReceber += valorDaParcela;
                 }
               }
             } else {
               // Se não tem dados de vencimento, somar valor restante sem juros
-              valorAReceber += (quantidadeParcelas - parcelasEfetivasPagas) * valorPorParcela;
+              for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+                valorAReceber += estruturaParcelas[i]?.valor || 0;
+              }
             }
           }
         } else {
-          // Parcelamento simples
+          // Parcelamento simples - usar estrutura real de parcelas
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-          const valorPorParcela = arrematante.valorPagarNumerico / quantidadeParcelas;
           const parcelasPagas = arrematante.parcelasPagas || 0;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            arrematante.valorPagarNumerico,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
               const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  valorAReceber += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                  valorAReceber += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                 } else {
-                  valorAReceber += valorPorParcela;
+                  valorAReceber += valorDaParcela;
                 }
               } else {
-                valorAReceber += valorPorParcela;
+                valorAReceber += valorDaParcela;
               }
             }
           } else {
             // Se não tem dados de vencimento, somar valor restante sem juros
-            valorAReceber += (quantidadeParcelas - parcelasPagas) * valorPorParcela;
+            for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+              valorAReceber += estruturaParcelas[i]?.valor || 0;
+            }
           }
         }
 
@@ -1121,16 +1251,16 @@ function Faturas() {
     }
   };
 
-  const getStatusBadgeColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'em_aberto':
-        return 'bg-blue-100 text-blue-800 border-blue-200';
+        return <Badge variant="warning">Em Aberto</Badge>;
       case 'pago':
-        return 'bg-green-100 text-green-800 border-green-200';
+        return <Badge variant="success">Pago</Badge>;
       case 'atrasado':
-        return 'bg-red-100 text-red-800 border-red-200';
+        return <Badge variant="destructive">Atrasado</Badge>;
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -1349,7 +1479,7 @@ function Faturas() {
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-col">
-                          <span className="font-semibold text-black">{formatCurrency(fatura.valorLiquido)}</span>
+                          <span className="font-semibold text-black">{formatCurrency(calcularValorDaParcela(fatura))}</span>
                           <span className="text-xs text-gray-500">
                             (Total: {formatCurrency(calcularValorTotalLeilaoComJuros(fatura))})
                           </span>
@@ -1377,9 +1507,7 @@ function Faturas() {
                         </span>
                       </TableCell>
                       <TableCell>
-                        <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold ${getStatusBadgeColor(fatura.status)}`}>
-                          {getStatusText(fatura.status)}
-                        </div>
+                        {getStatusBadge(fatura.status)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
@@ -1498,16 +1626,14 @@ function Faturas() {
                   <div className="grid grid-cols-3 gap-6">
                 <div>
                   <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Lote</Label>
-                      <p className="mt-1.5 text-lg font-semibold text-gray-900">#{selectedFatura.loteNumero}</p>
+                       <p className="mt-1.5 text-2xl font-light text-gray-900">#{selectedFatura.loteNumero}</p>
                 </div>
                 <div>
                   <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Status</Label>
                   <div className="mt-1.5">
-                        <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-xs font-medium ${getStatusBadgeColor(selectedFatura.status)}`}>
-                      {getStatusText(selectedFatura.status)}
-                    </div>
-                      </div>
-                    </div>
+                    {getStatusBadge(selectedFatura.status)}
+                  </div>
+                </div>
                     <div>
                       <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Pagamento</Label>
                       <p className="mt-1.5 text-sm font-medium text-gray-900">
@@ -1521,7 +1647,7 @@ function Faturas() {
                 {/* Valor Total - Destaque Clean */}
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 rounded-lg p-5 text-center">
                   <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Valor Total</Label>
-                  <p className="mt-2 text-3xl font-bold text-gray-900">
+                  <p className="mt-2 text-4xl font-light text-gray-900">
                     {formatCurrency(calcularValorTotalLeilaoComJuros(selectedFatura))}
                   </p>
                   <p className="mt-1.5 text-xs text-gray-500">Incluindo juros, se houver atraso</p>
@@ -1571,7 +1697,7 @@ function Faturas() {
                         <div className="space-y-3">
                           <div>
                             <Label className="text-xs font-medium text-gray-500">Valor</Label>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-2xl font-light text-gray-900">
                               {(() => {
                                 const valorTotal = Number(selectedFatura.valorTotal || selectedFatura.valorLiquido);
                                 const valorEntradaConfig = arrematante?.valorEntrada;
@@ -1601,7 +1727,7 @@ function Faturas() {
                                       return (
                                         <>
                                           {formatCurrency(valorComJuros)}
-                                          {juros > 0 && (
+                                          {juros > 0.01 && (
                                             <span className="text-xs text-red-600 ml-2">
                                               ({formatCurrency(juros)} juros)
                                             </span>
@@ -1667,7 +1793,7 @@ function Faturas() {
                         <div className="grid grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs font-medium text-gray-500">Valor/Parcela</Label>
-                            <p className="text-lg font-semibold text-gray-900">
+                            <p className="text-2xl font-light text-gray-900">
                               {(() => {
                                 const valorTotal = Number(selectedFatura.valorTotal || selectedFatura.valorLiquido);
                                 const valorEntradaConfig = arrematante?.valorEntrada;
@@ -1807,13 +1933,13 @@ function Faturas() {
                       <div className="grid grid-cols-3 gap-6">
                         <div>
                           <Label className="text-xs font-medium text-gray-500">Parcela Atual</Label>
-                          <p className="text-lg font-semibold text-gray-900">
+                          <p className="text-2xl font-light text-gray-900">
                     {selectedFatura.parcela}/{selectedFatura.totalParcelas}
                   </p>
                 </div>
                         <div>
                           <Label className="text-xs font-medium text-gray-500">Valor</Label>
-                          <p className="text-lg font-semibold text-gray-900">
+                          <p className="text-2xl font-light text-gray-900">
                             {formatCurrency(selectedFatura.valorLiquido)}
                           </p>
               </div>
@@ -1853,7 +1979,7 @@ function Faturas() {
                     </div>
                     <div>
                       <Label className="text-xs font-medium text-gray-500">Valor</Label>
-                      <p className="mt-1 text-lg font-semibold text-gray-900">
+                      <p className="mt-1 text-2xl font-light text-gray-900">
                         {formatCurrency(selectedFatura.valorLiquido)}
                       </p>
                     </div>
@@ -1863,12 +1989,10 @@ function Faturas() {
                   {new Date(selectedFatura.dataVencimento).toLocaleDateString('pt-BR')}
                 </p>
               </div>
-              <div>
+                    <div>
                       <Label className="text-xs font-medium text-gray-500">Status</Label>
                       <div className="mt-1">
-                        <div className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-medium ${getStatusBadgeColor(selectedFatura.status)}`}>
-                          {getStatusText(selectedFatura.status)}
-                        </div>
+                        {getStatusBadge(selectedFatura.status)}
                       </div>
                     </div>
                   </div>
@@ -2127,7 +2251,7 @@ function Faturas() {
                       if (tipoPagamento === 'a_vista') {
                         if (!arrematante || !percentualJuros) {
                           return (
-                            <div className="text-4xl font-semibold text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+                            <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                               {formatCurrency(valorBase)}
                             </div>
                           );
@@ -2149,9 +2273,9 @@ function Faturas() {
                         
                         const valorJuros = valorTotalComJuros - valorBase;
                         return (
-                          <div className="text-4xl font-semibold text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+                          <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                             {formatCurrency(valorTotalComJuros)}
-                            {valorJuros > 0 && (
+                            {valorJuros > 0.01 && (
                               <span className="text-sm text-red-600 ml-2">
                                 ({formatCurrency(valorJuros)} juros)
                               </span>
@@ -2163,7 +2287,7 @@ function Faturas() {
                       // Para parcelamento
                       if (!arrematante || !arrematante.mesInicioPagamento) {
                         return (
-                          <div className="text-4xl font-semibold text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+                          <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                             {formatCurrency(valorBase)}
                           </div>
                         );
@@ -2215,9 +2339,9 @@ function Faturas() {
                       
                       const valorJuros = valorTotalComJuros - valorBase;
                       return (
-                        <div className="text-4xl font-semibold text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+                        <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                           {formatCurrency(valorTotalComJuros)}
-                          {valorJuros > 0 && (
+                          {valorJuros > 0.01 && (
                             <span className="text-sm text-red-600 ml-2">
                               ({formatCurrency(valorJuros)} juros)
                             </span>
@@ -2650,7 +2774,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             if (tipoPagamento === 'a_vista') {
               if (!arrematante || !percentualJuros) {
                 return (
-                  <div className="text-4xl font-semibold text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                     {formatCurrency(valorTotalArrematante)}
                   </div>
                 );
@@ -2672,9 +2796,9 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
               
               const valorJuros = valorTotalComJuros - valorTotalArrematante;
               return (
-                <div className="text-4xl font-semibold text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+                <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                   {formatCurrency(valorTotalComJuros)}
-                  {valorJuros > 0 && (
+                  {valorJuros > 0.01 && (
                     <span className="text-sm text-red-600 ml-2">
                       ({formatCurrency(valorJuros)} juros)
                     </span>
@@ -2686,7 +2810,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             // Para parcelamento
             if (!arrematante || !mesInicioParcelas) {
                 return (
-                  <div className="text-4xl font-semibold text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                     {formatCurrency(valorTotalArrematante)}
                   </div>
                 );
@@ -2709,9 +2833,9 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             
             const valorJuros = valorTotalComJuros - valorTotalArrematante;
             return (
-              <div className="text-4xl font-semibold text-slate-900" style={{ letterSpacing: '-0.02em' }}>
+              <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                 {formatCurrency(valorTotalComJuros)}
-                {valorJuros > 0 && (
+                {valorJuros > 0.01 && (
                   <span className="text-sm text-red-600 ml-2">
                     ({formatCurrency(valorJuros)} juros)
                   </span>
@@ -2846,7 +2970,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             </div>
             <div className="flex justify-between py-2">
               <span className="text-slate-500">Valor</span>
-              <span className="text-lg font-semibold text-slate-900">{formatCurrency(fatura.valorLiquido)}</span>
+              <span className="text-2xl font-light text-gray-900">{formatCurrency(fatura.valorLiquido)}</span>
             </div>
           </div>
         </div>

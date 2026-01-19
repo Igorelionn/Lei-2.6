@@ -23,7 +23,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
-import { obterValorTotalArrematante, calcularEstruturaParcelas, calcularValorTotal, obterQuantidadeTotalParcelas } from "@/lib/parcelamento-calculator";
+import { obterValorTotalArrematante, calcularEstruturaParcelas, calcularValorTotal, obterQuantidadeTotalParcelas, descreverEstruturaParcelas } from "@/lib/parcelamento-calculator";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -239,15 +239,21 @@ export default function Dashboard() {
         };
         
         if (tipoPagamento === 'entrada_parcelamento') {
-          // Para entrada + parcelamento (entrada e parcelas são INDEPENDENTES)
+          // Para entrada + parcelamento - usar estrutura real de parcelas
           const valorEntrada = arrematante?.valorEntrada ? 
             (typeof arrematante.valorEntrada === 'string' ? 
               parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
           const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
-          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-          const valorPorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
+          
+          // Calcular estrutura real de parcelas (valorTotal já inclui comissão)
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           let valorRecebido = 0;
           
@@ -270,54 +276,69 @@ export default function Dashboard() {
               valorRecebido += valorEntrada;
             }
             
-            // Parcelas mensais pagas - calcular cada uma com juros se estava atrasada
+            // Parcelas mensais pagas - calcular cada uma com estrutura real (juros se atrasadas)
             const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
             if (parcelasEfetivasPagas > 0 && arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) {
               const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
               
               for (let i = 0; i < parcelasEfetivasPagas; i++) {
+                const valorDaParcela = estruturaParcelas[i]?.valor || 0;
                 const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
                 if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                   const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                   if (mesesAtraso >= 1) {
-                    valorRecebido += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                    valorRecebido += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                   } else {
-                    valorRecebido += valorPorParcela;
+                    valorRecebido += valorDaParcela;
                   }
                 } else {
-                  valorRecebido += valorPorParcela;
+                  valorRecebido += valorDaParcela;
                 }
               }
             } else {
-              valorRecebido += parcelasEfetivasPagas * valorPorParcela;
+              // Somar o valor real de cada parcela paga
+              for (let i = 0; i < parcelasEfetivasPagas; i++) {
+                valorRecebido += estruturaParcelas[i]?.valor || 0;
+              }
             }
             
             return total + valorRecebido;
           }
         } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
-          // Para parcelamento simples - calcular parcelas pagas com juros
+          // Para parcelamento simples - calcular parcelas pagas com estrutura real (triplas, duplas, simples)
           const quantidadeParcelas = arrematante?.quantidadeParcelas || 1;
-          const valorPorParcela = valorTotal / quantidadeParcelas;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           let valorRecebido = 0;
           if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal && arrematante?.percentualJurosAtraso) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = 0; i < parcelasPagas; i++) {
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
               const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate) {
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  valorRecebido += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                  valorRecebido += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                 } else {
-                  valorRecebido += valorPorParcela;
+                  valorRecebido += valorDaParcela;
                 }
               } else {
-                valorRecebido += valorPorParcela;
+                valorRecebido += valorDaParcela;
               }
             }
           } else {
-            valorRecebido = parcelasPagas * valorPorParcela;
+            // Somar o valor real de cada parcela paga
+            for (let i = 0; i < parcelasPagas; i++) {
+              valorRecebido += estruturaParcelas[i]?.valor || 0;
+            }
           }
           
           return total + valorRecebido;
@@ -455,15 +476,21 @@ export default function Dashboard() {
         }
         return total + valorTotal;
       } else if (tipoPagamento === "entrada_parcelamento") {
-        // Para entrada + parcelamento (entrada e parcelas são INDEPENDENTES)
+        // Para entrada + parcelamento - usar estrutura real de parcelas
         const valorEntrada = arrematante?.valorEntrada ? 
           (typeof arrematante.valorEntrada === 'string' ? 
             parseFloat(arrematante.valorEntrada.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.')) : 
             arrematante.valorEntrada) : 
           valorTotal * 0.3;
         const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
-        // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-        const valorPorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
+        
+        // Calcular estrutura real de parcelas (valorTotal já inclui comissão)
+        const estruturaParcelas = calcularEstruturaParcelas(
+          valorTotal,
+          arrematante?.parcelasTriplas || 0,
+          arrematante?.parcelasDuplas || 0,
+          arrematante?.parcelasSimples || 0
+        );
         
         let valorAReceber = 0;
         
@@ -485,60 +512,74 @@ export default function Dashboard() {
             valorAReceber += valorEntrada;
           }
           
-          // Calcular cada parcela mensal com juros se atrasada
+          // Calcular cada parcela mensal com estrutura real (juros se atrasada)
           if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = 0; i < quantidadeParcelas; i++) {
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
               const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  valorAReceber += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                  valorAReceber += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                 } else {
-                  valorAReceber += valorPorParcela;
+                  valorAReceber += valorDaParcela;
                 }
               } else {
-                valorAReceber += valorPorParcela;
+                valorAReceber += valorDaParcela;
               }
             }
           } else {
             // Sem data de vencimento mensal, somar todas as parcelas
-            valorAReceber += valorPorParcela * quantidadeParcelas;
+            for (let i = 0; i < quantidadeParcelas; i++) {
+              valorAReceber += estruturaParcelas[i]?.valor || 0;
+            }
           }
         } else {
           // Entrada já paga, calcular parcelas restantes
           const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
           const parcelasRestantes = quantidadeParcelas - parcelasEfetivasPagas;
           
-          // Verificar parcelas mensais com juros
+          // Verificar parcelas mensais com estrutura real (juros se atrasadas)
           if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
               const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  valorAReceber += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                  valorAReceber += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                 } else {
-                  valorAReceber += valorPorParcela;
+                  valorAReceber += valorDaParcela;
                 }
               } else {
-                valorAReceber += valorPorParcela;
+                valorAReceber += valorDaParcela;
               }
             }
           } else {
-            valorAReceber += parcelasRestantes * valorPorParcela;
+            // Sem data de vencimento mensal, somar parcelas restantes
+            for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+              valorAReceber += estruturaParcelas[i]?.valor || 0;
+            }
           }
         }
         
         return total + valorAReceber;
       } else {
-        // Para parcelamento simples, calcular parcelas restantes com juros
+        // Para parcelamento simples, calcular parcelas restantes com estrutura real (juros)
         const quantidadeParcelas = arrematante?.quantidadeParcelas || 1;
-        const valorPorParcela = valorTotal / quantidadeParcelas;
         const parcelasRestantes = quantidadeParcelas - parcelasPagas;
+        
+        // Calcular estrutura real de parcelas (valorTotal já inclui comissão)
+        const estruturaParcelas = calcularEstruturaParcelas(
+          valorTotal,
+          arrematante?.parcelasTriplas || 0,
+          arrematante?.parcelasDuplas || 0,
+          arrematante?.parcelasSimples || 0
+        );
         
         let valorAReceber = 0;
         
@@ -546,20 +587,24 @@ export default function Dashboard() {
           const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
           
           for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+            const valorDaParcela = estruturaParcelas[i]?.valor || 0;
             const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
             if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
               const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
               if (mesesAtraso >= 1) {
-                valorAReceber += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                valorAReceber += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
               } else {
-                valorAReceber += valorPorParcela;
+                valorAReceber += valorDaParcela;
               }
             } else {
-              valorAReceber += valorPorParcela;
+              valorAReceber += valorDaParcela;
             }
           }
         } else {
-          valorAReceber = parcelasRestantes * valorPorParcela;
+          // Sem data de vencimento mensal, somar parcelas restantes
+          for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+            valorAReceber += estruturaParcelas[i]?.valor || 0;
+          }
         }
         
         return total + valorAReceber;
@@ -1387,29 +1432,41 @@ export default function Dashboard() {
                                       ? parseCurrencyToNumber(String(arrematante.valorEntrada))
                                       : valorTotal * 0.3;
                                     
-                                    // ✅ Calcular valor por parcela considerando sistema de parcelas triplas/duplas/simples
-                                    let valorPorParcela = 0;
+                                    // ✅ Descrever estrutura de parcelas
                                     const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
                                       (arrematante?.parcelasTriplas != null || 
                                        arrematante?.parcelasDuplas != null || 
                                        arrematante?.parcelasSimples != null);
                                     
+                                    let descricaoParcelas = '';
                                     if (temEstruturaParcelas) {
-                                      // Sistema novo: calcular baseado na estrutura de parcelas
+                                      // Gerar descrição compacta: "10x R$ 3.000 + 3x R$ 1.000"
                                       const estrutura = calcularEstruturaParcelas(
                                         valorTotal,
                                         arrematante?.parcelasTriplas || 0,
                                         arrematante?.parcelasDuplas || 0,
                                         arrematante?.parcelasSimples || 0
                                       );
-                                      // Pegar valor da primeira parcela como referência
-                                      valorPorParcela = estrutura[0]?.valor || (valorTotal / quantidadeParcelasTotal);
+                                      
+                                      const grupos: { [key: number]: number } = {};
+                                      estrutura.forEach(parcela => {
+                                        if (!grupos[parcela.valor]) {
+                                          grupos[parcela.valor] = 0;
+                                        }
+                                        grupos[parcela.valor]++;
+                                      });
+                                      
+                                      descricaoParcelas = Object.entries(grupos)
+                                        .sort(([valorA], [valorB]) => Number(valorB) - Number(valorA))
+                                        .map(([valor, qtd]) => `${qtd}x ${currency.format(Number(valor))}`)
+                                        .join(' + ');
                                     } else {
                                       // Sistema antigo: divisão simples
-                                      valorPorParcela = valorTotal / quantidadeParcelasTotal;
+                                    const valorPorParcela = valorTotal / quantidadeParcelasTotal;
+                                      descricaoParcelas = `${quantidadeParcelasTotal} ${quantidadeParcelasTotal === 1 ? 'parcela' : 'parcelas'} de ${currency.format(valorPorParcela)}`;
                                     }
                                     
-                                    return `Entrada 0/1 • ${currency.format(valorEntrada)} • Parcelas: 0/${quantidadeParcelasTotal} • ${currency.format(valorPorParcela)} por parcela`;
+                                    return `Entrada 0/1 • ${currency.format(valorEntrada)} • Parcelas: 0/${quantidadeParcelasTotal} • ${descricaoParcelas}`;
                                   } else {
                                     const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
                                     const valorTotal = obterValorTotalArrematante({
@@ -1422,12 +1479,96 @@ export default function Dashboard() {
                                     const valorEntrada = arrematante?.valorEntrada 
                                       ? parseCurrencyToNumber(String(arrematante.valorEntrada))
                                       : valorTotal * 0.3;
-                                    return `Entrada 1/1 • ${currency.format(valorEntrada)} • Parcelas: ${parcelasEfetivasPagas}/${quantidadeParcelasTotal} • ${invoice.amount} por parcela`;
+                                    
+                                    // ✅ Descrever estrutura de parcelas
+                                    const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+                                      (arrematante?.parcelasTriplas != null || 
+                                       arrematante?.parcelasDuplas != null || 
+                                       arrematante?.parcelasSimples != null);
+                                    
+                                    let descricaoParcelas = '';
+                                    if (temEstruturaParcelas) {
+                                      // Gerar descrição compacta: "10x R$ 3.000 + 3x R$ 1.000"
+                                      const estrutura = calcularEstruturaParcelas(
+                                        valorTotal,
+                                        arrematante?.parcelasTriplas || 0,
+                                        arrematante?.parcelasDuplas || 0,
+                                        arrematante?.parcelasSimples || 0
+                                      );
+                                      
+                                      const grupos: { [key: number]: number } = {};
+                                      estrutura.forEach(parcela => {
+                                        if (!grupos[parcela.valor]) {
+                                          grupos[parcela.valor] = 0;
+                                        }
+                                        grupos[parcela.valor]++;
+                                      });
+                                      
+                                      descricaoParcelas = Object.entries(grupos)
+                                        .sort(([valorA], [valorB]) => Number(valorB) - Number(valorA))
+                                        .map(([valor, qtd]) => `${qtd}x ${currency.format(Number(valor))}`)
+                                        .join(' + ');
+                                    } else {
+                                      descricaoParcelas = `${invoice.amount} por parcela`;
+                                    }
+                                    
+                                    return `Entrada 1/1 • ${currency.format(valorEntrada)} • Parcelas: ${parcelasEfetivasPagas}/${quantidadeParcelasTotal} • ${descricaoParcelas}`;
                                   }
                                   }
                                 case 'parcelamento':
-                                default:
+                                default: {
+                                  // ✅ Descrever estrutura de parcelas
+                                  const auction = activeAuctions.find(a => invoice.id.startsWith(`invoice-${a.id}-`));
+                                  if (!auction) return `Parcelas: ${invoice.parcelas} • ${invoice.amount} por parcela`;
+                                  
+                                  const parts = invoice.id.split('-');
+                                  const arrematanteId = parts.slice(-5).join('-');
+                                  const arrematante = auction.arrematantes?.find(arr => arr.id === arrematanteId || arr.nome === arrematanteId) || auction.arrematante;
+                                  
+                                  if (!arrematante) return `Parcelas: ${invoice.parcelas} • ${invoice.amount} por parcela`;
+                                  
+                                  const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+                                    (arrematante?.parcelasTriplas != null || 
+                                     arrematante?.parcelasDuplas != null || 
+                                     arrematante?.parcelasSimples != null);
+                                  
+                                  if (temEstruturaParcelas) {
+                                    const valorTotal = obterValorTotalArrematante({
+                                      usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
+                                      valorLance: arrematante?.valorLance,
+                                      fatorMultiplicador: arrematante?.fatorMultiplicador,
+                                      valorPagarNumerico: arrematante?.valorPagarNumerico || 0,
+                                      percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+                                    }, auction.percentualComissaoLeiloeiro);
+                                    
+                                    // Gerar descrição compacta: "10x R$ 3.000 + 3x R$ 1.000"
+                                    const estrutura = calcularEstruturaParcelas(
+                                      valorTotal,
+                                      arrematante?.parcelasTriplas || 0,
+                                      arrematante?.parcelasDuplas || 0,
+                                      arrematante?.parcelasSimples || 0
+                                    );
+                                    
+                                    // Agrupar parcelas por valor
+                                    const grupos: { [key: number]: number } = {};
+                                    estrutura.forEach(parcela => {
+                                      if (!grupos[parcela.valor]) {
+                                        grupos[parcela.valor] = 0;
+                                      }
+                                      grupos[parcela.valor]++;
+                                    });
+                                    
+                                    // Criar descrição compacta: "10x R$ 3.000 + 3x R$ 1.000"
+                                    const descricaoParcelas = Object.entries(grupos)
+                                      .sort(([valorA], [valorB]) => Number(valorB) - Number(valorA))
+                                      .map(([valor, qtd]) => `${qtd}x ${currency.format(Number(valor))}`)
+                                      .join(' + ');
+                                    
+                                    return `Parcelas: ${invoice.parcelas} • ${descricaoParcelas}`;
+                                  }
+                                  
                                   return `Parcelas: ${invoice.parcelas} • ${invoice.amount} por parcela`;
+                                }
                               }
                             })()}
                           </p>
@@ -1695,19 +1836,35 @@ export default function Dashboard() {
                                          auction.arrematante?.parcelasSimples != null);
                                       
                                       if (temEstruturaParcelas) {
+                                        // Gerar descrição compacta da estrutura: "10x R$ 3.000 + 3x R$ 1.000"
                                         const estrutura = calcularEstruturaParcelas(
                                           valorTotal,
                                           auction.arrematante?.parcelasTriplas || 0,
                                           auction.arrematante?.parcelasDuplas || 0,
                                           auction.arrematante?.parcelasSimples || 0
                                         );
-                                        const parcelaAtualIndex = Math.max(0, parcelasPagas);
-                                        valorPorParcela = estrutura[parcelaAtualIndex]?.valor || estrutura[0]?.valor || (valorTotal / quantidadeParcelas);
+                                        
+                                        // Agrupar parcelas por valor para criar descrição compacta
+                                        const grupos: { [key: number]: number } = {};
+                                        estrutura.forEach(parcela => {
+                                          if (!grupos[parcela.valor]) {
+                                            grupos[parcela.valor] = 0;
+                                          }
+                                          grupos[parcela.valor]++;
+                                        });
+                                        
+                                        // Criar descrição: "10x R$ 3.000 + 3x R$ 1.000"
+                                        const descricaoEstrutura = Object.entries(grupos)
+                                          .sort(([valorA], [valorB]) => Number(valorB) - Number(valorA)) // Ordenar do maior para o menor
+                                          .map(([valor, qtd]) => `${qtd}x ${currency.format(Number(valor))}`)
+                                          .join(' + ');
+                                        
+                                        return `Parcelas: ${parcelasPagas}/${quantidadeParcelas} • ${descricaoEstrutura}`;
                                       } else {
+                                        // Sistema antigo: divisão simples
                                       valorPorParcela = valorTotal / quantidadeParcelas;
-                                      }
-                                      
                                       return `Parcelas: ${parcelasPagas}/${quantidadeParcelas} • ${currency.format(valorPorParcela)} por parcela`;
+                                      }
                                     }
                                   }
                                 })()}
@@ -1808,26 +1965,41 @@ export default function Dashboard() {
                                         const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
                                         
                                         // ✅ Calcular valor por parcela considerando estrutura
-                                        let valorPorParcela = 0;
                                         const temEstruturaParcelas = auction.arrematante?.usaFatorMultiplicador && 
                                           (auction.arrematante?.parcelasTriplas != null || 
                                            auction.arrematante?.parcelasDuplas != null || 
                                            auction.arrematante?.parcelasSimples != null);
                                         
                                         if (temEstruturaParcelas) {
+                                          // Gerar descrição compacta da estrutura: "10x R$ 3.000 + 3x R$ 1.000"
                                           const estrutura = calcularEstruturaParcelas(
                                             valorTotal,
                                             auction.arrematante?.parcelasTriplas || 0,
                                             auction.arrematante?.parcelasDuplas || 0,
                                             auction.arrematante?.parcelasSimples || 0
                                           );
-                                          const parcelaAtualIndex = Math.max(0, parcelasPagas);
-                                          valorPorParcela = estrutura[parcelaAtualIndex]?.valor || estrutura[0]?.valor || (valorTotal / quantidadeParcelas);
+                                          
+                                          // Agrupar parcelas por valor para criar descrição compacta
+                                          const grupos: { [key: number]: number } = {};
+                                          estrutura.forEach(parcela => {
+                                            if (!grupos[parcela.valor]) {
+                                              grupos[parcela.valor] = 0;
+                                            }
+                                            grupos[parcela.valor]++;
+                                          });
+                                          
+                                          // Criar descrição: "10x R$ 3.000 + 3x R$ 1.000"
+                                          const descricaoEstrutura = Object.entries(grupos)
+                                            .sort(([valorA], [valorB]) => Number(valorB) - Number(valorA)) // Ordenar do maior para o menor
+                                            .map(([valor, qtd]) => `${qtd}x ${currency.format(Number(valor))}`)
+                                            .join(' + ');
+                                          
+                                          return `Parcelas: ${parcelasPagas}/${quantidadeParcelas} • ${descricaoEstrutura}`;
                                         } else {
-                                          valorPorParcela = valorTotal / quantidadeParcelas;
-                                        }
-                                        
+                                          // Sistema antigo: divisão simples
+                                        const valorPorParcela = valorTotal / quantidadeParcelas;
                                         return `Parcelas: ${parcelasPagas}/${quantidadeParcelas} • ${currency.format(valorPorParcela)} por parcela`;
+                                        }
                                       }
                                     }
                                   })()}
@@ -1890,7 +2062,7 @@ export default function Dashboard() {
                               <Badge 
                                 variant={
                                   auction.arrematante?.pago 
-                                    ? "default" 
+                                    ? "success" 
                                     : isOverdue(auction.arrematante, auction) 
                                       ? "destructive" 
                                       : "warning"

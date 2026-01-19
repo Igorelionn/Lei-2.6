@@ -55,6 +55,9 @@ export default function Patrocinadores() {
   const [isTypingAuction, setIsTypingAuction] = useState(false);
   const [showAllAuctions, setShowAllAuctions] = useState(false);
   const [isHoveringAuctionButton, setIsHoveringAuctionButton] = useState(false);
+  
+  // Estado para o modal de visualização de detalhes
+  const [viewingPatrocinador, setViewingPatrocinador] = useState<PatrocinadorAgregado | null>(null);
 
   // Buscar leilões do banco
   const { auctions, isLoading, updateAuction } = useSupabaseAuctions();
@@ -612,6 +615,25 @@ export default function Patrocinadores() {
     }
   };
 
+  const getStatusPagamentoBadge = (status: string) => {
+    switch (status) {
+      case 'pago':
+        return <Badge variant="success">Pago</Badge>;
+      case 'atrasado':
+        return <Badge variant="destructive">Atrasado</Badge>;
+      case 'pendente':
+        return <Badge variant="warning">Pendente</Badge>;
+      default:
+        return <Badge variant="warning">Pendente</Badge>;
+    }
+  };
+
+  const getStatusRecebimentoBadge = (recebido: boolean) => {
+    return recebido 
+      ? <Badge variant="success">Recebido</Badge>
+      : <Badge variant="warning">Pendente</Badge>;
+  };
+
   const getStatusText = (status: string) => {
     switch (status) {
       case 'ativo':
@@ -841,16 +863,7 @@ export default function Patrocinadores() {
                         )}
                       </TableCell>
                       <TableCell>
-                        <Badge className={`${
-                          patrocinador.statusPagamento === 'pago' 
-                            ? 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100' 
-                            : patrocinador.statusPagamento === 'atrasado'
-                            ? 'bg-red-100 text-red-800 border-red-200 hover:bg-red-100'
-                            : 'bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100'
-                        } border font-medium`}>
-                          {patrocinador.statusPagamento === 'pago' ? 'Pago' : 
-                           patrocinador.statusPagamento === 'atrasado' ? 'Atrasado' : 'Pendente'}
-                        </Badge>
+                        {getStatusPagamentoBadge(patrocinador.statusPagamento)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
@@ -879,6 +892,7 @@ export default function Patrocinadores() {
                           <Button
                             variant="ghost"
                             size="sm"
+                            onClick={() => setViewingPatrocinador(patrocinador)}
                             className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                             title="Ver detalhes"
                           >
@@ -911,6 +925,136 @@ export default function Patrocinadores() {
           )}
         </CardContent>
       </Card>
+
+      {/* Modal de Visualização de Detalhes */}
+      <Dialog open={!!viewingPatrocinador} onOpenChange={(open) => !open && setViewingPatrocinador(null)}>
+        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
+          {/* Header Fixo */}
+          <div className="sticky top-0 bg-white z-50 px-6 py-4 border-b border-gray-200 shadow-sm">
+            <DialogHeader>
+              <DialogTitle className="text-xl font-semibold text-gray-900 pr-8">Detalhes do Patrocinador</DialogTitle>
+              <DialogDescription>
+                Visualize todas as informações detalhadas do patrocinador
+              </DialogDescription>
+            </DialogHeader>
+            <button
+              onClick={() => setViewingPatrocinador(null)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-60 focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-400 focus:!outline-none focus:!shadow-none"
+              aria-label="Fechar"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
+          </div>
+          
+          {/* Conteúdo com Scroll */}
+          <div className="overflow-y-auto max-h-[calc(90vh-80px)] scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300">
+            {viewingPatrocinador && (
+              <div className="p-6 space-y-6">
+                {/* Informações Gerais */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Building2 className="h-5 w-5 text-gray-600" />
+                    Informações Gerais
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Nome do Patrocinador</p>
+                      <p className="text-base text-gray-900 mt-1">{viewingPatrocinador.empresa}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Total Investido</p>
+                      <p className="text-base text-gray-900 mt-1 font-semibold">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(viewingPatrocinador.totalInvestido)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Valor Médio por Leilão</p>
+                      <p className="text-base text-gray-900 mt-1">
+                        {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(viewingPatrocinador.valorMedio)}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Leilões Patrocinados</p>
+                      <p className="text-base text-gray-900 mt-1">{viewingPatrocinador.leiloesPatrocinados}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">Status de Pagamento</p>
+                      <div className="mt-1">
+                        {getStatusPagamentoBadge(viewingPatrocinador.statusPagamento)}
+                      </div>
+                    </div>
+                    {viewingPatrocinador.proximoVencimento && (
+                      <div>
+                        <p className="text-sm font-medium text-gray-600">Próximo Vencimento</p>
+                        <p className="text-base text-gray-900 mt-1">{viewingPatrocinador.proximoVencimento}</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Lista de Patrocínios por Leilão */}
+                <div className="bg-white border border-gray-200 rounded-lg p-6">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                    <Gavel className="h-5 w-5 text-gray-600" />
+                    Patrocínios por Leilão
+                  </h3>
+                  <div className="space-y-4">
+                    {viewingPatrocinador.patrocinios.map((patrocinio, index) => (
+                      <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-center justify-between mb-3">
+                          <div className="flex-1">
+                            <h4 className="text-base font-semibold text-gray-900">{patrocinio.leilaoNome}</h4>
+                            {patrocinio.dataVencimento && (
+                              <p className="text-sm text-gray-600 mt-1">
+                                Vencimento: {patrocinio.dataVencimentoDate?.toLocaleDateString('pt-BR') || patrocinio.dataVencimento}
+                              </p>
+                            )}
+                          </div>
+                          <div className="text-right">
+                            <p className="text-lg font-semibold text-gray-900">
+                              {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(patrocinio.valor)}
+                            </p>
+                            <div className="mt-1">
+                              {getStatusRecebimentoBadge(patrocinio.recebido)}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-3 text-sm">
+                          <div className="flex-1">
+                            <p className="text-gray-600">Forma de Pagamento</p>
+                            <p className="text-gray-900 font-medium mt-1">
+                              {patrocinio.formaPagamento === 'a_vista' ? 'À Vista' : 
+                               patrocinio.formaPagamento === 'parcelado' ? 'Parcelado' : 
+                               patrocinio.formaPagamento === 'entrada_parcelamento' ? 'Entrada + Parcelamento' : 
+                               'Não especificado'}
+                            </p>
+                          </div>
+                          <div>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => navigate('/leiloes', { 
+                                state: { 
+                                  editAuctionId: patrocinio.leilaoId,
+                                  openTab: 'custos-patrocinios' 
+                                } 
+                              })}
+                              className="h-8 text-xs border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
+                            >
+                              <Eye className="h-3 w-3 mr-1" />
+                              Ver no Leilão
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
 
       {/* Modal de Confirmação de Pagamento - Igual ao de Arrematantes */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>

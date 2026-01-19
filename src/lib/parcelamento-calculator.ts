@@ -109,3 +109,49 @@ export function obterValorTotalArrematante(
   // Sistema antigo (valor direto)
   return arrematante.valorPagarNumerico || 0;
 }
+
+/**
+ * Descrever estrutura de parcelas de forma legível
+ * Exemplo: "10 parcelas de R$ 3.000,00 e 3 parcelas de R$ 1.000,00"
+ */
+export function descreverEstruturaParcelas(
+  parcelasTriplas: number = 0,
+  parcelasDuplas: number = 0,
+  parcelasSimples: number = 0,
+  valorTotal: number = 0
+): string {
+  const totalUnidades = (parcelasTriplas * 3) + (parcelasDuplas * 2) + (parcelasSimples * 1);
+  
+  if (totalUnidades === 0 || valorTotal === 0) return '';
+  
+  const valorBase = valorTotal / totalUnidades;
+  const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
+  
+  const descricoes: string[] = [];
+  
+  // Adicionar descrição de parcelas triplas
+  if (parcelasTriplas > 0) {
+    const valorTripla = valorBase * 3;
+    descricoes.push(`${parcelasTriplas} ${parcelasTriplas === 1 ? 'parcela' : 'parcelas'} de ${currency.format(valorTripla)}`);
+  }
+  
+  // Adicionar descrição de parcelas duplas
+  if (parcelasDuplas > 0) {
+    const valorDupla = valorBase * 2;
+    descricoes.push(`${parcelasDuplas} ${parcelasDuplas === 1 ? 'parcela' : 'parcelas'} de ${currency.format(valorDupla)}`);
+  }
+  
+  // Adicionar descrição de parcelas simples
+  if (parcelasSimples > 0) {
+    descricoes.push(`${parcelasSimples} ${parcelasSimples === 1 ? 'parcela' : 'parcelas'} de ${currency.format(valorBase)}`);
+  }
+  
+  // Juntar com "e" se houver múltiplos tipos
+  if (descricoes.length === 0) return '';
+  if (descricoes.length === 1) return descricoes[0];
+  if (descricoes.length === 2) return descricoes.join(' e ');
+  
+  // Para 3 tipos: "X parcelas de Y, Z parcelas de W e A parcelas de B"
+  const ultimaDescricao = descricoes.pop();
+  return descricoes.join(', ') + ' e ' + ultimaDescricao;
+}

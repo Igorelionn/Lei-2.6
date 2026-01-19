@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { useGuestLots } from "@/hooks/use-guest-lots"; // ✅ NOVO: Import para lotes convidados
 import { useToast } from "@/hooks/use-toast";
@@ -8,7 +9,7 @@ import { parseCurrencyToNumber } from "@/lib/utils";
 import { ArrematanteInfo, DocumentoInfo, Auction, LoteInfo } from "@/lib/types";
 import html2pdf from 'html2pdf.js';
 import { parseISO } from 'date-fns';
-import { obterValorTotalArrematante } from "@/lib/parcelamento-calculator";
+import { obterValorTotalArrematante, descreverEstruturaParcelas, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import { ArrematanteWizard } from "@/components/ArrematanteWizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -65,6 +66,7 @@ interface ArrematanteExtendido extends ArrematanteInfo {
 }
 
 function Arrematantes() {
+  const queryClient = useQueryClient();
   const { auctions, isLoading: isAuctionsLoading, updateAuction, deleteAuction, archiveAuction, unarchiveAuction } = useSupabaseAuctions();
   const { guestLots, isLoading: isGuestLotsLoading } = useGuestLots(); // ✅ NOVO: Buscar lotes convidados
   const { toast } = useToast();
@@ -269,11 +271,19 @@ function Arrematantes() {
       // Usar html2pdf importado estaticamente
 
       const opt = {
-        margin: 1,
+        margin: [0.4, 0.4, 0.4, 0.4] as [number, number, number, number],
         filename: `relatorio_arrematante_${arrematante.nome.replace(/\s+/g, '_')}.pdf`,
         image: { type: 'jpeg' as const, quality: 0.98 },
-        html2canvas: { scale: 2 },
-        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const }
+        html2canvas: { 
+          scale: 2,
+          useCORS: true,
+          logging: false,
+          windowWidth: 1200,
+          scrollY: 0,
+          scrollX: 0
+        },
+        jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' as const },
+        pagebreak: { mode: ['avoid-all', 'css', 'legacy'], before: '.page-break-before', after: '.page-break-after', avoid: '.break-inside-avoid' }
       };
 
       await html2pdf().set(opt).from(element).save();
@@ -287,12 +297,6 @@ function Arrematantes() {
           report_format: 'pdf',
           generation_date: new Date().toISOString()
         }
-      });
-      
-      toast({
-        title: "PDF Gerado com Sucesso!",
-        description: `Relatório do arrematante ${arrematante.nome} foi baixado.`,
-        duration: 4000,
       });
       
       setIsExportModalOpen(false);
@@ -777,11 +781,11 @@ function Arrematantes() {
   const getStatusBadge = (status: 'pago' | 'pendente' | 'atrasado') => {
     switch (status) {
       case 'pago':
-        return <Badge className="bg-green-100 text-green-800 border-green-200 hover:bg-green-100 hover:text-green-800 hover:border-green-200 border font-medium">Pago</Badge>;
+        return <Badge variant="success">Pago</Badge>;
       case 'pendente':
-        return <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200 hover:bg-yellow-100 hover:text-yellow-800 hover:border-yellow-200 border font-medium">Pendente</Badge>;
+        return <Badge variant="warning">Em Aberto</Badge>;
       case 'atrasado':
-        return <Badge className="bg-red-100 text-red-800 border-red-200 hover:bg-red-100 hover:text-red-800 hover:border-red-200 border font-medium">Atrasado</Badge>;
+        return <Badge variant="destructive">Atrasado</Badge>;
     }
   };
 
@@ -1253,7 +1257,7 @@ function Arrematantes() {
       
       // Verificar cada parcela atrasada
       for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
-        const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+        const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
         if (now > parcelaDate) {
           const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
           if (mesesAtraso >= 1) {
@@ -1369,7 +1373,7 @@ function Arrematantes() {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = 0; i < parcelasEfetivasPagas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate && arrematante.percentualJurosAtraso) {
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
@@ -1392,7 +1396,7 @@ function Arrematantes() {
               const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
               
               for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
-                const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+                const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
                 if (now > parcelaDate && arrematante.percentualJurosAtraso) {
                   const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                   if (mesesAtraso >= 1) {
@@ -1436,7 +1440,7 @@ function Arrematantes() {
         const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
         
         for (let i = 0; i < quantidadeParcelas; i++) {
-          const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+          const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
           if (now > parcelaDate && i >= parcelasEfetivasPagas) {
             const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
             if (mesesAtraso >= 1) {
@@ -1467,7 +1471,7 @@ function Arrematantes() {
           const parcelasParaCalcular = arrematante.pago ? quantidadeParcelas : parcelasPagas;
           
           for (let i = 0; i < parcelasParaCalcular; i++) {
-            const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+            const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
             if (now > parcelaDate && arrematante.percentualJurosAtraso) {
               const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
               if (mesesAtraso >= 1) {
@@ -1497,7 +1501,7 @@ function Arrematantes() {
         const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
         
         for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
-          const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+          const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
           if (now > parcelaDate) {
             const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
             if (mesesAtraso >= 1) {
@@ -1561,15 +1565,21 @@ function Arrematantes() {
           }
           return sum;
         } else if (tipoPagamento === "entrada_parcelamento") {
-          // Para entrada + parcelamento (entrada e parcelas são INDEPENDENTES)
+          // Para entrada + parcelamento - usar estrutura real de parcelas
           const valorEntrada = arrematante.valorEntrada ? 
             (typeof arrematante.valorEntrada === 'string' ? 
               parseFloat(arrematante.valorEntrada.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.')) : 
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-          const valorPorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           let valorRecebido = 0;
           if (parcelasPagas >= 1) {
@@ -1590,54 +1600,69 @@ function Arrematantes() {
               valorRecebido += valorEntrada;
             }
             
-            // Parcelas mensais pagas - calcular cada uma com juros se estava atrasada
+            // Parcelas mensais pagas - calcular cada uma com estrutura real (juros se atrasadas)
             const parcelasMensaisPagas = Math.max(0, parcelasPagas - 1);
             if (parcelasMensaisPagas > 0 && arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) {
               const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
               
               for (let i = 0; i < parcelasMensaisPagas; i++) {
-                const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+                const valorDaParcela = estruturaParcelas[i]?.valor || 0;
+                const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
                 if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                   const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                   if (mesesAtraso >= 1) {
-                    valorRecebido += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                    valorRecebido += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                   } else {
-                    valorRecebido += valorPorParcela;
+                    valorRecebido += valorDaParcela;
                   }
                 } else {
-                  valorRecebido += valorPorParcela;
+                  valorRecebido += valorDaParcela;
                 }
               }
             } else {
-              valorRecebido += parcelasMensaisPagas * valorPorParcela;
+              // Somar o valor real de cada parcela paga
+              for (let i = 0; i < parcelasMensaisPagas; i++) {
+                valorRecebido += estruturaParcelas[i]?.valor || 0;
+              }
             }
           }
           
           return sum + valorRecebido;
         } else {
-          // Para parcelamento simples, calcular parcelas pagas com juros
+          // Para parcelamento simples, calcular parcelas pagas com estrutura real
           const quantidadeParcelas = arrematante.quantidadeParcelas || 1;
-          const valorPorParcela = valorTotal / quantidadeParcelas;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           let valorRecebido = 0;
           if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal && arrematante?.percentualJurosAtraso) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = 0; i < parcelasPagas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate) {
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  valorRecebido += calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                  valorRecebido += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                 } else {
-                  valorRecebido += valorPorParcela;
+                  valorRecebido += valorDaParcela;
                 }
               } else {
-                valorRecebido += valorPorParcela;
+                valorRecebido += valorDaParcela;
               }
             }
           } else {
-            valorRecebido = parcelasPagas * valorPorParcela;
+            // Somar o valor real de cada parcela paga
+            for (let i = 0; i < parcelasPagas; i++) {
+              valorRecebido += estruturaParcelas[i]?.valor || 0;
+            }
           }
           
           return sum + valorRecebido;
@@ -1659,7 +1684,7 @@ function Arrematantes() {
           // Para à vista, retornar valor completo (sem juros pois ainda não venceu)
           return sum + (a.valorPagarNumerico || 0);
         } else if (tipoPagamento === "entrada_parcelamento") {
-          // Para entrada + parcelamento (entrada e parcelas são INDEPENDENTES)
+          // Para entrada + parcelamento - usar estrutura real de parcelas
           const valorTotal = a.valorPagarNumerico || 0;
           const valorEntrada = arrematante.valorEntrada ? 
             (typeof arrematante.valorEntrada === 'string' ? 
@@ -1667,8 +1692,15 @@ function Arrematantes() {
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-          const valorPorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
+          
           const parcelasPagas = arrematante.parcelasPagas || 0;
           
           let valorPendente = 0;
@@ -1681,27 +1713,35 @@ function Arrematantes() {
             }
           }
           
-          // Verificar parcelas mensais pendentes (não vencidas)
+          // Verificar parcelas mensais pendentes com estrutura real (não vencidas)
           if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
             
             for (let i = 0; i < quantidadeParcelas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               // Se a parcela não foi paga E ainda não venceu
               if (i >= parcelasEfetivasPagas && now <= parcelaDate) {
-                valorPendente += valorPorParcela;
+                valorPendente += valorDaParcela;
               }
             }
           }
           
           return sum + valorPendente;
         } else {
-          // Para parcelamento simples, calcular parcelas pendentes (não vencidas)
+          // Para parcelamento simples, calcular parcelas pendentes com estrutura real (não vencidas)
           const valorTotal = a.valorPagarNumerico || 0;
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 1;
-          const valorPorParcela = valorTotal / quantidadeParcelas;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           let valorPendente = 0;
           
@@ -1709,10 +1749,11 @@ function Arrematantes() {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               // Se a parcela ainda não venceu
               if (now <= parcelaDate) {
-                valorPendente += valorPorParcela;
+                valorPendente += valorDaParcela;
               }
             }
           }
@@ -1755,7 +1796,7 @@ function Arrematantes() {
             const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
             
             for (let i = 0; i < quantidadeParcelas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               // Se a parcela não foi paga E ainda não venceu
               if (i >= parcelasEfetivasPagas && now <= parcelaDate) {
                 parcelasPendentes += 1;
@@ -1774,7 +1815,7 @@ function Arrematantes() {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               // Se a parcela ainda não venceu
               if (now <= parcelaDate) {
                 parcelasPendentes += 1;
@@ -1816,7 +1857,7 @@ function Arrematantes() {
           
           return sum + valorTotal;
         } else if (tipoPagamento === "entrada_parcelamento") {
-          // Para entrada + parcelamento (entrada e parcelas são INDEPENDENTES)
+          // Para entrada + parcelamento - usar estrutura real de parcelas
           const valorTotal = a.valorPagarNumerico || 0;
           const valorEntrada = arrematante.valorEntrada ? 
             (typeof arrematante.valorEntrada === 'string' ? 
@@ -1824,8 +1865,14 @@ function Arrematantes() {
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-          const valorPorParcela = Math.round((valorTotal / quantidadeParcelas) * 100) / 100;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           // Calcular quantas parcelas estão atrasadas
           const parcelasPagas = arrematante.parcelasPagas || 0;
@@ -1847,7 +1894,7 @@ function Arrematantes() {
             const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
             
             for (let i = 0; i < quantidadeParcelas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate && i >= parcelasEfetivasPagas) {
                 parcelasAtrasadas++;
               }
@@ -1862,22 +1909,23 @@ function Arrematantes() {
             valorAtrasado += valorComJuros;
           }
           
-          // Aplicar juros nas parcelas mensais atrasadas há pelo menos 1 mês
+          // Aplicar juros nas parcelas mensais atrasadas há pelo menos 1 mês com estrutura real
           if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
             
             for (let i = 0; i < quantidadeParcelas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate && i >= parcelasEfetivasPagas) {
                 // Calcular meses de atraso para esta parcela específica
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  const valorComJuros = calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso || 0, mesesAtraso);
+                  const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso || 0, mesesAtraso);
                   valorAtrasado = Math.round((valorAtrasado + valorComJuros) * 100) / 100;
                 } else {
                   // Se não tem 1 mês de atraso, soma valor original
-                  valorAtrasado = Math.round((valorAtrasado + valorPorParcela) * 100) / 100;
+                  valorAtrasado = Math.round((valorAtrasado + valorDaParcela) * 100) / 100;
                 }
               }
             }
@@ -1886,10 +1934,17 @@ function Arrematantes() {
           const novoSum = Math.round((sum + valorAtrasado) * 100) / 100;
           return novoSum;
         } else {
-          // Para parcelamento simples
+          // Para parcelamento simples - usar estrutura real de parcelas
           const valorTotal = a.valorPagarNumerico || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 1;
-          const valorPorParcela = valorTotal / quantidadeParcelas;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           // Calcular valor das parcelas atrasadas com juros
           const parcelasPagas = arrematante.parcelasPagas || 0;
@@ -1900,16 +1955,17 @@ function Arrematantes() {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
             for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
-              const parcelaDate = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
+              const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate) {
                 // Calcular meses de atraso para esta parcela específica
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  const valorComJuros = calcularJurosProgressivos(valorPorParcela, arrematante.percentualJurosAtraso || 0, mesesAtraso);
+                  const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso || 0, mesesAtraso);
                   valorAtrasado = Math.round((valorAtrasado + valorComJuros) * 100) / 100;
                 } else {
                   // Se não tem 1 mês de atraso, soma valor original
-                  valorAtrasado = Math.round((valorAtrasado + valorPorParcela) * 100) / 100;
+                  valorAtrasado = Math.round((valorAtrasado + valorDaParcela) * 100) / 100;
                 }
               } else {
                 break;
@@ -2388,11 +2444,6 @@ function Arrematantes() {
 
     setIsSavingPayments(true);
     
-    // ⚡ FECHAR MODAL INSTANTANEAMENTE para dar feedback imediato ao usuário
-    setIsPaymentModalOpen(false);
-    setSelectedArrematanteForPayment(null);
-    setPaymentMonths([]);
-    
     try {
       // Buscar o lote para copiar as datas de pagamento
       const loteArrematado = auction?.lotes?.find(lote => lote.id === selectedArrematanteForPayment.loteId);
@@ -2445,7 +2496,9 @@ function Arrematantes() {
       await updatePromise;
       logPromise.catch(err => console.error('Erro ao registrar log:', err));
       
-      // 📧 ENVIO DE EMAIL: Enviar confirmação para CADA parcela marcada como paga
+      // 📧 ENVIO DE EMAIL EM SEGUNDO PLANO (não bloqueia o fechamento do modal)
+      // Executar em paralelo sem aguardar conclusão
+      (async () => {
       if (parcelasPagasValue > oldParcelasPagas && auction.arrematante.email) {
         console.log(`📧 Enviando emails de confirmação (${oldParcelasPagas + 1} até ${parcelasPagasValue})...`);
         console.log(`   Tipo de pagamento: ${tipoPagamento}`);
@@ -2615,6 +2668,7 @@ function Arrematantes() {
           console.error(`❌ Erro ao enviar email de quitação:`, error);
         }
       }
+      })().catch(err => console.error('Erro no processo de envio de emails:', err));
       
       // Toast de sucesso removido - notificação silenciosa
     } catch (error) {
@@ -2624,9 +2678,19 @@ function Arrematantes() {
         description: "Não foi possível atualizar o pagamento.",
         variant: "destructive",
       });
-    } finally {
+      // Em caso de erro, apenas resetar loading
       setIsSavingPayments(false);
+      return;
     }
+    
+    // ✅ SUCESSO: FECHAR MODAL E RECARREGAR PÁGINA (F5)
+    setIsSavingPayments(false);
+    setIsPaymentModalOpen(false);
+    setSelectedArrematanteForPayment(null);
+    setPaymentMonths([]);
+    
+    // 🔄 RECARREGAR PÁGINA COMPLETAMENTE (equivalente a F5)
+    window.location.reload();
   };
 
   const handleArchiveArrematante = async (arrematante: ArrematanteExtendido) => {
@@ -2678,14 +2742,6 @@ function Arrematantes() {
       
       console.log(`🔄 Desconfirmando última parcela: ${parcelasPagasAtual} → ${novasParcelas}`);
       
-      // ⚡ TOAST INSTANTÂNEO para dar feedback imediato
-      toast({
-        title: "Desconfirmando última parcela...",
-        description: novasParcelas > 0 
-          ? `Atualizando para ${novasParcelas} de ${arrematante.quantidadeParcelas} parcela(s) pagas.`
-          : `Removendo confirmação de todas as parcelas.`,
-      });
-      
       const updatedArrematante = {
         ...arrematanteNoArray,
         pago: false, // Sempre desmarca o status "pago" completo
@@ -2706,14 +2762,6 @@ function Arrematantes() {
       await updateAuction({
         id: arrematante.leilaoId,
         data: { arrematantes: arrematantesAtualizados }
-      });
-
-      // ✅ Toast de confirmação após atualização completa
-      toast({
-        title: "Última parcela desconfirmada",
-        description: novasParcelas > 0 
-          ? `Agora ${novasParcelas} de ${arrematante.quantidadeParcelas} parcela(s) confirmadas.`
-          : `Todas as parcelas foram desconfirmadas.`,
       });
 
     } catch (error) {
@@ -3043,8 +3091,28 @@ function Arrematantes() {
                             if (tipoPagamento === 'parcelamento') {
                               // Parcelamento simples: calcular próxima parcela com juros se atrasada
                               const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-                              const valorParcelaBase = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
                               const parcelasPagas = arrematante.parcelasPagas || 0;
+                              
+                              // Verificar se usa estrutura de parcelas (triplas/duplas/simples)
+                              const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+                                (arrematante?.parcelasTriplas != null || 
+                                 arrematante?.parcelasDuplas != null || 
+                                 arrematante?.parcelasSimples != null);
+                              
+                              let valorParcelaBase = 0;
+                              if (temEstruturaParcelas) {
+                                // Calcular estrutura e pegar valor da próxima parcela
+                                const estrutura = calcularEstruturaParcelas(
+                                  arrematante.valorPagarNumerico || 0,
+                                  arrematante?.parcelasTriplas || 0,
+                                  arrematante?.parcelasDuplas || 0,
+                                  arrematante?.parcelasSimples || 0
+                                );
+                                valorParcelaBase = estrutura[parcelasPagas]?.valor || ((arrematante.valorPagarNumerico || 0) / quantidadeParcelas);
+                              } else {
+                                // Sistema antigo: divisão simples
+                                valorParcelaBase = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
+                              }
                               
                               // Calcular valor da próxima parcela (com juros se atrasada)
                               if (!arrematante.pago && arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
@@ -3085,9 +3153,31 @@ function Arrematantes() {
                                   : arrematante.valorEntrada)
                                 : (arrematante.valorPagarNumerico || 0) * 0.3;
                               const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
-                              // ✅ Parcelas são calculadas sobre o valor TOTAL (entrada e parcelas são independentes)
-                              const valorParcelaBase = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
                               const parcelasPagas = arrematante.parcelasPagas || 0;
+                              
+                              // Verificar se usa estrutura de parcelas (triplas/duplas/simples)
+                              const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+                                (arrematante?.parcelasTriplas != null || 
+                                 arrematante?.parcelasDuplas != null || 
+                                 arrematante?.parcelasSimples != null);
+                              
+                              // ✅ Parcelas são calculadas sobre o valor TOTAL (entrada e parcelas são independentes)
+                              let valorParcelaBase = 0;
+                              if (temEstruturaParcelas) {
+                                // Calcular estrutura e pegar valor da próxima parcela
+                                const estrutura = calcularEstruturaParcelas(
+                                  arrematante.valorPagarNumerico || 0,
+                                  arrematante?.parcelasTriplas || 0,
+                                  arrematante?.parcelasDuplas || 0,
+                                  arrematante?.parcelasSimples || 0
+                                );
+                                // Para entrada + parcelamento, se parcelasPagas > 0, a entrada já foi paga
+                                const parcelaIndex = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
+                                valorParcelaBase = estrutura[parcelaIndex]?.valor || ((arrematante.valorPagarNumerico || 0) / quantidadeParcelas);
+                              } else {
+                                // Sistema antigo: divisão simples
+                                valorParcelaBase = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
+                              }
                               
                               if (parcelasPagas === 0) {
                                 // Entrada ainda não foi paga - verificar se está atrasada
@@ -3131,13 +3221,91 @@ function Arrematantes() {
                             }
                             // Para 'a_vista', valorParcelaExibir = valorTotalComJuros (já definido acima)
                             
+                            // Calcular valor total pendente (não pago) usando estrutura de parcelas
+                            let valorTotalPendente = 0;
+                            if (arrematante.pago) {
+                              valorTotalPendente = 0;
+                            } else {
+                              const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
+                              const parcelasPagas = arrematante.parcelasPagas || 0;
+                              
+                              // Verificar se usa estrutura de parcelas (triplas/duplas/simples)
+                              const temEstruturaParcelas = arrematante?.usaFatorMultiplicador && 
+                                (arrematante?.parcelasTriplas != null || 
+                                 arrematante?.parcelasDuplas != null || 
+                                 arrematante?.parcelasSimples != null);
+                              
+                              if (tipoPagamento === 'entrada_parcelamento') {
+                                const valorEntrada = arrematante.valorEntrada 
+                                  ? (typeof arrematante.valorEntrada === 'string' 
+                                    ? parseFloat(arrematante.valorEntrada.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'))
+                                    : arrematante.valorEntrada)
+                                  : (arrematante.valorPagarNumerico || 0) * 0.3;
+                                
+                                if (parcelasPagas === 0) {
+                                  // Entrada + todas as parcelas pendentes
+                                  valorTotalPendente = valorEntrada;
+                                  
+                                  if (temEstruturaParcelas) {
+                                    const estrutura = calcularEstruturaParcelas(
+                                      arrematante.valorPagarNumerico || 0,
+                                      arrematante?.parcelasTriplas || 0,
+                                      arrematante?.parcelasDuplas || 0,
+                                      arrematante?.parcelasSimples || 0
+                                    );
+                                    for (let i = 0; i < quantidadeParcelas; i++) {
+                                      valorTotalPendente += estrutura[i]?.valor || 0;
+                                    }
+                                  } else {
+                                    valorTotalPendente += (arrematante.valorPagarNumerico || 0);
+                                  }
+                                } else {
+                                  // Apenas parcelas pendentes (entrada já foi paga)
+                                  if (temEstruturaParcelas) {
+                                    const estrutura = calcularEstruturaParcelas(
+                                      arrematante.valorPagarNumerico || 0,
+                                      arrematante?.parcelasTriplas || 0,
+                                      arrematante?.parcelasDuplas || 0,
+                                      arrematante?.parcelasSimples || 0
+                                    );
+                                    const parcelasEfetivasPagas = parcelasPagas - 1; // -1 porque parcelasPagas inclui entrada
+                                    for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+                                      valorTotalPendente += estrutura[i]?.valor || 0;
+                                    }
+                                  } else {
+                                    const valorPorParcela = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
+                                    valorTotalPendente = (quantidadeParcelas - (parcelasPagas - 1)) * valorPorParcela;
+                                  }
+                                }
+                              } else if (tipoPagamento === 'parcelamento') {
+                                // Parcelamento simples: somar parcelas pendentes
+                                if (temEstruturaParcelas) {
+                                  const estrutura = calcularEstruturaParcelas(
+                                    arrematante.valorPagarNumerico || 0,
+                                    arrematante?.parcelasTriplas || 0,
+                                    arrematante?.parcelasDuplas || 0,
+                                    arrematante?.parcelasSimples || 0
+                                  );
+                                  for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+                                    valorTotalPendente += estrutura[i]?.valor || 0;
+                                  }
+                                } else {
+                                  const valorPorParcela = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
+                                  valorTotalPendente = (quantidadeParcelas - parcelasPagas) * valorPorParcela;
+                                }
+                              } else {
+                                // À vista
+                                valorTotalPendente = valorTotalComJuros;
+                              }
+                            }
+                            
                             return (
                               <>
                                 <span className="font-semibold text-black">
                                   R$ {valorParcelaExibir.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                                 <span className="text-xs text-gray-500">
-                                  (Total: R$ {valorTotalComJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
+                                  (Total: R$ {valorTotalPendente.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })})
                                 </span>
                               </>
                             );
@@ -3389,7 +3557,7 @@ function Arrematantes() {
                                         const lastPaidIndex = Math.max(0, (arrematante.parcelasPagas || 1) - 1);
                                         const dueDate = new Date(calcularDataComAjuste(startYear, startMonth - 1 + lastPaidIndex, arrematante.diaVencimentoMensal).setHours(23, 59, 59, 0));
                                         const isLate = today > dueDate;
-                                        return isLate ? "🔴 Quitado com Atraso" : "✅ Quitado";
+                                        return isLate ? "🔴 Quitado com Atraso" : "Quitado";
                                       }
                                       if (restantes === 1) return "Falta 1 parcela";
                                       return `Faltam ${restantes} parcelas`;
@@ -3945,11 +4113,6 @@ function Arrematantes() {
                   }
                 });
 
-                toast({
-                  title: "Arrematante atualizado",
-                  description: "As informações foram salvas com sucesso.",
-                });
-
                 setIsEditModalOpen(false);
           setSelectedArrematante(null);
               } catch (error) {
@@ -4063,11 +4226,25 @@ function Arrematantes() {
                           <p><strong>Data da entrada:</strong> {(loteArrematado?.dataEntrada || auction?.dataEntrada) ? 
                             new Date((loteArrematado?.dataEntrada || auction?.dataEntrada) + 'T00:00:00').toLocaleDateString('pt-BR') 
                             : 'Não definida'}</p>
-                          <p><strong>Parcelas:</strong> {selectedArrematante.quantidadeParcelas}x de R$ {(() => {
+                          <p><strong>Parcelas:</strong> {(() => {
                             const valorTotal = selectedArrematante.valorPagarNumerico || 0;
-                            // ✅ Parcelas são calculadas sobre o valor TOTAL (entrada e parcelas são independentes)
+                            const temEstruturaParcelas = selectedArrematante?.usaFatorMultiplicador && 
+                              (selectedArrematante?.parcelasTriplas != null || 
+                               selectedArrematante?.parcelasDuplas != null || 
+                               selectedArrematante?.parcelasSimples != null);
+                            
+                            if (temEstruturaParcelas) {
+                              return descreverEstruturaParcelas(
+                                selectedArrematante?.parcelasTriplas || 0,
+                                selectedArrematante?.parcelasDuplas || 0,
+                                selectedArrematante?.parcelasSimples || 0,
+                                valorTotal
+                              );
+                            } else {
+                              // Sistema antigo: divisão simples
                             const valorPorParcela = valorTotal / selectedArrematante.quantidadeParcelas;
-                            return valorPorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                              return `${selectedArrematante.quantidadeParcelas}x de R$ ${valorPorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                            }
                           })()} • Vence dia {selectedArrematante.diaVencimentoMensal}</p>
                         </div>
                       </div>
@@ -4081,7 +4258,26 @@ function Arrematantes() {
                         <span className="font-medium text-gray-800">Parcelamento</span>
                       </div>
                       <div className="space-y-1 text-sm text-gray-700">
-                        <p><strong>Parcelas:</strong> {selectedArrematante.quantidadeParcelas}x de R$ {(selectedArrematante.valorPagarNumerico / selectedArrematante.quantidadeParcelas).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                        <p><strong>Parcelas:</strong> {(() => {
+                          const valorTotal = selectedArrematante.valorPagarNumerico || 0;
+                          const temEstruturaParcelas = selectedArrematante?.usaFatorMultiplicador && 
+                            (selectedArrematante?.parcelasTriplas != null || 
+                             selectedArrematante?.parcelasDuplas != null || 
+                             selectedArrematante?.parcelasSimples != null);
+                          
+                          if (temEstruturaParcelas) {
+                            return descreverEstruturaParcelas(
+                              selectedArrematante?.parcelasTriplas || 0,
+                              selectedArrematante?.parcelasDuplas || 0,
+                              selectedArrematante?.parcelasSimples || 0,
+                              valorTotal
+                            );
+                          } else {
+                            // Sistema antigo: divisão simples
+                            const valorPorParcela = valorTotal / selectedArrematante.quantidadeParcelas;
+                            return `${selectedArrematante.quantidadeParcelas}x de R$ ${valorPorParcela.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+                          }
+                        })()}</p>
                         <p><strong>Vencimento:</strong> Todo dia {selectedArrematante.diaVencimentoMensal} • {(() => {
                           const auction = auctions.find(a => a.arrematante && a.arrematante.nome === selectedArrematante.nome);
                           const loteArrematado = auction?.lotes?.find((lote: LoteInfo) => lote.id === selectedArrematante.loteId);
@@ -4265,7 +4461,16 @@ function Arrematantes() {
         </Dialog>
 
         {/* Modal de Confirmação de Pagamentos */}
-        <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
+        <Dialog 
+          open={isPaymentModalOpen} 
+          onOpenChange={(open) => {
+            // Impedir fechamento do modal durante o salvamento
+            if (!open && isSavingPayments) {
+              return;
+            }
+            setIsPaymentModalOpen(open);
+          }}
+        >
           <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
             <DialogHeader className="pb-4">
               <DialogTitle className="text-lg font-medium text-gray-900">
@@ -4389,7 +4594,29 @@ function Arrematantes() {
                                 } else {
                                   // ✅ Valor de cada parcela (entrada e parcelas são independentes)
                                   const valorTotal = selectedArrematanteForPayment.valorPagarNumerico;
-                                  let valorPorParcela = valorTotal / selectedArrematanteForPayment.quantidadeParcelas;
+                                  
+                                  // Verificar se usa estrutura de parcelas (triplas/duplas/simples)
+                                  const temEstruturaParcelas = selectedArrematanteForPayment?.usaFatorMultiplicador && 
+                                    (selectedArrematanteForPayment?.parcelasTriplas != null || 
+                                     selectedArrematanteForPayment?.parcelasDuplas != null || 
+                                     selectedArrematanteForPayment?.parcelasSimples != null);
+                                  
+                                  let valorPorParcela = 0;
+                                  if (temEstruturaParcelas) {
+                                    // Calcular estrutura e pegar valor da parcela específica
+                                    const estrutura = calcularEstruturaParcelas(
+                                      valorTotal,
+                                      selectedArrematanteForPayment?.parcelasTriplas || 0,
+                                      selectedArrematanteForPayment?.parcelasDuplas || 0,
+                                      selectedArrematanteForPayment?.parcelasSimples || 0
+                                    );
+                                    // Index - 1 porque a primeira entrada não está na estrutura
+                                    const parcelaIndex = index - 1;
+                                    valorPorParcela = estrutura[parcelaIndex]?.valor || (valorTotal / selectedArrematanteForPayment.quantidadeParcelas);
+                                  } else {
+                                    // Sistema antigo: divisão simples
+                                    valorPorParcela = valorTotal / selectedArrematanteForPayment.quantidadeParcelas;
+                                  }
                                   
                                   if (wasOverdue && selectedArrematanteForPayment.percentualJurosAtraso) {
                                     const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
@@ -4405,7 +4632,28 @@ function Arrematantes() {
                                 }
                               } else {
                                 // 📅 PARCELAMENTO SIMPLES: Valor dividido com juros se atrasado
-                                let valorPorParcela = selectedArrematanteForPayment.valorPagarNumerico / selectedArrematanteForPayment.quantidadeParcelas;
+                                const valorTotal = selectedArrematanteForPayment.valorPagarNumerico;
+                                
+                                // Verificar se usa estrutura de parcelas (triplas/duplas/simples)
+                                const temEstruturaParcelas = selectedArrematanteForPayment?.usaFatorMultiplicador && 
+                                  (selectedArrematanteForPayment?.parcelasTriplas != null || 
+                                   selectedArrematanteForPayment?.parcelasDuplas != null || 
+                                   selectedArrematanteForPayment?.parcelasSimples != null);
+                                
+                                let valorPorParcela = 0;
+                                if (temEstruturaParcelas) {
+                                  // Calcular estrutura e pegar valor da parcela específica
+                                  const estrutura = calcularEstruturaParcelas(
+                                    valorTotal,
+                                    selectedArrematanteForPayment?.parcelasTriplas || 0,
+                                    selectedArrematanteForPayment?.parcelasDuplas || 0,
+                                    selectedArrematanteForPayment?.parcelasSimples || 0
+                                  );
+                                  valorPorParcela = estrutura[index]?.valor || (valorTotal / selectedArrematanteForPayment.quantidadeParcelas);
+                                } else {
+                                  // Sistema antigo: divisão simples
+                                  valorPorParcela = valorTotal / selectedArrematanteForPayment.quantidadeParcelas;
+                                }
                                 
                                 if (wasOverdue && selectedArrematanteForPayment.percentualJurosAtraso) {
                                   const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
@@ -4472,7 +4720,23 @@ function Arrematantes() {
                       
                       let totalComJuros = 0;
                       
-                      paymentMonths.forEach((month) => {
+                      // Verificar se usa estrutura de parcelas (triplas/duplas/simples)
+                      const temEstruturaParcelas = selectedArrematanteForPayment?.usaFatorMultiplicador && 
+                        (selectedArrematanteForPayment?.parcelasTriplas != null || 
+                         selectedArrematanteForPayment?.parcelasDuplas != null || 
+                         selectedArrematanteForPayment?.parcelasSimples != null);
+                      
+                      let estruturaParcelas: Array<{ numero: number; tipo: string; valor: number; multiplicador: number }> = [];
+                      if (temEstruturaParcelas) {
+                        estruturaParcelas = calcularEstruturaParcelas(
+                          selectedArrematanteForPayment.valorPagarNumerico,
+                          selectedArrematanteForPayment?.parcelasTriplas || 0,
+                          selectedArrematanteForPayment?.parcelasDuplas || 0,
+                          selectedArrematanteForPayment?.parcelasSimples || 0
+                        );
+                      }
+                      
+                      paymentMonths.forEach((month, monthIndex) => {
                         const dueDate = new Date(month.dueDate.split('/').reverse().join('-') + 'T23:59:59');
                         const wasOverdue = now > dueDate;
                         const isOverdue = wasOverdue && !month.paid;
@@ -4499,8 +4763,16 @@ function Arrematantes() {
                             totalComJuros += valorEntrada;
                           } else {
                             const valorTotal = selectedArrematanteForPayment.valorPagarNumerico;
-                            // ✅ Parcelas são calculadas sobre o valor TOTAL (entrada e parcelas são independentes)
-                            let valorPorParcela = valorTotal / selectedArrematanteForPayment.quantidadeParcelas;
+                            
+                            // Calcular valor da parcela baseado na estrutura
+                            let valorPorParcela = 0;
+                            if (temEstruturaParcelas) {
+                              const parcelaIndex = monthIndex - 1; // -1 porque entrada é o primeiro item
+                              valorPorParcela = estruturaParcelas[parcelaIndex]?.valor || (valorTotal / selectedArrematanteForPayment.quantidadeParcelas);
+                            } else {
+                              valorPorParcela = valorTotal / selectedArrematanteForPayment.quantidadeParcelas;
+                            }
+                            
                             if (wasOverdue && selectedArrematanteForPayment.percentualJurosAtraso) {
                               const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                               if (mesesAtraso >= 1) {
@@ -4510,7 +4782,16 @@ function Arrematantes() {
                             totalComJuros += valorPorParcela;
                           }
                         } else {
-                          let valorPorParcela = selectedArrematanteForPayment.valorPagarNumerico / selectedArrematanteForPayment.quantidadeParcelas;
+                          const valorTotal = selectedArrematanteForPayment.valorPagarNumerico;
+                          
+                          // Calcular valor da parcela baseado na estrutura
+                          let valorPorParcela = 0;
+                          if (temEstruturaParcelas) {
+                            valorPorParcela = estruturaParcelas[monthIndex]?.valor || (valorTotal / selectedArrematanteForPayment.quantidadeParcelas);
+                          } else {
+                            valorPorParcela = valorTotal / selectedArrematanteForPayment.quantidadeParcelas;
+                          }
+                          
                           if (wasOverdue && selectedArrematanteForPayment.percentualJurosAtraso) {
                             const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                             if (mesesAtraso >= 1) {
@@ -5256,6 +5537,21 @@ function Arrematantes() {
 
 // Componente para o relatório PDF do arrematante
 const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendido }) => {
+  // Função auxiliar para cálculo de datas (ajuste automático para meses com menos dias)
+  const calcularDataComAjuste = (ano: number, mes: number, diaVencimento: number): Date => {
+    // Criar data com dia 1 para evitar overflow
+    const dataBase = new Date(ano, mes, 1);
+    
+    // Obter o último dia do mês
+    const ultimoDiaDoMes = new Date(dataBase.getFullYear(), dataBase.getMonth() + 1, 0).getDate();
+    
+    // Usar o menor valor entre diaVencimento e ultimoDiaDoMes
+    const diaFinal = Math.min(diaVencimento, ultimoDiaDoMes);
+    
+    // Criar a data final
+    return new Date(dataBase.getFullYear(), dataBase.getMonth(), diaFinal);
+  };
+  
   // Função para calcular juros progressivos
   const calcularJurosProgressivos = (valorOriginal: number, dataVencimento: string, percentualJuros: number): number => {
     const hoje = new Date();
@@ -5336,186 +5632,234 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
   };
 
   return (
-    <div id="arrematante-pdf-content" className="p-8 bg-white text-black" style={{ pageBreakInside: 'avoid' }}>
+    <div id="arrematante-pdf-content" className="p-12 bg-white text-black" style={{ fontFamily: 'Inter, -apple-system, sans-serif', width: '100%', maxWidth: '1200px' }}>
       {/* Header */}
-      <div className="text-center mb-8 border-b-2 border-gray-300 pb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid' }}>
-        <h1 className="text-2xl font-semibold text-gray-900 mb-2 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
-          RELATÓRIO DETALHADO DE ARREMATANTE
-          <span className="block text-lg font-medium text-gray-600 mt-2">
+      <div className="text-center mb-12 break-inside-avoid" style={{ pageBreakInside: 'avoid', pageBreakAfter: 'avoid' }}>
+        <div className="inline-block px-4 py-1 bg-gray-100 rounded-full mb-4">
+          <span className="text-xs font-medium text-gray-600 uppercase tracking-wider">Relatório de Arrematante</span>
+        </div>
+        <h1 className="text-3xl font-light text-gray-900 mb-2 break-after-avoid" style={{ pageBreakAfter: 'avoid', fontWeight: '300' }}>
             {arrematante.nome}
-          </span>
         </h1>
-        <p className="text-sm text-gray-500 mt-4">
-          Gerado em: {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR')}
+        <p className="text-sm text-gray-400 mt-3">
+          {new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: 'long', year: 'numeric' })} • {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
         </p>
       </div>
 
       {/* Informações Pessoais */}
-      <div className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
+      <div className="mb-10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid', letterSpacing: '0.1em' }}>
           Dados Pessoais
         </h2>
+        <div className="bg-gray-50 rounded-lg p-6" style={{ border: '1px solid #f3f4f6' }}>
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <strong>Nome Completo:</strong> {arrematante.nome || 'Não informado'}
+              <div className="text-xs text-gray-500 mb-1">Nome Completo</div>
+              <div className="font-light text-gray-900">{arrematante.nome || 'Não informado'}</div>
           </div>
           <div>
-            <strong>{getDocumentType(arrematante.documento)}:</strong> {arrematante.documento || 'Não informado'}
+              <div className="text-xs text-gray-500 mb-1">{getDocumentType(arrematante.documento)}</div>
+              <div className="font-light text-gray-900">{arrematante.documento || 'Não informado'}</div>
           </div>
           <div className="col-span-2">
-            <strong>Endereço Completo:</strong> {arrematante.endereco || 'Não informado'}
+              <div className="text-xs text-gray-500 mb-1">Endereço Completo</div>
+              <div className="font-light text-gray-900">{arrematante.endereco || 'Não informado'}</div>
           </div>
           <div>
-            <strong>E-mail:</strong> {arrematante.email || 'Não informado'}
+              <div className="text-xs text-gray-500 mb-1">E-mail</div>
+              <div className="font-light text-gray-900">{arrematante.email || 'Não informado'}</div>
           </div>
           <div>
-            <strong>Telefone:</strong> {arrematante.telefone || 'Não informado'}
+              <div className="text-xs text-gray-500 mb-1">Telefone</div>
+              <div className="font-light text-gray-900">{arrematante.telefone || 'Não informado'}</div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Informações do Leilão */}
-      <div className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
+      <div className="mb-10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid', letterSpacing: '0.1em' }}>
           Dados do Leilão
         </h2>
+        <div className="bg-gray-50 rounded-lg p-6" style={{ border: '1px solid #f3f4f6' }}>
         <div className="grid grid-cols-2 gap-6">
           <div>
-            <strong>Nome do Leilão:</strong> {arrematante.leilaoNome || 'Não informado'}
+              <div className="text-xs text-gray-500 mb-1">Nome do Leilão</div>
+              <div className="font-light text-gray-900">{arrematante.leilaoNome || 'Não informado'}</div>
           </div>
           <div>
-            <strong>Data de Realização:</strong> {formatDate(arrematante.dataLeilao)}
+              <div className="text-xs text-gray-500 mb-1">Data de Realização</div>
+              <div className="font-light text-gray-900">{formatDate(arrematante.dataLeilao)}</div>
           </div>
           <div className="col-span-2">
-            <strong>Status do Pagamento:</strong>{' '}
-            <span className="font-semibold text-gray-900">
-              {arrematante.statusPagamento === 'pago' ? 'QUITADO' :
-               arrematante.statusPagamento === 'pendente' ? 'PENDENTE' : 'EM ATRASO'}
+              <div className="text-xs text-gray-500 mb-1">Status do Pagamento</div>
+              <div className="flex items-center gap-2">
+                <div className={`w-2 h-2 rounded-full ${
+                  arrematante.statusPagamento === 'pago' ? 'bg-green-500' : 
+                  arrematante.statusPagamento === 'pendente' ? 'bg-yellow-500' : 'bg-red-500'
+                }`}></div>
+                <span className="font-light text-gray-900">
+                  {arrematante.statusPagamento === 'pago' ? 'Quitado' :
+                   arrematante.statusPagamento === 'pendente' ? 'Pendente' : 'Em Atraso'}
             </span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
 
       {/* Informações Financeiras */}
-      <div className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
+      <div className="mb-10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid', letterSpacing: '0.1em' }}>
           Informações Financeiras
         </h2>
-        <div className="grid grid-cols-2 gap-6">
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <strong className="block text-gray-700 mb-2">Valor Total a Pagar:</strong>
-            <span className="text-xl font-semibold text-gray-900">
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-5 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
+            <div className="text-xs text-gray-500 mb-2">Valor Total a Pagar</div>
+            <span className="text-2xl font-light text-gray-900" style={{ fontWeight: '300' }}>
               {(() => {
-                const valorTotal = typeof arrematante.valorPagar === 'string' 
-                  ? parseFloat(arrematante.valorPagar.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'))
-                  : parseFloat(arrematante.valorPagar);
-                const valorPorParcela = valorTotal / (arrematante.quantidadeParcelas || 1);
+                const valorTotal = arrematante.valorPagarNumerico || 0;
                 const [startYear, startMonth] = (arrematante.mesInicioPagamento || '').split('-').map(Number);
                 const percentualJuros = arrematante.percentualJurosAtraso || 0;
                 
                 if (!startYear || !startMonth) return formatCurrency(valorTotal);
                 
+                // Calcular estrutura de parcelas
+                const estrutura = calcularEstruturaParcelas(
+                  valorTotal,
+                  arrematante.parcelasTriplas || 0,
+                  arrematante.parcelasDuplas || 0,
+                  arrematante.parcelasSimples || 0
+                );
+                
                 let valorTotalComJuros = 0;
-                for (let i = 0; i < (arrematante.quantidadeParcelas || 0); i++) {
-                  const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15);
+                estrutura.forEach((parcela, index) => {
+                  const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + index, arrematante.diaVencimentoMensal || 15);
                   const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-                  valorTotalComJuros += calcularJurosProgressivos(valorPorParcela, dataVencimentoStr, percentualJuros);
+                  valorTotalComJuros += calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
+                });
+                
+                return formatCurrency(valorTotalComJuros);
+              })()}
+            </span>
+          </div>
+          <div className="bg-white p-5 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
+            <div className="text-xs text-gray-500 mb-2">Estrutura de Parcelas</div>
+            <span className="text-sm font-light text-gray-900">
+              {(() => {
+                const triplas = arrematante.parcelasTriplas || 0;
+                const duplas = arrematante.parcelasDuplas || 0;
+                const simples = arrematante.parcelasSimples || 0;
+                
+                if (triplas === 0 && duplas === 0 && simples === 0) {
+                  const valorTotal = arrematante.valorPagarNumerico || 0;
+                  const qtd = arrematante.quantidadeParcelas || 1;
+                  const valorParcela = valorTotal / qtd;
+                  return `${qtd}x de ${formatCurrency(valorParcela)}`;
                 }
                 
-                const temJuros = valorTotalComJuros > valorTotal;
-                return (
-                  <div>
-                    <div>{formatCurrency(valorTotalComJuros)}</div>
-                  </div>
-                );
+                const partes = [];
+                if (triplas > 0) partes.push(`${triplas}x triplas`);
+                if (duplas > 0) partes.push(`${duplas}x duplas`);
+                if (simples > 0) partes.push(`${simples}x simples`);
+                
+                return partes.join(' + ');
               })()}
             </span>
           </div>
-          <div className="bg-gray-50 p-4 rounded-lg">
-            <strong className="block text-gray-700 mb-2">Valor por Parcela:</strong>
-            <span className="text-xl font-semibold text-gray-900">
-              {(() => {
-                const valorTotal = typeof arrematante.valorPagar === 'string' 
-                  ? parseFloat(arrematante.valorPagar.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'))
-                  : parseFloat(arrematante.valorPagar);
-                const valorPorParcela = valorTotal / (arrematante.quantidadeParcelas || 1);
-                return formatCurrency(valorPorParcela);
-              })()}
-            </span>
+          <div className="bg-white p-5 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
+            <div className="text-xs text-gray-500 mb-2">Status de Quitação</div>
+            <div className="flex items-center gap-2">
+              <div className={`w-2 h-2 rounded-full ${arrematante.pago ? 'bg-green-500' : 'bg-orange-500'}`}></div>
+              <span className="font-light text-gray-900">{arrematante.pago ? 'Quitado' : 'Em Aberto'}</span>
           </div>
-          <div>
-            <strong>Status de Quitação:</strong> {arrematante.pago ? 'QUITADO' : 'EM ABERTO'}
           </div>
-          <div>
-            <strong>Valor Restante:</strong>{' '}
+          <div className="bg-white p-5 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
+            <div className="text-xs text-gray-500 mb-2">Valor Restante</div>
+            <span className="text-2xl font-light text-gray-900" style={{ fontWeight: '300' }}>
             {arrematante.pago ? 
               'R$ 0,00' : 
               (() => {
-                const valorTotal = typeof arrematante.valorPagar === 'string' 
-                  ? parseFloat(arrematante.valorPagar.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'))
-                  : parseFloat(arrematante.valorPagar);
-                const valorPorParcela = valorTotal / (arrematante.quantidadeParcelas || 1);
+                const valorTotal = arrematante.valorPagarNumerico || 0;
                 const [startYear, startMonth] = (arrematante.mesInicioPagamento || '').split('-').map(Number);
                 const percentualJuros = arrematante.percentualJurosAtraso || 0;
                 const parcelasPagas = arrematante.parcelasPagas || 0;
                 
+                // Calcular estrutura de parcelas
+                const estrutura = calcularEstruturaParcelas(
+                  valorTotal,
+                  arrematante.parcelasTriplas || 0,
+                  arrematante.parcelasDuplas || 0,
+                  arrematante.parcelasSimples || 0
+                );
+                
                 if (!startYear || !startMonth) {
-                  const valorRestante = valorTotal - (parcelasPagas * valorPorParcela);
+                  const valorRestante = estrutura
+                    .slice(parcelasPagas)
+                    .reduce((sum, p) => sum + p.valor, 0);
                   return formatCurrency(valorRestante);
                 }
                 
                 let valorRestante = 0;
-                for (let i = parcelasPagas; i < (arrematante.quantidadeParcelas || 0); i++) {
-                  const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15);
+                estrutura.slice(parcelasPagas).forEach((parcela, index) => {
+                  const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + parcelasPagas + index, arrematante.diaVencimentoMensal || 15);
                   const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-                  valorRestante += calcularJurosProgressivos(valorPorParcela, dataVencimentoStr, percentualJuros);
-                }
+                  valorRestante += calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
+                });
                 
                 return formatCurrency(valorRestante);
               })()
             }
+            </span>
           </div>
         </div>
       </div>
 
       {/* Configuração de Parcelas ou Forma de Pagamento */}
-      <div className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
+      <div className="mb-10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+        <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid', letterSpacing: '0.1em' }}>
           {arrematante.quantidadeParcelas && arrematante.quantidadeParcelas > 1 
             ? 'Parcelamento e Cronograma' 
             : 'Modalidade de Pagamento'}
         </h2>
+        <div className="bg-gray-50 rounded-lg p-6" style={{ border: '1px solid #f3f4f6' }}>
         <div className="grid grid-cols-2 gap-6">
           {arrematante.quantidadeParcelas && arrematante.quantidadeParcelas > 1 ? (
             <>
               <div>
-                <strong>Total de Parcelas:</strong> {arrematante.quantidadeParcelas}
+                <div className="text-xs text-gray-500 mb-1">Total de Parcelas</div>
+                <div className="font-light text-gray-900">{arrematante.quantidadeParcelas}</div>
               </div>
               <div>
-                <strong>Parcelas Pagas:</strong>{' '}
-                <span className="font-semibold text-black">
+                <div className="text-xs text-gray-500 mb-1">Parcelas Pagas</div>
+                <div className="font-light text-gray-900">
                   {arrematante.parcelasPagas || 0} de {arrematante.quantidadeParcelas}
-                </span>
+                </div>
               </div>
               <div>
-                <strong>Dia de Vencimento:</strong> Todo dia {arrematante.diaVencimentoMensal || 'Não definido'}
+                <div className="text-xs text-gray-500 mb-1">Dia de Vencimento</div>
+                <div className="font-light text-gray-900">Todo dia {arrematante.diaVencimentoMensal || 'Não definido'}</div>
               </div>
               <div>
-                <strong>Mês de Início:</strong> {formatMonthYear(arrematante.mesInicioPagamento)}
+                <div className="text-xs text-gray-500 mb-1">Mês de Início</div>
+                <div className="font-light text-gray-900">{formatMonthYear(arrematante.mesInicioPagamento)}</div>
               </div>
-              <div className="col-span-2">
-                <strong>Progresso do Pagamento:</strong>
-                <div className="mt-2 bg-gray-200 rounded-full h-4">
+              <div className="col-span-2 mt-2">
+                <div className="flex justify-between items-center mb-2">
+                  <div className="text-xs text-gray-500">Progresso do Pagamento</div>
+                  <div className="text-xs font-medium text-gray-900">
+                    {Math.round(((arrematante.parcelasPagas || 0) / (arrematante.quantidadeParcelas || 1)) * 100)}%
+                  </div>
+                </div>
+                <div className="bg-gray-200 rounded-full h-2">
                   <div 
-                    className="bg-gray-700 h-4 rounded-full transition-all duration-300"
+                    className="bg-gray-900 h-2 rounded-full transition-all duration-300"
                     style={{ 
                       width: `${((arrematante.parcelasPagas || 0) / (arrematante.quantidadeParcelas || 1)) * 100}%` 
                     }}
                   ></div>
                 </div>
-                <p className="text-sm text-gray-600 mt-1">
-                  {Math.round(((arrematante.parcelasPagas || 0) / (arrematante.quantidadeParcelas || 1)) * 100)}% concluído
-                </p>
               </div>
             </>
           ) : (
@@ -5542,49 +5886,64 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
             </>
           )}
         </div>
+        </div>
       </div>
 
       {/* Detalhamento de Parcelas */}
-      {arrematante.quantidadeParcelas && arrematante.quantidadeParcelas > 0 && arrematante.mesInicioPagamento && (
-        <div className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-          <h2 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
+      {(arrematante.quantidadeParcelas || 0) > 0 && arrematante.mesInicioPagamento && (
+        <div className="mb-10" style={{ pageBreakBefore: 'auto' }}>
+          <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid', letterSpacing: '0.1em' }}>
             Detalhamento de Parcelas
           </h2>
-          <div className="space-y-2">
+          <div>
             {(() => {
-              const valorTotal = typeof arrematante.valorPagar === 'string' 
-                ? parseFloat(arrematante.valorPagar.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'))
-                : parseFloat(arrematante.valorPagar);
-              const valorPorParcela = valorTotal / (arrematante.quantidadeParcelas || 1);
+              const valorTotal = arrematante.valorPagarNumerico || 0;
               const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
               const percentualJuros = arrematante.percentualJurosAtraso || 0;
               
-              return Array.from({ length: arrematante.quantidadeParcelas }, (_, index) => {
+              // Calcular estrutura de parcelas
+              const estrutura = calcularEstruturaParcelas(
+                valorTotal,
+                arrematante.parcelasTriplas || 0,
+                arrematante.parcelasDuplas || 0,
+                arrematante.parcelasSimples || 0
+              );
+              
+              return estrutura.map((parcela, index) => {
                 const isPaga = index < (arrematante.parcelasPagas || 0);
                 const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + index, arrematante.diaVencimentoMensal || 15);
                 const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-                const valorComJuros = calcularJurosProgressivos(valorPorParcela, dataVencimentoStr, percentualJuros);
-                const temJuros = valorComJuros > valorPorParcela;
+                const valorComJuros = calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
+                const temJuros = valorComJuros > parcela.valor;
                 
                 return (
-                  <div key={index} className={`p-3 rounded border ${isPaga ? 'bg-green-50 border-green-200' : temJuros ? 'bg-red-50 border-red-200' : 'bg-gray-50 border-gray-200'}`}>
-                    <div className="flex justify-between items-center">
-                      <div>
-                        <span className="font-medium text-gray-800">
-                          {index + 1}ª Parcela
+                  <div key={index} className="bg-white rounded-lg p-3 flex items-center justify-between break-inside-avoid" style={{ border: `1px solid ${isPaga ? '#d1fae5' : temJuros ? '#fecaca' : '#e5e7eb'}`, pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '8px' }}>
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isPaga ? 'bg-green-50' : temJuros ? 'bg-red-50' : 'bg-gray-50'}`}>
+                        <span className={`text-xs font-medium ${isPaga ? 'text-green-700' : temJuros ? 'text-red-700' : 'text-gray-700'}`}>
+                          {index + 1}
                         </span>
                       </div>
-                      <div className="text-right">
-                        <div className="font-semibold text-gray-900">
-                          {formatCurrency(temJuros && !isPaga ? valorComJuros : valorPorParcela)}
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-light text-gray-900">{index + 1}ª Parcela</span>
+                          <span className="text-xs text-gray-400">• {parcela.tipo}</span>
                         </div>
+                        <div className="text-xs text-gray-500">
+                          {dataVencimento.toLocaleDateString('pt-BR')}
                       </div>
                     </div>
-                    <div className="mt-1 text-sm text-gray-700 flex justify-between">
-                      <span>Vence em: {dataVencimento.toLocaleDateString('pt-BR')}</span>
-                      <span className="font-medium text-gray-900">
-                        {isPaga ? 'PAGA' : temJuros ? 'ATRASADA' : 'PENDENTE'}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-light text-gray-900" style={{ fontWeight: '300' }}>
+                        {formatCurrency(temJuros && !isPaga ? valorComJuros : parcela.valor)}
+                      </div>
+                      <div className="flex items-center justify-end gap-1">
+                        <div className={`w-1.5 h-1.5 rounded-full ${isPaga ? 'bg-green-500' : temJuros ? 'bg-red-500' : 'bg-gray-400'}`}></div>
+                        <span className={`text-xs font-light ${isPaga ? 'text-green-600' : temJuros ? 'text-red-600' : 'text-gray-600'}`}>
+                          {isPaga ? 'Paga' : temJuros ? 'Atrasada' : 'Pendente'}
                       </span>
+                      </div>
                     </div>
                   </div>
                 );
@@ -5595,82 +5954,96 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
       )}
 
       {/* Histórico de Pagamentos */}
-      {arrematante.parcelasPagas && arrematante.parcelasPagas > 0 && (
-        <div className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-          <h2 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
+      {(arrematante.parcelasPagas || 0) > 0 && (
+        <div className="mb-10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+          <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid', letterSpacing: '0.1em' }}>
             Resumo dos Pagamentos Realizados
           </h2>
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-            <div className="mb-3">
-              <strong className="text-gray-900 text-base">Valores Quitados</strong>
-            </div>
-            <p className="text-gray-800 leading-relaxed">
-              {arrematante.parcelasPagas} {arrematante.parcelasPagas > 1 ? 'parcelas quitadas' : 'parcela quitada'} no valor de{' '}
-              <span className="font-semibold text-gray-900">
+          <div className="bg-gray-50 rounded-lg p-5" style={{ border: '1px solid #e5e7eb' }}>
                 {(() => {
-                  const valorTotal = typeof arrematante.valorPagar === 'string' 
-                    ? parseFloat(arrematante.valorPagar.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'))
-                    : parseFloat(arrematante.valorPagar);
-                  const valorPorParcela = valorTotal / (arrematante.quantidadeParcelas || 1);
-                  return formatCurrency(valorPorParcela);
+              const valorTotal = arrematante.valorPagarNumerico || 0;
+              const estrutura = calcularEstruturaParcelas(
+                valorTotal,
+                arrematante.parcelasTriplas || 0,
+                arrematante.parcelasDuplas || 0,
+                arrematante.parcelasSimples || 0
+              );
+              
+              const parcelasPagas = arrematante.parcelasPagas || 0;
+              const parcelasPagasData = estrutura.slice(0, parcelasPagas);
+              const totalPago = parcelasPagasData.reduce((sum, p) => sum + p.valor, 0);
+              
+              // Agrupar parcelas pagas por tipo
+              const tiposContagem = parcelasPagasData.reduce((acc, p) => {
+                acc[p.tipo] = (acc[p.tipo] || 0) + 1;
+                return acc;
+              }, {} as Record<string, number>);
+              
+              const descricaoTipos = Object.entries(tiposContagem)
+                .map(([tipo, count]) => `${count}x ${tipo}`)
+                .join(' + ');
+              
+              return (
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-light text-gray-600">
+                    {parcelasPagas} {parcelasPagas > 1 ? 'parcelas quitadas' : 'parcela quitada'}{' '}
+                    <span className="text-gray-400">({descricaoTipos})</span>
+                  </div>
+                  <div className="text-2xl font-light text-gray-900" style={{ fontWeight: '300' }}>
+                    {formatCurrency(totalPago)}
+                  </div>
+                </div>
+              );
                 })()}
-              </span>{' '}
-              cada, representando um montante total de{' '}
-              <span className="font-semibold text-gray-900">
-                {(() => {
-                  const valorTotal = typeof arrematante.valorPagar === 'string' 
-                    ? parseFloat(arrematante.valorPagar.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.'))
-                    : parseFloat(arrematante.valorPagar);
-                  const valorPorParcela = valorTotal / (arrematante.quantidadeParcelas || 1);
-                  const totalPago = (arrematante.parcelasPagas || 0) * valorPorParcela;
-                  return formatCurrency(totalPago);
-                })()}
-              </span>.
-            </p>
           </div>
         </div>
       )}
 
-      {/* Observações */}
-      <div className="mb-8 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-        <h2 className="text-lg font-semibold text-gray-900 mb-6 pb-3 border-b border-gray-200 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
-          Informações Adicionais
-        </h2>
-        <div className="bg-gray-50 p-4 rounded-lg">
-          <p className="text-gray-700 leading-relaxed">
-            Este relatório foi gerado com base nos dados cadastrais e transações registradas no sistema.
-            Todas as informações financeiras estão atualizadas até a data de geração deste documento.
+      {/* Informações Adicionais */}
             {arrematante.statusPagamento === 'atrasado' && (
-              <span className="block mt-3 text-gray-900 font-semibold border-l-4 border-gray-600 pl-3 py-2">
-                ATENÇÃO: Este arrematante possui pagamentos em atraso. 
-                Recomenda-se contato imediato para regularização da situação financeira.
-              </span>
-            )}
+        <div className="mb-10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+          <div className="bg-red-50 rounded-lg p-6" style={{ border: '1px solid #fecaca' }}>
+            <div className="flex gap-3">
+              <div className="flex-shrink-0">
+                <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
+                  <span className="text-red-600 text-sm font-bold">!</span>
+                </div>
+              </div>
+              <div>
+                <h3 className="text-sm font-medium text-red-900 mb-1">Atenção: Pagamento em Atraso</h3>
+                <p className="text-sm text-red-700 font-light">
+                  Este arrematante possui pagamentos em atraso. Recomenda-se contato imediato para regularização da situação financeira.
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="mb-10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+        <div className="bg-gray-50 rounded-lg p-6" style={{ border: '1px solid #f3f4f6' }}>
+          <p className="text-xs text-gray-500 leading-relaxed">
+            Este relatório foi gerado com base nos dados cadastrais e transações registradas no sistema. Todas as informações financeiras estão atualizadas até a data de geração deste documento.
           </p>
         </div>
       </div>
 
       {/* Footer */}
-      <div className="mt-10 pt-6 border-t-2 border-gray-300 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+      <div className="mt-12 pt-6 break-inside-avoid" style={{ pageBreakInside: 'avoid', borderTop: '1px solid #e5e7eb' }}>
         <div className="text-center space-y-4">
-          <div className="break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-            <h4 className="text-sm font-semibold text-gray-800 uppercase tracking-wide mb-2 break-after-avoid" style={{ pageBreakAfter: 'avoid' }}>
-              Relatório Oficial de Arrematante
-            </h4>
-            <p className="text-sm text-gray-600 leading-relaxed">
-              Documento oficial contendo informações completas e atualizadas do arrematante, 
-              incluindo dados pessoais, financeiros e histórico de pagamentos do sistema de gestão de leilões.
+          <p className="text-xs text-gray-400">
+            Documento oficial • Sistema de Gestão de Leilões
             </p>
-          </div>
-          <div className="flex justify-between items-center text-xs text-gray-500 pt-3 border-t border-gray-200">
-            <span className="font-medium">Página 1 de 1</span>
-            <span>Gerado em: {new Date().toLocaleDateString('pt-BR')} - {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
+          <div className="flex justify-center items-center gap-8 text-xs text-gray-400">
+            <span>Página 1 de 1</span>
+            <span>•</span>
+            <span>{new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</span>
           </div>
         </div>
       </div>
 
       {/* Logos Elionx e Arthur Lira */}
-      <div className="mt-8 flex justify-center items-center -ml-20 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
+      <div className="mt-10 flex justify-center items-center -ml-20 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
         <img 
           src="/logo-elionx-softwares.png" 
           alt="Elionx Softwares" 

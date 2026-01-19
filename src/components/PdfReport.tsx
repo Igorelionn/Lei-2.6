@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Auction } from '@/lib/types';
 import { supabaseClient } from '@/lib/supabase-client';
+import { calcularEstruturaParcelas } from '@/lib/parcelamento-calculator';
 
 interface PdfReportProps {
   auction: Auction;
@@ -395,12 +396,79 @@ export const PdfReport: React.FC<PdfReportProps> = ({ auction }) => {
         }, 0);
         
         const totalPago = todosArrematantes.reduce((sum, arr) => {
+          // Se totalmente pago, somar valor total
           if (arr.pago) {
             const valor = typeof arr.valorPagar === 'string' 
               ? parseFloat(arr.valorPagar.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0
               : arr.valorPagar || 0;
             return sum + valor;
           }
+          
+          // Se parcialmente pago, calcular valor das parcelas pagas com base na estrutura real
+          const parcelasPagas = arr.parcelasPagas || 0;
+          if (parcelasPagas > 0) {
+            const valorBase = typeof arr.valorPagar === 'string' 
+              ? parseFloat(arr.valorPagar.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0
+              : arr.valorPagar || 0;
+            
+            // Buscar o lote do arrematante para verificar tipo de pagamento
+            const loteArrematado = arr.loteId 
+              ? auction.lotes?.find(lote => lote.id === arr.loteId)
+              : null;
+            const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+            
+            if (tipoPagamento === 'entrada_parcelamento') {
+              // Entrada + Parcelamento
+              if (parcelasPagas === 1) {
+                // Só a entrada foi paga
+                const valorEntrada = arr.valorEntrada ? 
+                  (typeof arr.valorEntrada === 'string' ? 
+                    parseFloat(arr.valorEntrada.replace(/[^\d,.-]/g, '').replace(',', '.')) : 
+                    arr.valorEntrada) : 
+                  valorBase * 0.3;
+                return sum + valorEntrada;
+              } else {
+                // Entrada + algumas parcelas foram pagas
+                const valorEntrada = arr.valorEntrada ? 
+                  (typeof arr.valorEntrada === 'string' ? 
+                    parseFloat(arr.valorEntrada.replace(/[^\d,.-]/g, '').replace(',', '.')) : 
+                    arr.valorEntrada) : 
+                  valorBase * 0.3;
+                
+                // Calcular estrutura de parcelas
+                const estruturaParcelas = calcularEstruturaParcelas(
+                  valorBase,
+                  arr.parcelasTriplas || 0,
+                  arr.parcelasDuplas || 0,
+                  arr.parcelasSimples || 0
+                );
+                
+                // Somar entrada + parcelas pagas (parcelasPagas - 1 porque parcelasPagas inclui entrada)
+                let valorParcelasPagas = valorEntrada;
+                const numParcelasParcelamento = parcelasPagas - 1;
+                for (let i = 0; i < numParcelasParcelamento && i < estruturaParcelas.length; i++) {
+                  valorParcelasPagas += estruturaParcelas[i]?.valor || 0;
+                }
+                return sum + valorParcelasPagas;
+              }
+            } else if (tipoPagamento === 'parcelamento') {
+              // Parcelamento simples
+              const estruturaParcelas = calcularEstruturaParcelas(
+                valorBase,
+                arr.parcelasTriplas || 0,
+                arr.parcelasDuplas || 0,
+                arr.parcelasSimples || 0
+              );
+              
+              // Somar apenas as parcelas que foram pagas
+              let valorParcelasPagas = 0;
+              for (let i = 0; i < parcelasPagas && i < estruturaParcelas.length; i++) {
+                valorParcelasPagas += estruturaParcelas[i]?.valor || 0;
+              }
+              return sum + valorParcelasPagas;
+            }
+          }
+          
           return sum;
         }, 0);
         

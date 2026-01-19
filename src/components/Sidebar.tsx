@@ -15,6 +15,7 @@ import {
   LogOut,
   Mail,
   Handshake,
+  History,
 } from "lucide-react";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth } from "@/hooks/use-auth";
@@ -42,6 +43,7 @@ const menuItems: MenuItem[] = [
   { icon: Users, label: "Arrematantes", path: "/arrematantes" },
   { icon: FileText, label: "Faturas", path: "/faturas" },
   { icon: AlertTriangle, label: "Inadimplência", path: "/inadimplencia" },
+  { icon: History, label: "Histórico", path: "/historico" },
   { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
   { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,6 +35,7 @@ import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { StringDatePicker } from "@/components/ui/date-picker";
 import { PdfReport } from "@/components/PdfReport";
 import { ArrematanteInfo, Auction, LoteInfo, MercadoriaInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
+import { calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 
 // Função para verificar se um arrematante está inadimplente (considera tipos de pagamento)
 const isOverdue = (arrematante: ArrematanteInfo, auction: Auction) => {
@@ -175,8 +177,14 @@ const calcularValorTotalComJuros = (arrematante: ArrematanteInfo, auction: Aucti
           parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
           arrematante.valorEntrada) : 
         valorBase * 0.3;
-      // ✅ Valor da parcela = valorBase / quantidade (SEM subtrair entrada - são independentes)
-      const valorPorParcelaBase = valorBase / quantidadeParcelas;
+      
+      // Calcular estrutura de parcelas usando configuração real (triplas, duplas, simples)
+      const estruturaParcelas = calcularEstruturaParcelas(
+        valorBase,
+        arrematante.parcelasTriplas || 0,
+        arrematante.parcelasDuplas || 0,
+        arrematante.parcelasSimples || 0
+      );
       
       // Calcular juros da entrada
       const dataEntrada = loteArrematado?.dataEntrada || auction.dataEntrada;
@@ -186,12 +194,13 @@ const calcularValorTotalComJuros = (arrematante: ArrematanteInfo, auction: Aucti
         valorTotalComJuros += valorEntradaBase;
       }
       
-      // Calcular juros de cada parcela
+      // Calcular juros de cada parcela usando valor real da estrutura
       const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
       for (let i = 0; i < quantidadeParcelas; i++) {
         const dataVencimento = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15);
         const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-        valorTotalComJuros += calcularJurosProgressivos(valorPorParcelaBase, dataVencimentoStr, percentualJuros);
+        const valorRealParcela = estruturaParcelas[i]?.valor || 0;
+        valorTotalComJuros += calcularJurosProgressivos(valorRealParcela, dataVencimentoStr, percentualJuros);
       }
     } else {
       valorTotalComJuros = valorBase;
@@ -202,13 +211,21 @@ const calcularValorTotalComJuros = (arrematante: ArrematanteInfo, auction: Aucti
     const mesInicioPagamento = arrematante.mesInicioPagamento;
     
     if (mesInicioPagamento && quantidadeParcelas > 0) {
-      const valorPorParcela = valorBase / quantidadeParcelas;
+      // Calcular estrutura de parcelas usando configuração real (triplas, duplas, simples)
+      const estruturaParcelas = calcularEstruturaParcelas(
+        valorBase,
+        arrematante.parcelasTriplas || 0,
+        arrematante.parcelasDuplas || 0,
+        arrematante.parcelasSimples || 0
+      );
+      
       const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
       
       for (let i = 0; i < quantidadeParcelas; i++) {
         const dataVencimento = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15);
         const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-        valorTotalComJuros += calcularJurosProgressivos(valorPorParcela, dataVencimentoStr, percentualJuros);
+        const valorRealParcela = estruturaParcelas[i]?.valor || 0;
+        valorTotalComJuros += calcularJurosProgressivos(valorRealParcela, dataVencimentoStr, percentualJuros);
       }
     } else {
       valorTotalComJuros = valorBase;
@@ -235,6 +252,7 @@ interface RelatorioConfig {
 }
 
 function Relatorios() {
+  const navigate = useNavigate();
   const { auctions, isLoading } = useSupabaseAuctions();
   const { toast } = useToast();
   const { logReportAction } = useActivityLogger();
@@ -380,14 +398,6 @@ function Relatorios() {
       
       // 5. Gerar PDF do elemento renderizado pelo React (mesmo método que funciona)
       await html2pdf().set(opt).from(element).save();
-      
-      console.log('✅ PDF gerado com sucesso!');
-      
-      toast({
-        title: "✅ Relatório Gerado com Sucesso!",
-        description: `Relatório de leilão ${leiloesAtivos[0].identificacao || leiloesAtivos[0].id} foi baixado.`,
-        duration: 4000,
-      });
       
     } catch (error) {
       console.error('❌ Erro ao gerar relatório:', error);
@@ -879,12 +889,6 @@ function Relatorios() {
       // Limpar elemento temporário
       document.body.removeChild(element);
       
-      toast({
-        title: "Relatório Gerado com Sucesso!",
-        description: `Relatório de ${type} foi baixado.`,
-        duration: 4000,
-      });
-      
     } catch (error) {
       console.error('Erro ao gerar relatório:', error);
       toast({
@@ -974,8 +978,6 @@ function Relatorios() {
       // 5. Gerar PDF do elemento renderizado pelo React
       await html2pdf().set(opt).from(element).save();
       
-      console.log('✅ PDF gerado com sucesso!');
-      
       const typeNames = {
         'leiloes': 'leilões',
         'inadimplencia': 'inadimplência',
@@ -990,12 +992,6 @@ function Relatorios() {
           report_format: 'pdf',
           generation_date: new Date().toISOString()
         }
-      });
-      
-      toast({
-        title: "✅ Relatório Gerado com Sucesso!",
-        description: `Relatório de ${typeNames[reportType]} foi baixado.`,
-        duration: 4000,
       });
       
     } catch (error) {
@@ -1069,6 +1065,7 @@ function Relatorios() {
 
       {/* Cards de Relatórios Rápidos */}
       <div className="space-y-6">
+        <div className="flex items-start justify-between">
         <div>
           <h2 className="flex items-center gap-2 text-lg font-semibold text-gray-900 mb-2">
             <FileText className="h-5 w-5 text-gray-600" />
@@ -1077,6 +1074,7 @@ function Relatorios() {
           <p className="text-muted-foreground text-sm">
             Baixe relatórios específicos com um clique
           </p>
+          </div>
         </div>
         
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -1528,26 +1526,42 @@ function Relatorios() {
                                           const valorTotal = arrematante?.valorPagarNumerico || 0;
                                           
                                           if (tipoPagamento === 'entrada_parcelamento') {
-                                            // Para entrada + parcelamento (entrada e parcelas são INDEPENDENTES)
+                                            // Para entrada + parcelamento: entrada + soma das parcelas pagas
                                             const valorEntrada = arrematante?.valorEntrada ? 
                                               (typeof arrematante.valorEntrada === 'string' ? 
                                                 parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
                                                 arrematante.valorEntrada) : 
                                               valorTotal * 0.3;
-                                            const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
-                                            // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-                                            const valorPorParcela = valorTotal / quantidadeParcelas;
                                             
-                                            // Calcular valor recebido: entrada + parcelas pagas
+                                            // Usar estrutura real de parcelas
+                                            const estrutura = calcularEstruturaParcelas(
+                                              valorTotal,
+                                              arrematante.parcelasTriplas || 0,
+                                              arrematante.parcelasDuplas || 0,
+                                              arrematante.parcelasSimples || 0
+                                            );
+                                            
+                                            // Calcular valor recebido: entrada (1ª parcela) + parcelas pagas
                                             if (parcelasPagas >= 1) {
                                               const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
-                                              return sum + valorEntrada + (parcelasEfetivasPagas * valorPorParcela);
+                                              const valorParcelasPagas = estrutura
+                                                .slice(0, parcelasEfetivasPagas)
+                                                .reduce((s, p) => s + p.valor, 0);
+                                              return sum + valorEntrada + valorParcelasPagas;
                                             }
                                           } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
-                                            // Para parcelamento simples
-                                            const quantidadeParcelas = arrematante?.quantidadeParcelas || 1;
-                                            const valorPorParcela = valorTotal / quantidadeParcelas;
-                                            return sum + (parcelasPagas * valorPorParcela);
+                                            // Para parcelamento simples: usar estrutura real de parcelas
+                                            const estrutura = calcularEstruturaParcelas(
+                                              valorTotal,
+                                              arrematante.parcelasTriplas || 0,
+                                              arrematante.parcelasDuplas || 0,
+                                              arrematante.parcelasSimples || 0
+                                            );
+                                            
+                                            const valorParcelasPagas = estrutura
+                                              .slice(0, parcelasPagas)
+                                              .reduce((s, p) => s + p.valor, 0);
+                                            return sum + valorParcelasPagas;
                                           } else if (tipoPagamento === 'a_vista') {
                                             // Para à vista, se parcelasPagas > 0, foi pago
                                             return sum + (parcelasPagas > 0 ? valorTotal : 0);
@@ -2260,152 +2274,135 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
     const leiloesAgendados = leiloesAtivos.filter(a => a.status === 'agendado').length;
     
     return (
-      <div className="bg-white min-h-[600px]" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', pageBreakInside: 'auto', orphans: 3, widows: 3 }}>
-        {/* Cabeçalho Minimalista Corporativo */}
-        <div className="text-center pb-6 mb-8" style={{ borderBottom: '1px solid #e2e8f0', pageBreakAfter: 'avoid' }}>
-          <div className="mb-4">
-            <h1 className="text-3xl font-light text-slate-900 tracking-tight mb-2" style={{ letterSpacing: '0.02em' }}>
+      <div style={{ background: 'white', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: '40px', fontSize: '14px', lineHeight: '1.5', color: '#111827' }}>
+        {/* Cabeçalho Clean */}
+        <div style={{ marginBottom: '48px', paddingBottom: '24px', borderBottom: '2px solid #e5e7eb', pageBreakInside: 'avoid' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: '300', color: '#111827', margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
             Relatório de Leilões
           </h1>
-            <div className="h-px bg-slate-300 w-24 mx-auto"></div>
-            </div>
-          <div className="text-sm text-slate-600 space-y-1" style={{ fontWeight: 300 }}>
-            <div className="flex items-center justify-center gap-6 text-xs uppercase tracking-wider">
-              <span>Data: {new Date().toLocaleDateString('pt-BR')}</span>
-              <span>•</span>
-              <span>Horário: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-            <div className="text-xs text-slate-500 mt-2">
-              Relatório Gerencial de Leilões Ativos
-            </div>
+          <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '300' }}>
+            {new Date().toLocaleDateString('pt-BR')} • {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
 
-        {/* Indicadores Executivos */}
+        {/* Resumo Executivo */}
         {totalLeiloes > 0 && (
-          <div className="mb-8 p-6" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px', pageBreakInside: 'avoid' }}>
-            <h2 className="text-sm font-medium text-slate-700 uppercase tracking-wider mb-4" style={{ letterSpacing: '0.1em', pageBreakAfter: 'avoid' }}>
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
               Resumo Executivo
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center">
-                <div className="text-3xl font-light text-slate-900 mb-1">{totalLeiloes}</div>
-                <div className="text-xs text-slate-600 uppercase tracking-wider" style={{ fontWeight: 300 }}>Total de Leilões</div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total de Leilões</div>
+                <div style={{ fontSize: '24px', fontWeight: '300', color: '#111827' }}>{totalLeiloes}</div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-light text-slate-700 mb-1">{emAndamento}</div>
-                <div className="text-xs text-slate-600 uppercase tracking-wider" style={{ fontWeight: 300 }}>Em Andamento</div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Em Andamento</div>
+                <div style={{ fontSize: '24px', fontWeight: '300', color: '#111827' }}>{emAndamento}</div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-light text-slate-700 mb-1">{finalizados}</div>
-                <div className="text-xs text-slate-600 uppercase tracking-wider" style={{ fontWeight: 300 }}>Finalizados</div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Finalizados</div>
+                <div style={{ fontSize: '24px', fontWeight: '300', color: '#111827' }}>{finalizados}</div>
               </div>
-              <div className="text-center">
-                <div className="text-3xl font-light text-slate-700 mb-1">{leiloesAgendados}</div>
-                <div className="text-xs text-slate-600 uppercase tracking-wider" style={{ fontWeight: 300 }}>Agendados</div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Agendados</div>
+                <div style={{ fontSize: '24px', fontWeight: '300', color: '#111827' }}>{leiloesAgendados}</div>
               </div>
             </div>
           </div>
         )}
 
         {/* Lista Detalhada dos Leilões */}
-        <div className="space-y-12">
+        <div>
           {leiloesAtivos.map((auction, index) => (
-            <div key={auction.id} style={{ pageBreakBefore: index > 0 ? 'always' : 'avoid', pageBreakInside: 'avoid' }}>
-              {/* Separador visual entre leilões */}
-              {index > 0 && (
-                <div className="mb-8 pb-4" style={{ borderBottom: '2px solid #cbd5e1' }} />
-              )}
+            <div key={auction.id} style={{ pageBreakBefore: index > 0 ? 'always' : 'avoid', marginBottom: '60px' }}>
 
               {/* Cabeçalho do Leilão */}
-              <div className="mb-6 pb-4" style={{ borderBottom: '1px solid #e2e8f0', pageBreakAfter: 'avoid' }}>
-                <div className="mb-2">
-                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wider">
-                    Leilão #{String(index + 1).padStart(2, '0')}
+              <div style={{ marginBottom: '40px', paddingBottom: '20px', borderBottom: '2px solid #e5e7eb', pageBreakInside: 'avoid' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
+                  <div style={{ flex: 1 }}>
+                    <h2 style={{ fontSize: '22px', fontWeight: '300', color: '#111827', margin: '0 0 6px 0', letterSpacing: '-0.01em' }}>
+                      {auction.nome}
+                    </h2>
+                    <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '300' }}>
+                      {auction.identificacao && <span style={{ fontFamily: 'monospace' }}>#{auction.identificacao}</span>}
+                      {auction.identificacao && <span style={{ margin: '0 8px' }}>•</span>}
+                      <span>{formatDate(auction.dataInicio)}</span>
+                    </div>
+                  </div>
+                  <span style={{ 
+                    padding: '4px 12px', 
+                    borderRadius: '4px', 
+                    fontSize: '11px', 
+                    fontWeight: '600',
+                    textTransform: 'uppercase',
+                    letterSpacing: '0.05em',
+                    background: auction.status === 'finalizado' ? '#e5e7eb' : auction.status === 'em_andamento' ? '#dcfce7' : '#f3f4f6',
+                    color: auction.status === 'finalizado' ? '#374151' : auction.status === 'em_andamento' ? '#15803d' : '#6b7280',
+                    border: `1px solid ${auction.status === 'finalizado' ? '#d1d5db' : auction.status === 'em_andamento' ? '#86efac' : '#e5e7eb'}`,
+                    whiteSpace: 'nowrap'
+                  }}>
+                    {getStatusLabel(auction.status)}
                         </span>
                     </div>
-                <h2 className="text-2xl font-light text-slate-900 mb-1">
-                      {auction.identificacao || auction.nome || `Leilão ${index + 1}`}
+              </div>
+
+              {/* Informações Básicas */}
+              <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                  Informações Básicas
                 </h2>
-                    {auction.nome && auction.identificacao && (
-                  <p className="text-sm text-slate-600">{auction.nome}</p>
+                
+                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+                  {/* Local do Evento */}
+                  <div style={{ flex: '1 1 200px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginTop: 0, marginBottom: '12px' }}>
+                      Local do Evento
+                    </h3>
+                    <p style={{ color: '#111827', textTransform: 'capitalize', margin: '0 0 8px 0' }}>
+                      {getLocalLabel(auction.local)}
+                    </p>
+                    {auction.endereco && (
+                      <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.6', margin: 0 }}>{auction.endereco}</p>
                     )}
                   </div>
 
-              {/* Identificação do Leilão */}
-              <div className="mb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em' }}>
-                  Identificação do Leilão
+                  {/* Investimento Total */}
+                  <div style={{ flex: '1 1 200px' }}>
+                    <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginTop: 0, marginBottom: '12px' }}>
+                      Investimento Total
                 </h3>
-                <div className="p-4" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Código de Identificação</div>
-                      <div className="text-base font-medium text-slate-900">{auction.identificacao || 'Não informado'}</div>
-                    </div>
-                    <div>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Status do Leilão</div>
-                      <div className={`inline-flex items-center px-2 py-1 rounded text-xs font-medium ${
-                        auction.status === 'finalizado' ? 'bg-red-600 text-white border border-red-700' :
-                        auction.status === 'em_andamento' ? 'bg-green-50 text-green-700 border border-green-200' :
-                        'bg-slate-100 text-slate-700 border border-slate-200'
-                      }`}>
-                        {getStatusLabel(auction.status)}
-                      </div>
-                    </div>
-                    <div className="col-span-2" style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '8px' }}>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Nome do Evento</div>
-                      <div className="text-base font-medium text-slate-900">{auction.nome || 'Não informado'}</div>
-                    </div>
-                  </div>
-                </div>
+                    <p style={{ fontSize: '24px', fontWeight: '300', color: '#111827', margin: 0 }}>
+                      {formatCurrency(auction.custosNumerico || auction.custos)}
+                    </p>
               </div>
               
-              {/* Cronograma e Local */}
-              <div className="mb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em' }}>
-                  Cronograma e Local do Evento
+                  {/* Patrocínios Recebidos */}
+                  {auction.detalhePatrocinios && auction.detalhePatrocinios.filter(p => p.recebido === true).length > 0 && (
+                    <div style={{ flex: '1 1 200px' }}>
+                      <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginTop: 0, marginBottom: '12px' }}>
+                        Patrocínios Recebidos
                 </h3>
-                <div className="p-4" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
-                  <div className="grid grid-cols-3 gap-4 mb-3 text-sm">
-                <div>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Data de Início</div>
-                      <div className="text-base font-medium text-slate-900">{formatDate(auction.dataInicio)}</div>
-                      </div>
-                    <div>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Data de Encerramento</div>
-                      <div className="text-base font-medium text-slate-900">{formatDate(auction.dataEncerramento || '')}</div>
-                      </div>
-                    <div>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Modalidade</div>
-                      <div className="text-base font-medium text-slate-900">{getLocalLabel(auction.local)}</div>
-                      </div>
-                    </div>
-                  <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px' }}>
-                    <div className="text-xs text-slate-500 uppercase tracking-wider mb-2">Endereço do Evento</div>
-                    <div className="text-sm text-slate-900">{auction.endereco || 'Não informado'}</div>
-                    </div>
-                  {auction.historicoNotas?.join('; ') && (
-                    <div style={{ borderTop: '1px solid #e2e8f0', paddingTop: '12px', marginTop: '12px' }}>
-                      <div className="text-xs text-slate-500 uppercase tracking-wider mb-2">Observações</div>
-                      <div className="text-sm text-slate-900 p-2 rounded" style={{ backgroundColor: '#fafafa', border: '1px solid #e2e8f0' }}>
-                        {auction.historicoNotas?.join('; ') || 'Não informado'}
-                      </div>
+                      <p style={{ fontSize: '24px', fontWeight: '300', color: '#111827', margin: 0 }}>
+                        {formatCurrency(auction.detalhePatrocinios.filter(p => p.recebido === true).reduce((sum, p) => sum + (p.valorNumerico || 0), 0))}
+                      </p>
                       </div>
                   )}
-                </div>
               </div>
 
-              {/* Informações Financeiras */}
-              <div className="mb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em' }}>
-                  Informações Financeiras
+                {/* Cronograma do Evento */}
+                <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e5e7eb' }}>
+                  <h3 style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 0, marginBottom: '12px' }}>
+                    Cronograma do Evento
                 </h3>
-                <div className="p-4" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
                   <div>
-                    <div className="text-xs text-slate-500 uppercase tracking-wider mb-1">Custos do Leilão</div>
-                    <div className="text-lg font-medium text-slate-900">
-                      {formatCurrency(auction.custosNumerico || auction.custos)}
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Data de Início</div>
+                      <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>{formatDate(auction.dataInicio)}</div>
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Encerramento</div>
+                      <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>{formatDate(auction.dataEncerramento || '')}</div>
                     </div>
                     </div>
                   </div>
@@ -2413,191 +2410,168 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
 
                 {/* Especificação dos Custos */}
                 {auction.detalheCustos && auction.detalheCustos.length > 0 && (
-                <div className="mb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em' }}>
+                <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
+                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
                       Especificação dos Gastos
-                  </h3>
-                  <div className="p-4 break-inside-avoid" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px', pageBreakInside: 'avoid' }}>
-                    <div className="space-y-2">
+                  </h2>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       {auction.detalheCustos.map((item: ItemCustoInfo, index: number) => (
-                        <div key={item.id || index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded border border-gray-200">
-                          <div className="flex items-center gap-3">
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-200 text-xs font-semibold text-gray-700">
+                      <div key={item.id || index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
                               {String(index + 1).padStart(2, '0')}
                             </span>
-                            <span className="text-sm text-gray-700">
+                          <span style={{ fontSize: '14px', color: '#374151' }}>
                               {item.descricao || 'Item de custo'}
                             </span>
                           </div>
-                          <span className="text-sm font-medium text-gray-900">
+                        <span style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
                             {formatCurrency(item.valorNumerico)}
                           </span>
                         </div>
                       ))}
-                    </div>
                     </div>
                   </div>
                 )}
 
                 {/* Patrocínios Recebidos */}
-                {auction.detalhePatrocinios && auction.detalhePatrocinios.length > 0 && (() => {
-                  // ✅ Filtrar apenas patrocínios recebidos
-                  const patrociniosRecebidos = auction.detalhePatrocinios.filter(p => p.recebido === true);
-                  
-                  // Se não houver patrocínios recebidos, não mostrar a seção
-                  if (patrociniosRecebidos.length === 0) return null;
-                  
-                  // Calcular total de patrocínios recebidos
-                  const totalRecebido = patrociniosRecebidos.reduce((sum, p) => sum + (p.valorNumerico || 0), 0);
-                  
-                  return (
-                <div className="mb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                  <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em' }}>
+              {auction.detalhePatrocinios && auction.detalhePatrocinios.length > 0 && (() => {
+                const patrociniosRecebidos = auction.detalhePatrocinios.filter(p => p.recebido === true);
+                if (patrociniosRecebidos.length === 0) return null;
+                
+                return (
+                  <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
+                    <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
                       Patrocínios Recebidos
-                  </h3>
-                  <div className="p-4 break-inside-avoid" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px', pageBreakInside: 'avoid' }}>
-                        {/* Total de Patrocínios Recebidos */}
-                    <div className="mb-4 pb-3 border-b border-gray-200">
-                      <div className="flex justify-between items-center">
-                            <div className="text-xs text-slate-500 uppercase tracking-wider" style={{ fontWeight: 500 }}>Total de Patrocínios Recebidos</div>
-                        <div className="text-lg font-light text-slate-900 tracking-tight">
-                              {formatCurrency(totalRecebido)}
-                        </div>
-                      </div>
-                    </div>
-
-                        {/* Lista de Patrocinadores que pagaram */}
-                    <div className="border-t border-gray-200 pt-4">
-                      <div className="text-xs font-medium text-gray-600 uppercase tracking-wide mb-3">Patrocinadores</div>
-                      <div className="space-y-2">
-                            {patrociniosRecebidos.map((item: ItemPatrocinioInfo, index: number) => (
-                        <div key={item.id || index} className="flex justify-between items-center py-2 px-3 bg-gray-50 rounded border border-gray-200">
-                          <div className="flex items-center gap-3">
-                            <span className="inline-flex items-center justify-center w-6 h-6 rounded bg-gray-200 text-xs font-semibold text-gray-700">
+                    </h2>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      {patrociniosRecebidos.map((item: ItemPatrocinioInfo, index: number) => (
+                        <div key={item.id || index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <span style={{ fontSize: '12px', color: '#6b7280' }}>
                               {String(index + 1).padStart(2, '0')}
                             </span>
-                            <span className="text-sm text-gray-700">
+                            <span style={{ fontSize: '14px', color: '#374151' }}>
                               {item.nomePatrocinador || 'Patrocinador'}
                             </span>
                           </div>
-                          <span className="text-sm font-medium text-gray-900">
+                          <span style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
                             {formatCurrency(item.valorNumerico)}
                           </span>
                         </div>
                       ))}
                     </div>
                     </div>
-                  </div>
-                </div>
-                  );
-                })()}
+                );
+              })()}
 
               {/* Configurações de Pagamento por Mercadoria */}
-              <div className="mb-6 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-                <h3 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em' }}>
-                  Configurações de Pagamento por Mercadoria
-                </h3>
+              <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
+                <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                  Lotes e Configurações de Pagamento
+                </h2>
                 
                 {auction.lotes && auction.lotes.length > 0 ? (
-                        <div className="space-y-3">
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {auction.lotes.map((lote, loteIndex) => {
                       if (!lote.mercadorias || lote.mercadorias.length === 0) {
                         return (
-                          <div key={lote.id || loteIndex} className="p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
-                            <div className="mb-2">
-                              <h4 className="font-medium text-slate-800 text-sm">Lote {lote.numero}</h4>
-                          </div>
-                            {lote.descricao && <p className="text-xs text-slate-600 mb-2">{lote.descricao}</p>}
-                            <div className="bg-gray-100 border border-gray-300 p-2 rounded">
-                              <p className="text-gray-600 text-xs text-center">Nenhuma mercadoria cadastrada neste lote</p>
+                          <div key={lote.id || loteIndex} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '16px' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111827', margin: '0 0 8px 0' }}>
+                              Lote {lote.numero}
+                            </h4>
+                            {lote.descricao && <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 12px 0' }}>{lote.descricao}</p>}
+                            <div style={{ background: '#f3f4f6', borderRadius: '4px', padding: '12px', textAlign: 'center' }}>
+                              <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>Nenhuma mercadoria cadastrada</p>
                             </div>
                           </div>
                         );
                       }
 
                       return (
-                        <div key={lote.id || loteIndex} className="p-3" style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
-                          <div className="mb-2">
-                            <h4 className="font-medium text-slate-800 text-sm">Lote {lote.numero}</h4>
+                        <div key={lote.id || loteIndex} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '16px' }}>
+                          <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
+                              Lote {lote.numero}
+                            </h4>
+                            {lote.descricao && <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{lote.descricao}</p>}
                           </div>
                           
-                          {lote.descricao && <p className="text-xs text-slate-600 mb-3">{lote.descricao}</p>}
-
-                          <div className="space-y-2 mt-2">
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {lote.mercadorias.map((mercadoria, mercIndex) => {
                               const arrematante = auction.arrematantes?.find(arr => arr.mercadoriaId === mercadoria.id);
 
                               return (
-                                <div key={mercadoria.id || mercIndex} className="bg-white border border-gray-300 p-2 rounded">
-                                  <div className="mb-2 pb-1 border-b border-gray-200">
-                                    <h5 className="text-xs font-medium text-gray-800">
+                                <div key={mercadoria.id || mercIndex} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '12px' }}>
+                                  <div style={{ marginBottom: '12px' }}>
+                                    <h5 style={{ fontSize: '13px', fontWeight: '500', color: '#111827', margin: '0 0 4px 0' }}>
                                       {mercadoria.titulo || mercadoria.tipo || 'Mercadoria'} 
-                                      {mercadoria.quantidade && <span className="text-xs text-gray-500 ml-2">(Qtd: {mercadoria.quantidade})</span>}
+                                      {mercadoria.quantidade && <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>({mercadoria.quantidade} un.)</span>}
                                     </h5>
-                                    {mercadoria.descricao && <p className="text-xs text-gray-600 mt-1">{mercadoria.descricao}</p>}
+                                    {mercadoria.descricao && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>{mercadoria.descricao}</p>}
                             </div>
 
                                   {arrematante && arrematante.tipoPagamento ? (
                                     <div>
-                                      <p className="text-xs font-medium text-gray-700 mb-1">
-                                        Arrematante: {arrematante.nome || 'Não informado'}
-                                      </p>
-                                      <div className="bg-blue-50 border border-blue-200 p-2 rounded">
-                                        <div className="grid grid-cols-1 md:grid-cols-3 gap-1 text-xs">
-                                          <div>
-                                            <strong className="text-gray-700">Tipo:</strong>{' '}
-                                            <span className="text-gray-900">
+                                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
+                                        <span style={{ fontWeight: '500', color: '#374151' }}>Arrematante:</span> {arrematante.nome || 'Não informado'}
+                                      </div>
+                                      <div style={{ background: '#f9fafb', borderRadius: '4px', padding: '10px', border: '1px solid #e5e7eb' }}>
+                                        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 16px', fontSize: '12px' }}>
+                                          <div style={{ color: '#6b7280' }}>
+                                            <strong style={{ color: '#374151' }}>Tipo:</strong>
+                                          </div>
+                                          <div style={{ color: '#111827' }}>
                                               {arrematante.tipoPagamento === 'a_vista' ? 'À Vista' :
                                                arrematante.tipoPagamento === 'parcelamento' ? 'Parcelamento' :
                                                arrematante.tipoPagamento === 'entrada_parcelamento' ? 'Entrada + Parcelamento' :
                                                'Não definido'}
-                                            </span>
                           </div>
 
                                           {arrematante.tipoPagamento === 'a_vista' && arrematante.dataVencimentoVista && (
-                                            <div>
-                                              <strong className="text-gray-700">Data de Pagamento:</strong>{' '}
-                                              <span className="text-gray-900">{formatDate(arrematante.dataVencimentoVista)}</span>
-                      </div>
+                                            <>
+                                              <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Data de Pagamento:</strong></div>
+                                              <div style={{ color: '#111827' }}>{formatDate(arrematante.dataVencimentoVista)}</div>
+                                            </>
                     )}
 
                                           {arrematante.tipoPagamento === 'entrada_parcelamento' && arrematante.dataEntrada && (
-                                            <div>
-                                              <strong className="text-gray-700">Data da Entrada:</strong>{' '}
-                                              <span className="text-gray-900">{formatDate(arrematante.dataEntrada)}</span>
-                  </div>
+                                            <>
+                                              <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Data da Entrada:</strong></div>
+                                              <div style={{ color: '#111827' }}>{formatDate(arrematante.dataEntrada)}</div>
+                                            </>
                 )}
 
                                           {(arrematante.tipoPagamento === 'parcelamento' || arrematante.tipoPagamento === 'entrada_parcelamento') && (
                                             <>
                                               {arrematante.mesInicioPagamento && (
-                                                <div>
-                                                  <strong className="text-gray-700">Mês de Início:</strong>{' '}
-                                                  <span className="text-gray-900">
+                                                <>
+                                                  <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Mês de Início:</strong></div>
+                                                  <div style={{ color: '#111827' }}>
                             {(() => {
                                                       const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
                                                                     'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-                                                      return meses[parseInt(arrematante.mesInicioPagamento) - 1] || arrematante.mesInicioPagamento;
+                                                      const [ano, mes] = arrematante.mesInicioPagamento.split('-');
+                                                      return `${meses[parseInt(mes) - 1]}/${ano}`;
                             })()}
-                            </span>
                         </div>
+                                                </>
                       )}
                                               
                                               {arrematante.diaVencimentoMensal && (
-                                                <div>
-                                                  <strong className="text-gray-700">Dia do Vencimento:</strong>{' '}
-                                                  <span className="text-gray-900">Dia {arrematante.diaVencimentoMensal}</span>
-                  </div>
+                                                <>
+                                                  <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Dia do Vencimento:</strong></div>
+                                                  <div style={{ color: '#111827' }}>Dia {arrematante.diaVencimentoMensal}</div>
+                                                </>
                 )}
 
                                               {arrematante.quantidadeParcelas && (
-                                                <div>
-                                                  <strong className="text-gray-700">Parcelas:</strong>{' '}
-                                                  <span className="text-gray-900">
-                                                    {arrematante.quantidadeParcelas}x
-                                                    {arrematante.tipoPagamento === 'entrada_parcelamento' ? ' (após entrada)' : ''}
-                              </span>
+                                                <>
+                                                  <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Parcelas:</strong></div>
+                                                  <div style={{ color: '#111827' }}>
+                                                    {arrematante.quantidadeParcelas}x{arrematante.tipoPagamento === 'entrada_parcelamento' ? ' (após entrada)' : ''}
                                                 </div>
+                                                </>
                                               )}
                                             </>
                             )}
@@ -2605,9 +2579,9 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             </div>
                                     </div>
                                   ) : (
-                                    <div className="bg-white border border-gray-300 p-2 rounded">
-                                      <p className="text-gray-600 text-xs text-center">
-                                        Configurações de pagamento não definidas para esta mercadoria
+                                    <div style={{ background: '#f9fafb', borderRadius: '4px', padding: '12px', textAlign: 'center', border: '1px solid #e5e7eb' }}>
+                                      <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
+                                        Configurações de pagamento não definidas
                                       </p>
                                     </div>
                                   )}
@@ -2620,8 +2594,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                     })}
                         </div>
                 ) : (
-                  <div className="p-3 bg-gray-50 rounded border border-gray-200">
-                    <p className="text-gray-600 text-center text-sm">Nenhum lote cadastrado neste leilão</p>
+                  <div style={{ background: '#f9fafb', borderRadius: '6px', padding: '16px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>Nenhum lote cadastrado neste leilão</p>
                   </div>
                 )}
               </div>
@@ -2629,7 +2603,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           ))}
           
           {leiloesAtivos.length > 3 && (
-            <div className="text-center py-6 px-8 mt-6" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
+            <div className="text-center py-6 px-8 mt-6" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
               <div className="text-base font-medium text-slate-900 mb-2" style={{ letterSpacing: '0.02em' }}>
                 Visualização Parcial
               </div>
@@ -2643,7 +2617,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         </div>
 
         {/* Rodapé Corporativo */}
-        <div className="mt-12 pt-6" style={{ borderTop: '1px solid #e2e8f0', pageBreakInside: 'avoid' }}>
+        <div className="mt-12 pt-6" style={{ borderTop: '1px solid #e5e7eb', pageBreakInside: 'avoid' }}>
           <div className="text-center mb-6">
             <p className="text-xs text-slate-500 mb-4" style={{ fontWeight: 300, lineHeight: '1.6' }}>
               Este documento foi gerado automaticamente pelo sistema de gestão de leilões.<br />
@@ -2852,8 +2826,17 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           valorTotal * 0.3;
         
         const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || 12;
-        // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada - são independentes)
-        const valorPorParcela = valorTotal / quantidadeParcelas;
+        
+        // Calcular estrutura de parcelas usando configuração real (triplas, duplas, simples)
+        const estruturaParcelas = calcularEstruturaParcelas(
+          valorTotal,
+          auction.arrematante?.parcelasTriplas || 0,
+          auction.arrematante?.parcelasDuplas || 0,
+          auction.arrematante?.parcelasSimples || 0
+        );
+        
+        // Valor da primeira parcela como referência (para exibição)
+        const valorPorParcela = estruturaParcelas[0]?.valor || (valorTotal / quantidadeParcelas);
         const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
         
         const hoje = new Date();
@@ -2900,8 +2883,10 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               if (hoje > parcelaDate) {
                 parcelasAtrasadasCount++;
                 const dataVencimentoStr = parcelaDate.toISOString().split('T')[0];
+                // Usar valor real da parcela baseado na estrutura (tripla, dupla, simples)
+                const valorRealParcela = estruturaParcelas[i]?.valor || valorPorParcela;
                 // Aplicar juros progressivos na parcela atrasada
-                const valorParcelaComJuros = calcularJurosProgressivos(valorPorParcela, dataVencimentoStr, percentualJuros);
+                const valorParcelaComJuros = calcularJurosProgressivos(valorRealParcela, dataVencimentoStr, percentualJuros);
                 valorTotalParcelasAtrasadas += valorParcelaComJuros;
                 
                 // Guardar a data da primeira parcela atrasada
@@ -2983,7 +2968,17 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             
             const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
             const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || 12;
-            const valorPorParcela = valorTotal / quantidadeParcelas;
+            
+            // Calcular estrutura de parcelas usando configuração real (triplas, duplas, simples)
+            const estruturaParcelas = calcularEstruturaParcelas(
+              valorTotal,
+              auction.arrematante?.parcelasTriplas || 0,
+              auction.arrematante?.parcelasDuplas || 0,
+              auction.arrematante?.parcelasSimples || 0
+            );
+            
+            // Valor da primeira parcela como referência (para exibição)
+            const valorPorParcela = estruturaParcelas[0]?.valor || (valorTotal / quantidadeParcelas);
             const percentualJuros = auction.arrematante?.percentualJurosAtraso || 0;
             
             // Contar todas as parcelas em atraso
@@ -3001,8 +2996,10 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               if (hoje > parcelaDate) {
                 parcelasAtrasadasCount++;
                 const dataVencimentoStr = parcelaDate.toISOString().split('T')[0];
+                // Usar valor real da parcela baseado na estrutura (tripla, dupla, simples)
+                const valorRealParcela = estruturaParcelas[i]?.valor || valorPorParcela;
                 // Aplicar juros progressivos na parcela atrasada
-                const valorParcelaComJuros = calcularJurosProgressivos(valorPorParcela, dataVencimentoStr, percentualJuros);
+                const valorParcelaComJuros = calcularJurosProgressivos(valorRealParcela, dataVencimentoStr, percentualJuros);
                 valorTotalParcelasAtrasadas += valorParcelaComJuros;
                 
                 // Guardar a data da primeira parcela atrasada
@@ -3047,69 +3044,43 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
       inadimplentes.reduce((sum, auction) => sum + (auction.detalhesInadimplencia?.diasAtraso || 0), 0) / inadimplentes.length : 0;
 
     return (
-      <div className="bg-white min-h-[600px]" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', pageBreakInside: 'auto', orphans: 3, widows: 3 }}>
-        {/* Cabeçalho Minimalista Corporativo */}
-        <div className="text-center pb-6 mb-8" style={{ borderBottom: '1px solid #e2e8f0', pageBreakAfter: 'avoid' }}>
-          <div className="mb-4">
-            <h1 className="text-3xl font-light text-slate-900 tracking-tight mb-2" style={{ letterSpacing: '0.02em' }}>
-              Relatório de Inadimplência {paymentTypeFilter !== 'todos' && 
-                `• ${paymentTypeFilter === 'a_vista' ? 'À Vista' : 
+      <div style={{ background: 'white', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: '40px', fontSize: '14px', lineHeight: '1.5', color: '#111827' }}>
+        {/* Cabeçalho Clean */}
+        <div style={{ marginBottom: '48px', paddingBottom: '24px', borderBottom: '2px solid #e5e7eb', pageBreakInside: 'avoid' }}>
+          <h1 style={{ fontSize: '28px', fontWeight: '300', color: '#111827', margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
+            Relatório de Inadimplência{paymentTypeFilter !== 'todos' && 
+              ` • ${paymentTypeFilter === 'a_vista' ? 'À Vista' : 
                    paymentTypeFilter === 'parcelamento' ? 'Parcelamento' : 
                    'Entrada + Parcelamento'}`
             }
           </h1>
-            <div className="h-px bg-slate-300 w-24 mx-auto"></div>
-            </div>
-          <div className="text-sm text-slate-600 space-y-1" style={{ fontWeight: 300 }}>
-            <div className="flex items-center justify-center gap-6 text-xs uppercase tracking-wider">
-              <span>Data: {new Date().toLocaleDateString('pt-BR')}</span>
-              <span>•</span>
-              <span>Horário: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
-            </div>
-            <div className="text-xs text-slate-500 mt-2">
-              Análise de Pendências Financeiras e Pagamentos em Atraso
-            </div>
+          <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '300' }}>
+            {new Date().toLocaleDateString('pt-BR')} • {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </div>
         </div>
 
-        {/* Indicadores Executivos */}
+        {/* Resumo Executivo */}
         {inadimplentes.length > 0 && (
-          <div className="mb-8 p-6" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px', pageBreakInside: 'avoid' }}>
-            <h2 className="text-sm font-medium text-slate-700 uppercase tracking-wider mb-6" style={{ letterSpacing: '0.1em', pageBreakAfter: 'avoid' }}>
+          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
+            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
               Resumo Executivo
             </h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8" style={{ gap: '2rem', alignItems: 'start' }}>
-              <div className="text-center" style={{ minWidth: '120px', padding: '0.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                <div className="text-2xl font-light text-red-700" style={{ fontSize: '1.75rem', lineHeight: '1.2', marginBottom: '0.5rem', height: '2.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {inadimplentes.length}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total Casos</div>
+                <div style={{ fontSize: '24px', fontWeight: '300', color: '#dc2626' }}>{inadimplentes.length}</div>
                 </div>
-                <div className="text-xs text-slate-600 uppercase tracking-wider" style={{ fontWeight: 300, fontSize: '0.7rem', lineHeight: '1.3', whiteSpace: 'nowrap' }}>
-                  Total Casos
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Valor em Atraso</div>
+                <div style={{ fontSize: '24px', fontWeight: '300', color: '#dc2626' }}>{formatCurrency(valorTotalInadimplencia)}</div>
                 </div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Dias Médio Atraso</div>
+                <div style={{ fontSize: '24px', fontWeight: '300', color: '#dc2626' }}>{Math.round(diasAtrasoMedio)}</div>
               </div>
-              <div className="text-center" style={{ minWidth: '140px', padding: '0.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                <div className="text-2xl font-light text-red-700" style={{ fontSize: '1.5rem', lineHeight: '1.2', marginBottom: '0.5rem', height: '2.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center', wordBreak: 'keep-all' }}>
-                  {formatCurrency(valorTotalInadimplencia)}
-                </div>
-                <div className="text-xs text-slate-600 uppercase tracking-wider" style={{ fontWeight: 300, fontSize: '0.7rem', lineHeight: '1.3', whiteSpace: 'nowrap' }}>
-                  Valor em Atraso
-                </div>
-              </div>
-              <div className="text-center" style={{ minWidth: '120px', padding: '0.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                <div className="text-2xl font-light text-red-700" style={{ fontSize: '1.75rem', lineHeight: '1.2', marginBottom: '0.5rem', height: '2.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {Math.round(diasAtrasoMedio)}
-                </div>
-                <div className="text-xs text-slate-600 uppercase tracking-wider" style={{ fontWeight: 300, fontSize: '0.7rem', lineHeight: '1.3', whiteSpace: 'nowrap' }}>
-                  Dias Médio Atraso
-                </div>
-              </div>
-              <div className="text-center" style={{ minWidth: '120px', padding: '0.5rem', display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
-                <div className="text-2xl font-light text-red-700" style={{ fontSize: '1.75rem', lineHeight: '1.2', marginBottom: '0.5rem', height: '2.1rem', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {inadimplentes.filter(a => a.detalhesInadimplencia?.diasAtraso > 30).length}
-                </div>
-                <div className="text-xs text-slate-600 uppercase tracking-wider" style={{ fontWeight: 300, fontSize: '0.7rem', lineHeight: '1.3', whiteSpace: 'nowrap' }}>
-                  Casos Críticos (+30d)
-                </div>
+              <div>
+                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Casos Críticos (+30d)</div>
+                <div style={{ fontSize: '24px', fontWeight: '300', color: '#dc2626' }}>{inadimplentes.filter(a => a.detalhesInadimplencia?.diasAtraso > 30).length}</div>
               </div>
             </div>
           </div>
@@ -3128,7 +3099,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             </div>
             
             {inadimplentes.slice(0, 3).map((auction, index) => (
-              <div key={auction.id} className="mb-6" style={{ pageBreakBefore: index > 0 ? 'auto' : 'avoid', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden' }}>
+              <div key={auction.id} className="mb-6" style={{ pageBreakBefore: index > 0 ? 'auto' : 'avoid', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
                 {/* Cabeçalho do Caso */}
                 <div className="px-6 py-4" style={{ background: 'linear-gradient(to right, #fef2f2, #ffffff)', borderBottom: '1px solid #fee2e2', pageBreakAfter: 'avoid' }}>
                   <div className="flex justify-between items-start">
@@ -3158,7 +3129,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                 <div className="px-6 py-5 space-y-5">
                   {/* Informações do Devedor */}
                   <div>
-                    <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
+                    <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
                       Identificação do Devedor
                     </h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ fontWeight: 300 }}>
@@ -3211,36 +3182,76 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             // Usar o valor já calculado de detalhesInadimplencia
                             const detalhes = auction.detalhesInadimplencia;
                             if (detalhes && detalhes.valorEmAtraso > 0) {
-                              // Calcular quantas parcelas ainda faltam pagar (futuras, não atrasadas)
+                              // Calcular estrutura de parcelas
+                              const estruturaParcelas = calcularEstruturaParcelas(
+                                valorBase,
+                                arrematante.parcelasTriplas || 0,
+                                arrematante.parcelasDuplas || 0,
+                                arrematante.parcelasSimples || 0
+                              );
+                              
                               const quantidadeParcelas = arrematante.quantidadeParcelas || 0;
                               const parcelasPagas = arrematante.parcelasPagas || 0;
                               const parcelasAtrasadas = detalhes.parcelasAtrasadas || 0;
-                              const valorParcela = detalhes.valorParcela || 0;
                               
                               // Para entrada_parcelamento: parcelasPagas inclui a entrada
-                              // Total de parcelas pendentes (não pagas)
-                              let totalParcelasPendentes = 0;
+                              // Calcular o índice da primeira parcela não paga
+                              let primeiraParcelaPendente = 0;
                               if (tipoPagamento === 'entrada_parcelamento') {
-                                // Se parcelasPagas = 0, entrada não foi paga
-                                // parcelasPendentes = 1 (entrada) + quantidadeParcelas (parcelas mensais)
                                 if (parcelasPagas === 0) {
-                                  totalParcelasPendentes = 1 + quantidadeParcelas;
+                                  // Entrada não paga, incluir no cálculo
+                                  const valorEntrada = arrematante.valorEntrada ? 
+                                    (typeof arrematante.valorEntrada === 'string' ? 
+                                      parseCurrencyToNumber(arrematante.valorEntrada) : 
+                                      arrematante.valorEntrada) : 
+                                    valorBase * 0.3;
+                                  primeiraParcelaPendente = 0;
+                                  
+                                  // Somar valor atrasado (já calculado) + parcelas futuras
+                                  let valorParcelasFuturas = 0;
+                                  // Contar quantas parcelas futuras existem (não atrasadas)
+                                  const totalParcelas = quantidadeParcelas;
+                                  for (let i = 0; i < totalParcelas; i++) {
+                                    // Verificar se não está atrasada
+                                    const mesInicio = arrematante.mesInicioPagamento;
+                                    if (mesInicio) {
+                                      const [year, month] = mesInicio.split('-').map(Number);
+                                      const parcelaDate = new Date(year, month - 1 + i, arrematante.diaVencimentoMensal || 15);
+                                      const hoje = new Date();
+                                      if (hoje <= parcelaDate) {
+                                        // Parcela futura
+                                        valorParcelasFuturas += estruturaParcelas[i]?.valor || 0;
+                                      }
+                                    }
+                                  }
+                                  
+                                  return formatCurrency(detalhes.valorEmAtraso + valorParcelasFuturas);
                                 } else {
-                                  // Entrada foi paga, resta: quantidadeParcelas - (parcelasPagas - 1)
-                                  totalParcelasPendentes = quantidadeParcelas - (parcelasPagas - 1);
+                                  // Entrada paga, calcular a partir da primeira parcela não paga
+                                  primeiraParcelaPendente = parcelasPagas - 1;
                                 }
                               } else {
-                                // Para parcelamento simples
-                                totalParcelasPendentes = quantidadeParcelas - parcelasPagas;
+                                primeiraParcelaPendente = parcelasPagas;
                               }
                               
-                              // Parcelas futuras = total pendentes - atrasadas
-                              const parcelasFuturas = Math.max(0, totalParcelasPendentes - parcelasAtrasadas);
+                              // Somar valor atrasado + parcelas futuras usando valores reais
+                              let valorParcelasFuturas = 0;
+                              for (let i = primeiraParcelaPendente; i < quantidadeParcelas; i++) {
+                                // Verificar se não está atrasada
+                                const mesInicio = arrematante.mesInicioPagamento;
+                                if (mesInicio) {
+                                  const [year, month] = mesInicio.split('-').map(Number);
+                                  const offsetMes = tipoPagamento === 'entrada_parcelamento' ? i : i;
+                                  const parcelaDate = new Date(year, month - 1 + offsetMes, arrematante.diaVencimentoMensal || 15);
+                                  const hoje = new Date();
+                                  if (hoje <= parcelaDate) {
+                                    // Parcela futura (não atrasada)
+                                    valorParcelasFuturas += estruturaParcelas[i]?.valor || 0;
+                                  }
+                                }
+                              }
                               
-                              // Total = valor em atraso (já com juros) + parcelas futuras (sem juros)
-                              const valorTotal = detalhes.valorEmAtraso + (parcelasFuturas * valorParcela);
-                              
-                              return formatCurrency(valorTotal);
+                              return formatCurrency(detalhes.valorEmAtraso + valorParcelasFuturas);
                             }
                             
                             // Fallback: calcular manualmente
@@ -3342,11 +3353,11 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                   </div>
 
                   {/* Detalhes da Inadimplência */}
-                  <div className="pt-5" style={{ borderTop: '1px solid #e2e8f0', pageBreakInside: 'avoid' }}>
-                    <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
+                  <div className="pt-5" style={{ borderTop: '1px solid #e5e7eb', pageBreakInside: 'avoid' }}>
+                    <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
                       Análise da Inadimplência
                     </h4>
-                    <div className="p-4" style={{ background: 'linear-gradient(to bottom, #fef2f2, #ffffff)', border: '1px solid #fecaca', borderRadius: '4px' }}>
+                    <div className="p-4" style={{ background: 'linear-gradient(to bottom, #fef2f2, #ffffff)', border: '1px solid #fecaca', borderRadius: '8px' }}>
                       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-3">
                         <div>
                           <div className="text-xs text-slate-500 uppercase tracking-wider mb-1" style={{ fontWeight: 500 }}>Valor em Atraso</div>
@@ -3467,15 +3478,15 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                       }
 
                       return (
-                        <div className="pt-5" style={{ borderTop: '1px solid #e2e8f0', pageBreakInside: 'avoid' }}>
-                          <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
+                        <div className="pt-5" style={{ borderTop: '1px solid #e5e7eb', pageBreakInside: 'avoid' }}>
+                          <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
                             Detalhamento Entrada + Parcelamento
                           </h4>
                           
                           {/* Informações da Entrada - só mostrar se estiver atrasada */}
                           {statusEntrada !== 'Pago' && (
-                            <div className="p-4 mb-4" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px', pageBreakInside: 'avoid' }}>
-                              <h5 className="text-sm font-medium text-slate-800 mb-3" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
+                            <div className="p-4 mb-4" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e5e7eb', borderRadius: '8px', pageBreakInside: 'avoid' }}>
+                              <h5 className="text-sm font-medium text-slate-800 mb-3" style={{ borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
                                 Status da Entrada
                               </h5>
                               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
@@ -3587,11 +3598,11 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                       }
                       
                       return (
-                        <div className="pt-5" style={{ borderTop: '1px solid #e2e8f0', pageBreakInside: 'avoid' }}>
-                          <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
+                        <div className="pt-5" style={{ borderTop: '1px solid #e5e7eb', pageBreakInside: 'avoid' }}>
+                          <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
                             Status do Parcelamento
                           </h4>
-                          <div className="p-4" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px', pageBreakInside: 'avoid' }}>
+                          <div className="p-4" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e5e7eb', borderRadius: '8px', pageBreakInside: 'avoid' }}>
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
                               <div className="space-y-3">
                                 <div className="flex"><span className="text-slate-500 w-32">Valor por Parcela:</span> <span className="text-slate-900 font-medium">{formatCurrency(auction.detalhesInadimplencia?.valorParcela)}</span></div>
@@ -3616,7 +3627,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             ))}
             
             {inadimplentes.length > 3 && (
-              <div className="text-center p-8" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e2e8f0', borderRadius: '4px' }}>
+              <div className="text-center p-8" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
                 <div className="text-lg font-medium text-slate-900 tracking-tight">
                   Documento Completo - Análise Detalhada
                 </div>
@@ -3635,7 +3646,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             )}
           </div>
         ) : (
-          <div className="text-center p-12" style={{ background: 'linear-gradient(to bottom, #f0fdf4, #ffffff)', border: '1px solid #bbf7d0', borderRadius: '4px' }}>
+          <div className="text-center p-12" style={{ background: 'linear-gradient(to bottom, #f0fdf4, #ffffff)', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
             <div className="text-lg font-medium text-green-900 tracking-tight">✓ Situação Regularizada</div>
             <div className="text-sm text-green-700 mt-3" style={{ fontWeight: 300, lineHeight: '1.6' }}>
               Nenhuma inadimplência identificada no sistema.
@@ -3650,7 +3661,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         )}
 
         {/* Rodapé Corporativo */}
-        <div className="mt-12 pt-6" style={{ borderTop: '1px solid #e2e8f0', pageBreakInside: 'avoid' }}>
+        <div className="mt-12 pt-6" style={{ borderTop: '1px solid #e5e7eb', pageBreakInside: 'avoid' }}>
           <div className="text-center mb-6">
             <p className="text-xs text-slate-500 mb-4" style={{ fontWeight: 300, lineHeight: '1.6' }}>
               Este documento foi gerado automaticamente pelo sistema de gestão de leilões.<br />
@@ -3692,9 +3703,9 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
     }, 0);
 
     return (
-      <div className="bg-white min-h-[600px]" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', pageBreakInside: 'auto', orphans: 3, widows: 3 }}>
+      <div className="bg-white min-h-[600px]" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', padding: '40px', fontSize: '14px', lineHeight: '1.5', color: '#111827', pageBreakInside: 'auto', orphans: 3, widows: 3 }}>
         {/* Cabeçalho Minimalista Corporativo */}
-        <div className="text-center pb-6 mb-8" style={{ borderBottom: '1px solid #e2e8f0', pageBreakAfter: 'avoid' }}>
+        <div className="text-center pb-6" style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '40px', pageBreakAfter: 'avoid' }}>
           <div className="mb-4">
             <h1 className="text-3xl font-light text-slate-900 tracking-tight mb-2" style={{ letterSpacing: '0.02em' }}>
               Relatório de Histórico
@@ -3726,8 +3737,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             </div>
             
               {comHistorico.slice(0, 3).map((auction, index) => (
-                <div key={auction.id} className="mb-6" style={{ pageBreakBefore: index > 0 ? 'auto' : 'avoid', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div className="px-6 py-4" style={{ background: 'linear-gradient(to right, #f1f5f9, #ffffff)', borderBottom: '1px solid #e2e8f0', pageBreakAfter: 'avoid' }}>
+                <div key={auction.id} className="mb-6" style={{ pageBreakBefore: index > 0 ? 'auto' : 'avoid', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
+                  <div className="px-6 py-4" style={{ background: 'linear-gradient(to right, #f1f5f9, #ffffff)', borderBottom: '1px solid #e5e7eb', pageBreakAfter: 'avoid' }}>
                   <div className="flex justify-between items-start">
                     <div>
                         <h3 className="text-lg font-medium text-slate-900 mb-2">
@@ -3757,7 +3768,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                   <div className="px-6 py-5 space-y-5">
                     {/* Identificação do Arrematante */}
                     <div style={{ pageBreakInside: 'avoid' }}>
-                      <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e2e8f0', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
+                      <h4 className="text-xs font-medium text-slate-700 uppercase tracking-wider mb-3" style={{ letterSpacing: '0.1em', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px', pageBreakAfter: 'avoid' }}>
                         Identificação do Arrematante
                       </h4>
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ fontWeight: 300 }}>
@@ -4251,12 +4262,19 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                               parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
                                               arrematante.valorEntrada) : 
                                             valorTotal * 0.3;
-                                          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada - são independentes)
-                                          const valorPorParcela = valorTotal / quantidadeParcelas;
+                                          
+                                          // Calcular estrutura real de parcelas
+                                          const estruturaParcelas = calcularEstruturaParcelas(
+                                            valorTotal,
+                                            arrematante?.parcelasTriplas || 0,
+                                            arrematante?.parcelasDuplas || 0,
+                                            arrematante?.parcelasSimples || 0
+                                          );
                                           
                                           // Calcular quantas parcelas estão em atraso
                                           let parcelasEmAtraso = 0;
                                           let entradaEmAtraso = false;
+                                          let valorTotalParcelasAtrasadas = 0;
                                           
                                           try {
                                             const hoje = new Date();
@@ -4269,7 +4287,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                               entradaEmAtraso = hoje > vencimentoEntrada;
                                             }
                                             
-                                            // Verificar parcelas
+                                            // Verificar parcelas com estrutura real
                                             if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) {
                                               const [year, month] = arrematante.mesInicioPagamento.split('-').map(Number);
                                               const parcelaInicioIndex = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
@@ -4280,6 +4298,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                                 
                                                 if (hoje > parcelaDate) {
                                                   parcelasEmAtraso++;
+                                                  valorTotalParcelasAtrasadas += estruturaParcelas[i]?.valor || 0;
                                                 } else {
                                                   break;
                                                 }
@@ -4289,22 +4308,32 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                             console.error('Erro ao calcular parcelas em atraso:', error);
                                           }
                                           
+                                          // Valor da próxima parcela
+                                          const proximaParcelaIndex = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
+                                          const valorProximaParcela = estruturaParcelas[proximaParcelaIndex]?.valor || 0;
+                                          
                                           if (entradaEmAtraso && parcelasEmAtraso > 0) {
-                                            const valorTotalEmAtraso = valorEntrada + (parcelasEmAtraso * valorPorParcela);
-                                            return `O contrato de entrada + parcelamento encontra-se em período crítico. Registra-se a entrada (${formatCurrency(valorEntrada)}) e ${parcelasEmAtraso} parcela${parcelasEmAtraso > 1 ? 's' : ''} (${formatCurrency(parcelasEmAtraso * valorPorParcela)}) em atraso, totalizando ${formatCurrency(valorTotalEmAtraso)} ${status}.`;
+                                            const valorTotalEmAtraso = valorEntrada + valorTotalParcelasAtrasadas;
+                                            return `O contrato de entrada + parcelamento encontra-se em período crítico. Registra-se a entrada (${formatCurrency(valorEntrada)}) e ${parcelasEmAtraso} parcela${parcelasEmAtraso > 1 ? 's' : ''} (${formatCurrency(valorTotalParcelasAtrasadas)}) em atraso, totalizando ${formatCurrency(valorTotalEmAtraso)} ${status}.`;
                                           } else if (entradaEmAtraso) {
                                             return `O contrato de entrada + parcelamento encontra-se em período inicial. Registra-se a entrada com valor de ${formatCurrency(valorEntrada)} ${status}.`;
                                           } else if (parcelasEmAtraso > 0) {
-                                            return `O contrato de entrada + parcelamento encontra-se em período crítico. Registra-se ${parcelasEmAtraso} parcela${parcelasEmAtraso > 1 ? 's' : ''} com valor total de ${formatCurrency(parcelasEmAtraso * valorPorParcela)} ${status}.`;
+                                            return `O contrato de entrada + parcelamento encontra-se em período crítico. Registra-se ${parcelasEmAtraso} parcela${parcelasEmAtraso > 1 ? 's' : ''} com valor total de ${formatCurrency(valorTotalParcelasAtrasadas)} ${status}.`;
                                           } else {
-                                            return `O contrato de entrada + parcelamento encontra-se em período inicial. Próximo vencimento${vencimentoText} com valor de ${formatCurrency(parcelasPagas === 0 ? valorEntrada : valorPorParcela)} ${status}.`;
+                                            return `O contrato de entrada + parcelamento encontra-se em período inicial. Próximo vencimento${vencimentoText} com valor de ${formatCurrency(parcelasPagas === 0 ? valorEntrada : valorProximaParcela)} ${status}.`;
                                           }
                                         } else {
-                                          // Parcelamento simples
-                                          const valorPorParcela = valorTotal / quantidadeParcelas;
+                                          // Parcelamento simples - usar estrutura real de parcelas
+                                          const estruturaParcelas = calcularEstruturaParcelas(
+                                            valorTotal,
+                                            arrematante?.parcelasTriplas || 0,
+                                            arrematante?.parcelasDuplas || 0,
+                                            arrematante?.parcelasSimples || 0
+                                          );
                                           
-                                          // Calcular quantas parcelas estão em atraso
+                                          // Calcular quantas parcelas estão em atraso com valor correto
                                           let parcelasEmAtraso = 0;
+                                          let valorTotalParcelasAtrasadas = 0;
                                           
                                           try {
                                             const hoje = new Date();
@@ -4317,6 +4346,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                                 
                                                 if (hoje > parcelaDate) {
                                                   parcelasEmAtraso++;
+                                                  valorTotalParcelasAtrasadas += estruturaParcelas[i]?.valor || 0;
                                                 } else {
                                                   break;
                                                 }
@@ -4326,12 +4356,15 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                             console.error('Erro ao calcular parcelas em atraso:', error);
                                           }
                                           
+                                          // Valor da próxima parcela
+                                          const valorProximaParcela = estruturaParcelas[parcelasPagas]?.valor || 0;
+                                          
                                           if (parcelasEmAtraso > 1) {
-                                            return `O contrato de parcelamento encontra-se em período crítico. Registram-se ${parcelasEmAtraso} parcelas com valor total de ${formatCurrency(parcelasEmAtraso * valorPorParcela)} ${status}.`;
+                                            return `O contrato de parcelamento encontra-se em período crítico. Registram-se ${parcelasEmAtraso} parcelas com valor total de ${formatCurrency(valorTotalParcelasAtrasadas)} ${status}.`;
                                           } else if (parcelasEmAtraso === 1) {
-                                            return `O contrato de parcelamento encontra-se em período inicial. Registra-se a Parcela #${parcelasPagas + 1}${vencimentoText} com valor de ${formatCurrency(valorPorParcela)} ${status}.`;
+                                            return `O contrato de parcelamento encontra-se em período inicial. Registra-se a Parcela #${parcelasPagas + 1}${vencimentoText} com valor de ${formatCurrency(valorProximaParcela)} ${status}.`;
                                           } else {
-                                            return `O contrato de parcelamento encontra-se em período inicial. Próxima Parcela #${parcelasPagas + 1}${vencimentoText} com valor de ${formatCurrency(valorPorParcela)} ${status}.`;
+                                            return `O contrato de parcelamento encontra-se em período inicial. Próxima Parcela #${parcelasPagas + 1}${vencimentoText} com valor de ${formatCurrency(valorProximaParcela)} ${status}.`;
                                           }
                                         }
                                       }
@@ -4466,9 +4499,9 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
     }, 0);
 
     return (
-      <div className="bg-white min-h-[600px]" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', pageBreakInside: 'auto', orphans: 3, widows: 3 }}>
+      <div className="bg-white min-h-[600px]" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif', padding: '40px', fontSize: '14px', lineHeight: '1.5', color: '#111827', pageBreakInside: 'auto', orphans: 3, widows: 3 }}>
         {/* Cabeçalho Minimalista Corporativo */}
-        <div className="text-center pb-6 mb-8" style={{ borderBottom: '1px solid #e2e8f0', pageBreakAfter: 'avoid' }}>
+        <div className="text-center pb-6" style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '40px', pageBreakAfter: 'avoid' }}>
           <div className="mb-4">
             <h1 className="text-3xl font-light text-slate-900 tracking-tight mb-2" style={{ letterSpacing: '0.02em' }}>
             Relatório Financeiro
@@ -4500,8 +4533,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             </div>
             
             {todasFaturas.slice(0, 10).map(({ auction, arrematante }, index) => (
-              <div key={`${auction.id}-${arrematante.id || index}`} className="mb-6" style={{ pageBreakBefore: index > 0 ? 'auto' : 'avoid', border: '1px solid #cbd5e1', borderRadius: '4px', overflow: 'hidden' }}>
-                <div className="px-6 py-4" style={{ background: 'linear-gradient(to right, #f1f5f9, #ffffff)', borderBottom: '1px solid #e2e8f0', pageBreakAfter: 'avoid' }}>
+              <div key={`${auction.id}-${arrematante.id || index}`} className="mb-6" style={{ pageBreakBefore: index > 0 ? 'auto' : 'avoid', border: '1px solid #cbd5e1', borderRadius: '8px', overflow: 'hidden' }}>
+                <div className="px-6 py-4" style={{ background: 'linear-gradient(to right, #f1f5f9, #ffffff)', borderBottom: '1px solid #e5e7eb', pageBreakAfter: 'avoid' }}>
                   <div className="flex justify-between items-start">
                     <div>
                       <div className="flex items-center gap-3 mb-1">
@@ -4754,8 +4787,15 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
                             arrematante.valorEntrada) : 
                           valorTotal * 0.3;
-                        // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada - são independentes)
-                        const valorPorParcelaBase = valorTotal / quantidadeParcelas;
+                        
+                        // Calcular estrutura real de parcelas
+                        const estruturaParcelas = calcularEstruturaParcelas(
+                          valorTotal,
+                          arrematante?.parcelasTriplas || 0,
+                          arrematante?.parcelasDuplas || 0,
+                          arrematante?.parcelasSimples || 0
+                        );
+                        
                         const dataEntrada = loteComprado?.dataEntrada || auction.dataEntrada;
                         
                         // Adicionar entrada
@@ -4775,45 +4815,53 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                           });
                         }
                         
-                        // Adicionar parcelas
+                        // Adicionar parcelas com estrutura real
                         const [startYear, startMonth] = mesInicio.split('-').map(Number);
                         for (let i = 0; i < quantidadeParcelas; i++) {
+                          const valorDaParcela = estruturaParcelas[i]?.valor || 0;
                           const dataVencimento = new Date(startYear, startMonth - 1 + i, diaVencimento);
                           const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-                          const valorComJuros = calcularJurosProgressivos(valorPorParcelaBase, dataVencimentoStr, percentualJuros);
+                          const valorComJuros = calcularJurosProgressivos(valorDaParcela, dataVencimentoStr, percentualJuros);
                           const isPaga = (i + 1) < parcelasPagas; // i+1 porque entrada já foi contada
                           const isAtrasada = !isPaga && new Date() > dataVencimento;
                           
                           detalhamentoParcelas.push({
                             numero: `${i + 1}ª Parcela`,
                             vencimento: dataVencimento.toLocaleDateString('pt-BR'),
-                            valorBase: valorPorParcelaBase,
+                            valorBase: valorDaParcela,
                             valorComJuros,
                             isPaga,
                             isAtrasada,
-                            temJuros: valorComJuros > valorPorParcelaBase
+                            temJuros: valorComJuros > valorDaParcela
                           });
                         }
                       } else {
-                        // Parcelamento simples
-                        const valorPorParcelaBase = valorTotal / quantidadeParcelas;
+                        // Parcelamento simples - usar estrutura real de parcelas
+                        const estruturaParcelas = calcularEstruturaParcelas(
+                          valorTotal,
+                          arrematante?.parcelasTriplas || 0,
+                          arrematante?.parcelasDuplas || 0,
+                          arrematante?.parcelasSimples || 0
+                        );
+                        
                         const [startYear, startMonth] = mesInicio.split('-').map(Number);
                         
                         for (let i = 0; i < quantidadeParcelas; i++) {
+                          const valorDaParcela = estruturaParcelas[i]?.valor || 0;
                           const dataVencimento = new Date(startYear, startMonth - 1 + i, diaVencimento);
                           const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-                          const valorComJuros = calcularJurosProgressivos(valorPorParcelaBase, dataVencimentoStr, percentualJuros);
+                          const valorComJuros = calcularJurosProgressivos(valorDaParcela, dataVencimentoStr, percentualJuros);
                           const isPaga = i < parcelasPagas;
                           const isAtrasada = !isPaga && new Date() > dataVencimento;
                           
                           detalhamentoParcelas.push({
                             numero: `${i + 1}ª Parcela`,
                             vencimento: dataVencimento.toLocaleDateString('pt-BR'),
-                            valorBase: valorPorParcelaBase,
+                            valorBase: valorDaParcela,
                             valorComJuros,
                             isPaga,
                             isAtrasada,
-                            temJuros: valorComJuros > valorPorParcelaBase
+                            temJuros: valorComJuros > valorDaParcela
                           });
                         }
                       }

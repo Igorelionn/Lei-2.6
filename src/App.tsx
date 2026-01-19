@@ -16,6 +16,7 @@ import Patrocinadores from "./pages/Patrocinadores";
 import Faturas from "./pages/Faturas";
 import Relatorios from "./pages/Relatorios";
 import Inadimplencia from "./pages/Inadimplencia";
+import Historico from "./pages/Historico";
 import Configuracoes from "./pages/Configuracoes";
 import Email from "./pages/Email";
 import NotFoundPage from "./pages/NotFoundPage";
@@ -122,6 +123,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Layout><Inadimplencia /></Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/historico"
+                element={
+                  <ProtectedRoute>
+                    <Layout><Historico /></Layout>
                   </ProtectedRoute>
                 }
               />

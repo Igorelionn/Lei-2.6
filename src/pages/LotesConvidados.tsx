@@ -291,29 +291,16 @@ export default function LotesConvidados() {
     setEditingLote(null);
   };
 
-  const getStatusBadgeColor = (status: string) => {
+  const getStatusBadge = (status: string) => {
     switch (status) {
       case 'disponivel':
-        return 'bg-blue-100 text-blue-800 border-blue-200 hover:bg-blue-100 hover:text-blue-800 hover:border-blue-200';
+        return <Badge variant="default">Disponível</Badge>;
       case 'arrematado':
-        return 'bg-red-100 text-red-800 border-red-200 hover:bg-red-100 hover:text-red-800 hover:border-red-200';
+        return <Badge variant="destructive">Arrematado</Badge>;
       case 'arquivado':
-        return 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100 hover:text-gray-800 hover:border-gray-200';
+        return <Badge variant="secondary">Arquivado</Badge>;
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200 hover:bg-gray-100 hover:text-gray-800 hover:border-gray-200';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'disponivel':
-        return 'Disponível';
-      case 'arrematado':
-        return 'Arrematado';
-      case 'arquivado':
-        return 'Arquivado';
-      default:
-        return status;
+        return <Badge variant="secondary">{status}</Badge>;
     }
   };
 
@@ -596,9 +583,7 @@ export default function LotesConvidados() {
                         <span className="text-sm text-gray-600">{lote.leilao_nome || 'Não vinculado'}</span>
                       </TableCell>
                       <TableCell>
-                        <Badge className={`${getStatusBadgeColor(lote.status)} border font-medium`}>
-                          {getStatusText(lote.status)}
-                        </Badge>
+                        {getStatusBadge(lote.status)}
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center justify-center gap-1">
@@ -767,15 +752,7 @@ export default function LotesConvidados() {
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Status</Label>
                   <div className="mt-1">
-                    <Badge className={`${
-                      selectedLote.status === 'disponivel' ? 'bg-green-50 text-green-700 border-green-200' :
-                      selectedLote.status === 'arrematado' ? 'bg-blue-50 text-blue-700 border-blue-200' :
-                      'bg-gray-50 text-gray-700 border-gray-200'
-                    } border font-medium`}>
-                      {selectedLote.status === 'disponivel' ? 'Disponível' :
-                       selectedLote.status === 'arrematado' ? 'Arrematado' : 
-                       'Arquivado'}
-                    </Badge>
+                    {getStatusBadge(selectedLote.status)}
                   </div>
                 </div>
               </div>

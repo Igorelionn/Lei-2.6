@@ -36,7 +36,7 @@ import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
-import { obterValorTotalArrematante } from "@/lib/parcelamento-calculator";
+import { obterValorTotalArrematante, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import { ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
 
 // Interface estendida para arrematante com campos adicionais
@@ -1273,8 +1273,13 @@ Atenciosamente,
                   arrematante.valorEntrada) : 
                 valorTotal * 0.3; // fallback para 30%
               
-              // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-              const valorPorParcelaCalc = valorTotal / quantidadeParcelasTotal;
+              // Calcular estrutura real de parcelas
+              const estruturaParcelas = calcularEstruturaParcelas(
+                valorTotal,
+                arrematante?.parcelasTriplas || 0,
+                arrematante?.parcelasDuplas || 0,
+                arrematante?.parcelasSimples || 0
+              );
               
               // Calcular datas
               let dataEntrada = null;
@@ -1306,8 +1311,8 @@ Atenciosamente,
                   valorPorParcela = valorEntrada;
                   nextPaymentDate = dataEntrada;
                 } else {
-                  // Primeira parcela é mais urgente
-                  valorPorParcela = valorPorParcelaCalc;
+                  // Primeira parcela é mais urgente (usar valor da estrutura)
+                  valorPorParcela = estruturaParcelas[0]?.valor || 0;
                   nextPaymentDate = dataPrimeiraParcela;
                 }
               } else if (parcelasPagas === 0) {
@@ -1315,8 +1320,9 @@ Atenciosamente,
                 valorPorParcela = valorEntrada;
                 nextPaymentDate = dataEntrada;
               } else {
-                // Parcelas após entrada
-                valorPorParcela = valorPorParcelaCalc;
+                // Parcelas após entrada (usar valor da estrutura)
+                const indice = parcelasPagas - 1; // -1 porque entrada já foi paga
+                valorPorParcela = estruturaParcelas[indice]?.valor || 0;
                 if (mesInicio && diaVenc) {
                   const [startYear, startMonth] = mesInicio.split('-').map(Number);
                   nextPaymentDate = new Date(startYear, startMonth - 1 + (parcelasPagas - 1), diaVenc);
@@ -1558,8 +1564,13 @@ Atenciosamente,
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
           
-          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada - são independentes)
-          const valorPorParcelaCalc = valorTotal / quantidadeParcelas;
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           // Se entrada não foi paga, somar valor da entrada (com juros se aplicável)
           if (parcelasPagas === 0 && loteArrematado.dataEntrada) {
@@ -1577,7 +1588,7 @@ Atenciosamente,
             }
           }
           
-          // Somar valor das parcelas atrasadas
+          // Somar valor das parcelas atrasadas com estrutura real
           const mesInicio = arrematante.mesInicioPagamento;
           const diaVenc = arrematante.diaVencimentoMensal;
           
@@ -1586,8 +1597,9 @@ Atenciosamente,
             const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1); // -1 porque entrada conta como 1
             const now = new Date();
             
-            // Contar e somar valor das parcelas atrasadas
+            // Contar e somar valor das parcelas atrasadas com estrutura real
             for (let i = 0; i < quantidadeParcelas; i++) {
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
               const parcelaDate = new Date(startYear, startMonth - 1 + i, diaVenc);
               parcelaDate.setHours(23, 59, 59, 999);
               
@@ -1595,10 +1607,10 @@ Atenciosamente,
                 // Calcular meses de atraso para aplicar juros se necessário
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1 && arrematante.percentualJurosAtraso) {
-                  const valorComJuros = calcularJurosProgressivos(valorPorParcelaCalc, arrematante.percentualJurosAtraso, mesesAtraso);
+                  const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                   valorTotalEmAtraso += valorComJuros;
                 } else {
-                  valorTotalEmAtraso += valorPorParcelaCalc;
+                  valorTotalEmAtraso += valorDaParcela;
                 }
               }
             }
@@ -1610,7 +1622,14 @@ Atenciosamente,
           const valorTotal = arrematante?.valorPagarNumerico !== undefined 
             ? arrematante.valorPagarNumerico 
             : (typeof arrematante?.valorPagar === 'number' ? arrematante.valorPagar : 0);
-          const valorPorParcelaCalc = valorTotal / quantidadeParcelas;
+          
+          // Calcular estrutura real de parcelas
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorTotal,
+            arrematante?.parcelasTriplas || 0,
+            arrematante?.parcelasDuplas || 0,
+            arrematante?.parcelasSimples || 0
+          );
           
           const mesInicio = arrematante.mesInicioPagamento;
           const diaVenc = arrematante.diaVencimentoMensal;
@@ -1619,8 +1638,9 @@ Atenciosamente,
             const [startYear, startMonth] = mesInicio.split('-').map(Number);
             const now = new Date();
             
-            // Contar e somar valor das parcelas atrasadas
+            // Contar e somar valor das parcelas atrasadas com estrutura real
             for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+              const valorDaParcela = estruturaParcelas[i]?.valor || 0;
               const parcelaDate = new Date(startYear, startMonth - 1 + i, diaVenc);
               parcelaDate.setHours(23, 59, 59, 999);
               
@@ -1628,10 +1648,10 @@ Atenciosamente,
                 // Calcular meses de atraso para aplicar juros se necessário
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1 && arrematante.percentualJurosAtraso) {
-                  const valorComJuros = calcularJurosProgressivos(valorPorParcelaCalc, arrematante.percentualJurosAtraso, mesesAtraso);
+                  const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                   valorTotalEmAtraso += valorComJuros;
                 } else {
-                  valorTotalEmAtraso += valorPorParcelaCalc;
+                  valorTotalEmAtraso += valorDaParcela;
                 }
               } else {
                 break; // Se chegou em uma que não está atrasada, para
@@ -1934,10 +1954,9 @@ Arthur Lira Leilões`;
   const getSeverityBadge = (severity: string, daysOverdue: number) => {
       const daysText = daysOverdue === 1 ? '1 dia' : `${daysOverdue} dias`;
       
-      // Todos os atrasados são vermelhos, apenas a intensidade varia
-      return <Badge variant="destructive" className="bg-red-100 text-red-800 border-red-300 hover:bg-red-100 hover:text-red-800 hover:border-red-300">
+      return <Badge variant="destructive">
         {daysText}
-        </Badge>;
+      </Badge>;
   };
 
   // Componente para transição na coluna Atraso
@@ -2481,9 +2500,9 @@ Arthur Lira Leilões`;
                          </div>
                          <div className="text-right">
                            <div className="text-sm text-gray-600 mb-1">Situação</div>
-                           <span className="inline-flex px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">
+                           <Badge variant="destructive">
                              ATRASADO
-                           </span>
+                           </Badge>
                          </div>
                        </div>
 
@@ -2553,13 +2572,13 @@ Arthur Lira Leilões`;
                               <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
                                 <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
                                   <h5 className="font-semibold text-gray-900">{contrato.leilaoNome}</h5>
-                                  <span className={`px-3 py-1 rounded-full text-xs font-medium ${
-                                    contrato.status === 'Quitado' ? 'bg-green-100 text-green-800' :
-                                    contrato.status === 'Inadimplente' ? 'bg-red-100 text-red-800' :
-                                    'bg-blue-100 text-blue-800'
-                                  }`}>
+                                  <Badge variant={
+                                    contrato.status === 'Quitado' ? 'success' :
+                                    contrato.status === 'Inadimplente' ? 'destructive' :
+                                    'warning'
+                                  }>
                                     {contrato.status}
-                                  </span>
+                                  </Badge>
                                 </div>
                                 
                                 <div className="grid grid-cols-2 gap-3 text-sm">
@@ -2632,9 +2651,9 @@ Arthur Lira Leilões`;
                        <div className="bg-white border border-gray-200 rounded-lg p-6">
                   <div className="flex items-center justify-between mb-4">
                            <h4 className="text-lg font-semibold text-gray-900">Perfil de Risco</h4>
-                           <span className="inline-flex px-4 py-2 rounded-lg text-sm font-bold bg-red-100 text-red-800 border border-red-200">
+                           <Badge variant="destructive" className="text-sm font-bold px-4 py-2">
                              RISCO ALTO
-                           </span>
+                           </Badge>
                   </div>
                   
                          <div className="space-y-4 text-sm leading-relaxed text-gray-700">
