@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { logger } from "@/lib/logger";
 import { useClientPagination } from "@/hooks/use-pagination"; // ⚡ PERFORMANCE: Paginação
 import { Pagination } from "@/components/Pagination"; // ⚡ PERFORMANCE: Componente de paginação
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -113,13 +114,13 @@ function LoteImagesModal({
           .order('data_upload', { ascending: false });
 
         if (error) {
-          console.error('❌ [Modal] Erro ao buscar imagens do banco:', error);
+          logger.error('Erro ao buscar imagens do banco', { error });
           setImages([]);
         } else {
           setImages(data || []);
         }
       } catch (error) {
-        console.error('❌ [Modal] Erro ao buscar imagens do lote:', error);
+        logger.error('Erro ao buscar imagens do lote', { error });
         setImages([]);
       } finally {
         setLoading(false);
@@ -279,12 +280,12 @@ function Lotes() {
             data: { lotes: lotesLimpos }
           });
           
-          console.log(`✅ Limpeza de status concluída para leilão ${auction.nome}`);
+          logger.info('Limpeza de status concluída para leilão', { nome: auction.nome });
         }
       }
       
       if (needsUpdate) {
-        console.log('✅ Migração de lotes concluída - status removidos do banco de dados');
+        logger.info('Migração de lotes concluída - status removidos do banco de dados');
       }
     };
     
@@ -415,7 +416,7 @@ function Lotes() {
   // Debug: Monitorar mudanças nas fotos do formulário
   useEffect(() => {
     if (loteForm.fotos.length > 0) {
-      console.log("🔍 [Debug] Fotos no formulário mudaram:", {
+      logger.debug('Fotos no formulário mudaram', {
         fotosCount: loteForm.fotos.length,
         isEditing: isEditingLote,
         fotos: loteForm.fotos.map(f => ({
@@ -433,7 +434,7 @@ function Lotes() {
       );
       
       if (fotosComBlobPerdida.length > 0) {
-        console.warn("⚠️ URLs blob perdidas detectadas:", fotosComBlobPerdida.map(f => f.nome));
+        logger.warn('URLs blob perdidas detectadas', { fotos: fotosComBlobPerdida.map(f => f.nome) });
         
         // Tentar recuperar as URLs blob perdidas (isso pode acontecer em re-renderizações)
         // Por enquanto, apenas logamos o problema. Em uma implementação mais robusta,
@@ -480,7 +481,7 @@ function Lotes() {
     const handleLoteChangedFromForm = (event: CustomEvent) => {
       const { auctionId, lotes, allValues } = event.detail;
       
-      console.log("📡 Lotes.tsx recebeu evento loteChangedFromForm:", {
+      logger.debug('Lotes.tsx recebeu evento loteChangedFromForm', {
         auctionId,
         lotesCount: lotes?.length || 0,
         isEditingLote: isEditingLote,
@@ -497,7 +498,7 @@ function Lotes() {
         const loteAtualizado = lotes?.find((l: LoteInfo) => l.id === originalLoteId);
         
         if (loteAtualizado) {
-          console.log("✅ Lote selecionado foi atualizado no AuctionForm, sincronizando...");
+          logger.info('Lote selecionado foi atualizado no AuctionForm, sincronizando');
           
           // Atualizar o selectedLote com os dados mais recentes
           const loteExtendidoAtualizado: LoteExtendido = {
@@ -529,7 +530,7 @@ function Lotes() {
             }));
           }
           
-          console.log("✅ Lote sincronizado com sucesso na página de Lotes");
+          logger.info('Lote sincronizado com sucesso na página de Lotes');
         }
       }
       
@@ -614,7 +615,7 @@ function Lotes() {
       
       // Debug: Log da atualização
       if (updates.fotos !== undefined) {
-        console.log("🔄 Atualizando fotos do formulário:", {
+        logger.debug('Atualizando fotos do formulário', {
           prevFotosCount: prev.fotos.length,
           newFotosCount: newForm.fotos.length,
           updates: Object.keys(updates),
@@ -635,7 +636,7 @@ function Lotes() {
   const addFotoSafely = (novaFoto: DocumentoInfo) => {
     setLoteForm(prev => {
       const fotosAtualizadas = [...prev.fotos, novaFoto];
-      console.log("📸 Adicionando nova foto:", {
+      logger.debug('Adicionando nova foto', {
         nome: novaFoto.nome,
         id: novaFoto.id,
         fotosAntes: prev.fotos.length,
@@ -658,7 +659,7 @@ function Lotes() {
       const fotoParaRemover = prev.fotos.find(f => f.id === fotoId);
       const fotosAtualizadas = prev.fotos.filter(f => f.id !== fotoId);
       
-      console.log("🗑️ Removendo foto:", {
+      logger.debug('Removendo foto', {
         nome: fotoParaRemover?.nome,
         id: fotoId,
         fotosAntes: prev.fotos.length,
@@ -717,7 +718,7 @@ function Lotes() {
 
   // Função para buscar e combinar fotos do lote e da mercadoria
   const handleViewPhotos = async (lote: LoteExtendido) => {
-    console.log("📸 Buscando fotos do lote e mercadoria:", {
+    logger.debug('Buscando fotos do lote e mercadoria', {
       loteId: lote.id,
       loteNumero: lote.numero,
       auctionId: lote.auctionId,
@@ -748,12 +749,14 @@ function Lotes() {
         .order('data_upload', { ascending: false });
 
       if (errorLote) {
-        console.error('❌ Erro ao buscar fotos do lote:', errorLote);
+        logger.error('Erro ao buscar fotos do lote', { error: errorLote });
       }
 
-      console.log("📷 Imagens do lote (campo imagens):", imagensDoLote.length);
-      console.log("📷 Fotos do lote (banco de dados):", fotosLote?.length || 0);
-      console.log("📷 Fotos da mercadoria disponíveis:", lote.fotosMercadoria?.length || 0);
+      logger.debug('Imagens e fotos disponíveis', {
+        imagensDoLote: imagensDoLote.length,
+        fotosLoteBanco: fotosLote?.length || 0,
+        fotosMercadoria: lote.fotosMercadoria?.length || 0
+      });
 
       // Combinar todas as fotos evitando duplicatas por URL
       const todasFotos: DocumentoInfo[] = [];
@@ -808,7 +811,8 @@ function Lotes() {
         });
       }
 
-      console.log("📸 Total de fotos combinadas:", todasFotos.length, {
+      logger.debug('Total de fotos combinadas', {
+        total: todasFotos.length,
         imagensLote: imagensDoLote.length,
         fotosLote: fotosLote?.length || 0,
         fotosMercadoria: lote.fotosMercadoria?.length || 0
@@ -823,7 +827,7 @@ function Lotes() {
       setSelectedLoteForPhotos(loteComTodasFotos);
       setIsPhotoViewerOpen(true);
     } catch (error) {
-      console.error('❌ Erro ao buscar fotos:', error);
+      logger.error('Erro ao buscar fotos', { error });
       // Em caso de erro, mostrar apenas as fotos da mercadoria que já existem
       setSelectedLoteForPhotos(lote);
       setIsPhotoViewerOpen(true);
@@ -833,25 +837,25 @@ function Lotes() {
   const handleSaveLote = async () => {
     // Validações básicas
     if (!loteForm.auctionId || !loteForm.numero || !loteForm.descricao || !loteForm.mercadoria) {
-      console.error("❌ Campos obrigatórios não preenchidos");
+      logger.error('Campos obrigatórios não preenchidos');
       return;
     }
 
     // Validar valor do produto
     if (!loteForm.valorProduto || loteForm.valorProduto.trim() === "") {
-      console.error("❌ Valor do produto não informado");
+      logger.error('Valor do produto não informado');
       return;
     }
 
     const valorNumerico = parseCurrencyToNumber(loteForm.valorProduto);
     if (isNaN(valorNumerico) || valorNumerico <= 0) {
-      console.error("❌ Valor do produto inválido");
+      logger.error('Valor do produto inválido');
       return;
     }
 
     setIsSavingLote(true);
     try {
-      console.log(`🔄 ${isEditingLote ? 'Atualizando' : 'Criando'} lote...`, {
+      logger.info(`${isEditingLote ? 'Atualizando' : 'Criando'} lote`, {
         auctionId: loteForm.auctionId,
         numero: loteForm.numero,
         isEditing: isEditingLote,
@@ -861,7 +865,7 @@ function Lotes() {
       // Encontrar o leilão selecionado
       const auction = auctions?.find(a => a.id === loteForm.auctionId);
       if (!auction) {
-        console.error("❌ Leilão não encontrado");
+        logger.error('Leilão não encontrado');
         return;
       }
 
@@ -869,7 +873,7 @@ function Lotes() {
       if (!isEditingLote) {
         const loteExistente = auction.lotes?.find(l => l.numero === loteForm.numero);
         if (loteExistente) {
-          console.error("❌ Já existe um lote com este número");
+          logger.error('Já existe um lote com este número');
           return;
         }
       }
@@ -892,7 +896,7 @@ function Lotes() {
 
       if (isEditingLote && selectedLote) {
         // EDITAR lote existente - atualizar apenas campos modificados
-        console.log("✏️ Editando lote existente:", {
+        logger.info('Editando lote existente', {
           loteId: selectedLote.id,
           numero: loteForm.numero,
           descricao: loteForm.descricao,
@@ -909,7 +913,7 @@ function Lotes() {
         const loteOriginal = lotes.find(l => l.id === originalLoteId);
         
         if (!loteOriginal) {
-          console.error("❌ Lote original não encontrado");
+          logger.error('Lote original não encontrado');
           return;
         }
 
@@ -937,7 +941,7 @@ function Lotes() {
           lote.id === originalLoteId ? loteAtualizado : lote
         );
 
-        console.log("📝 Lote atualizado (preservando dados originais):", {
+        logger.info('Lote atualizado (preservando dados originais)', {
           original: loteOriginal,
           atualizado: loteAtualizado,
           camposModificados: {
@@ -959,15 +963,15 @@ function Lotes() {
         };
 
         lotesAtualizados = [...lotes, novoLote];
-        console.log("➕ Novo lote criado:", novoLote);
+        logger.info('Novo lote criado', novoLote);
       }
 
-      console.log("💾 Salvando lote no banco de dados...");
+      logger.info('Salvando lote no banco de dados');
       await updateAuction({
         id: auction.id,
         data: { lotes: lotesAtualizados }
       });
-      console.log("✅ Lote salvo no banco de dados com sucesso!");
+      logger.info('Lote salvo no banco de dados com sucesso');
 
       // 🔄 SINCRONIZAÇÃO: Emitir evento para notificar o AuctionForm sobre a mudança
       const loteModificado = isEditingLote && selectedLote ? 
@@ -975,7 +979,7 @@ function Lotes() {
         lotesAtualizados[lotesAtualizados.length - 1];
 
       if (loteModificado) {
-        console.log("📡 Emitindo evento loteChanged para sincronização:", {
+        logger.debug('Emitindo evento loteChanged para sincronização', {
           auctionId: auction.id,
           loteId: loteModificado.id,
           action: isEditingLote ? 'update' : 'create'
@@ -1038,7 +1042,7 @@ function Lotes() {
       }
 
       // Salvar imagens do lote na tabela documents se houver
-      console.log('🖼️ Verificando imagens para salvar:', {
+      logger.debug('🖼️ Verificando imagens para salvar:', {
         hasPhotos: !!(loteForm.fotos && loteForm.fotos.length > 0),
         photosCount: loteForm.fotos?.length || 0,
         photos: loteForm.fotos
@@ -1048,7 +1052,7 @@ function Lotes() {
       if (isEditingLote && selectedLote) {
         // Usar o número original do lote para buscar as imagens antigas
         const numeroOriginal = selectedLote.numero;
-        console.log('🗑️ Removendo imagens antigas do lote:', {
+        logger.debug('🗑️ Removendo imagens antigas do lote:', {
           auctionId: auction.id,
           numeroOriginal: numeroOriginal,
           numeroNovo: loteForm.numero,
@@ -1063,9 +1067,9 @@ function Lotes() {
           .like('descricao', `Lote ${numeroOriginal} - %`);
           
         if (deleteError) {
-          console.error('❌ Erro ao remover imagens antigas:', deleteError);
+          logger.error('❌ Erro ao remover imagens antigas:', deleteError);
         } else {
-          console.log('✅ Imagens antigas removidas com sucesso');
+          logger.debug('✅ Imagens antigas removidas com sucesso');
         }
       }
       
@@ -1078,7 +1082,7 @@ function Lotes() {
         // Usar o número atual do formulário (que pode ter sido alterado)
         const loteNumero = loteForm.numero;
         
-        console.log('💾 Preparando para salvar imagens:', {
+        logger.debug('💾 Preparando para salvar imagens:', {
           auctionId: auction.id,
           loteId: loteId,
           loteNumero: loteNumero,
@@ -1091,7 +1095,7 @@ function Lotes() {
           index === self.findIndex((f) => f.url === foto.url)
         );
         
-        console.log('🔄 Iniciando conversão de imagens:', {
+        logger.debug('🔄 Iniciando conversão de imagens:', {
           totalFotos: loteForm.fotos.length,
           fotosUnicas: fotosUnicas.length,
           fotos: fotosUnicas.map(f => ({nome: f.nome, hasUrl: !!f.url, urlType: f.url?.substring(0, 20)}))
@@ -1101,7 +1105,7 @@ function Lotes() {
           fotosUnicas.map(async (foto, index) => {
             let base64Data = null;
             
-            console.log(`📸 Processando imagem ${index + 1}:`, {
+            logger.debug(`📸 Processando imagem ${index + 1}:`, {
               nome: foto.nome,
               tipo: foto.tipo,
               tamanho: foto.tamanho,
@@ -1112,7 +1116,7 @@ function Lotes() {
             // Se a foto tem uma URL blob, converter para base64
             if (foto.url && foto.url.startsWith('blob:')) {
               try {
-                console.log(`🔄 Convertendo ${foto.nome} para base64...`);
+                logger.debug(`🔄 Convertendo ${foto.nome} para base64...`);
                 const response = await fetch(foto.url);
                 const blob = await response.blob();
                 const base64 = await new Promise<string>((resolve) => {
@@ -1121,28 +1125,31 @@ function Lotes() {
                   reader.readAsDataURL(blob);
                 });
                 base64Data = base64;
-                console.log(`✅ Conversão concluída para ${foto.nome}:`, {
+                logger.debug(`✅ Conversão concluída para ${foto.nome}:`, {
                   base64Length: base64Data?.length || 0,
                   base64Start: base64Data?.substring(0, 50)
                 });
                 
                 // Verificar se o base64 não é muito grande (limite de ~5MB em base64)
                 if (base64Data && base64Data.length > 7000000) {
-                  console.warn(`⚠️ Imagem ${foto.nome} muito grande (${base64Data.length} chars), reduzindo qualidade...`);
+                  logger.warn('Imagem muito grande, reduzindo qualidade', { 
+                    nome: foto.nome, 
+                    tamanho: base64Data.length 
+                  });
                   // Para imagens muito grandes, poderia implementar compressão aqui
                 }
               } catch (error) {
-                console.error(`❌ Erro ao converter ${foto.nome} para base64:`, error);
+                logger.error(`❌ Erro ao converter ${foto.nome} para base64:`, error);
               }
             } else if (foto.url && foto.url.startsWith('data:')) {
               // Se já é base64, usar diretamente
               base64Data = foto.url;
-              console.log(`✅ Imagem ${foto.nome} já em base64, reutilizando:`, {
+              logger.debug(`✅ Imagem ${foto.nome} já em base64, reutilizando:`, {
                 base64Length: base64Data?.length || 0,
                 base64Start: base64Data?.substring(0, 50)
               });
             } else {
-              console.log(`⚠️ Imagem ${foto.nome} não tem URL válida:`, {
+              logger.debug(`⚠️ Imagem ${foto.nome} não tem URL válida:`, {
                 hasUrl: !!foto.url,
                 urlStart: foto.url?.substring(0, 20) || 'no-url'
               });
@@ -1165,7 +1172,7 @@ function Lotes() {
           })
         );
 
-        console.log('📤 Enviando documentos para Supabase:', documentosParaInserir.map(doc => ({
+        logger.debug('📤 Enviando documentos para Supabase:', documentosParaInserir.map(doc => ({
           auction_id: doc.auction_id,
           nome: doc.nome,
           categoria: doc.categoria,
@@ -1181,7 +1188,7 @@ function Lotes() {
           .insert(documentosParaInserir);
           
         if (insertError) {
-          console.error('❌ Erro ao salvar imagens:', {
+          logger.error('❌ Erro ao salvar imagens:', {
             error: insertError,
             message: insertError.message,
             details: insertError.details,
@@ -1189,7 +1196,7 @@ function Lotes() {
             code: insertError.code
           });
         } else {
-          console.log(`✅ ${fotosUnicas.length} imagens salvas com sucesso para o lote ${loteId}`);
+          logger.debug(`✅ ${fotosUnicas.length} imagens salvas com sucesso para o lote ${loteId}`);
           
           // Log do upload de documentos/imagens
           await logDocumentAction(
@@ -1218,7 +1225,7 @@ function Lotes() {
       setIsEditingLote(false);
       
       // Invalidar query para atualizar os dados e forçar sincronização
-      console.log("🔄 Invalidando cache e sincronizando dados...");
+      logger.debug('Invalidando cache e sincronizando dados');
       queryClient.invalidateQueries({ queryKey: ['auctions'] });
       
       // Aguardar um momento para garantir que os dados sejam atualizados
@@ -1227,12 +1234,12 @@ function Lotes() {
       }, 500);
       
       const successMessage = isEditingLote ? "Lote atualizado com sucesso!" : "Lote criado com sucesso!";
-      console.log(`✅ ${successMessage}`);
+      logger.info(successMessage);
       
     } catch (error) {
-      console.error('❌ Erro ao salvar lote:', error);
+      logger.error('Erro ao salvar lote', { error });
       const errorMessage = isEditingLote ? "Erro ao atualizar lote" : "Erro ao criar lote";
-      console.error(`${errorMessage}. Por favor, tente novamente.`);
+      logger.error(`${errorMessage}. Por favor, tente novamente.`);
     } finally {
       setIsSavingLote(false);
     }
@@ -1241,7 +1248,7 @@ function Lotes() {
   const handleEditLote = async (lote: LoteExtendido) => {
     setIsLoadingLoteData(true);
     try {
-      console.log("✏️ Redirecionando para edição do lote no formulário do leilão:", {
+      logger.debug("✏️ Redirecionando para edição do lote no formulário do leilão:", {
         loteId: lote.id,
         numero: lote.numero,
         auctionId: lote.auctionId,
@@ -1256,7 +1263,7 @@ function Lotes() {
         .single();
 
       if (error || !auction) {
-        console.error('❌ Erro ao buscar leilão:', error);
+        logger.error('❌ Erro ao buscar leilão:', error);
         return;
       }
 
@@ -1264,7 +1271,7 @@ function Lotes() {
       const lotes: LoteInfo[] = (auction.lotes as unknown as LoteInfo[]) || [];
       const loteIndex = lotes.findIndex(l => l.numero === lote.numero);
 
-      console.log("📍 Índice do lote encontrado:", loteIndex);
+      logger.debug("📍 Índice do lote encontrado:", loteIndex);
       
       // Navegar para a página de leilões com o estado de edição
       navigate('/leiloes', {
@@ -1275,7 +1282,7 @@ function Lotes() {
         }
       });
     } catch (error) {
-      console.error('❌ Erro ao redirecionar para edição:', error);
+      logger.error('❌ Erro ao redirecionar para edição:', error);
     } finally {
       setIsLoadingLoteData(false);
     }
@@ -1284,19 +1291,19 @@ function Lotes() {
 
   const handleArchiveLote = async (loteId: string) => {
     try {
-      console.log("🗂️ Iniciando arquivamento do lote:", loteId);
+      logger.debug("🗂️ Iniciando arquivamento do lote:", loteId);
 
       // Encontrar o lote específico
       const lote = mockLotes.find(l => l.id === loteId);
       if (!lote) {
-        console.error("❌ Lote não encontrado:", loteId);
+        logger.error('Lote não encontrado', { loteId });
         return;
       }
 
       // Buscar o leilão original
       const auction = auctions?.find(a => a.id === lote.auctionId);
       if (!auction || !auction.lotes) {
-        console.error("❌ Leilão não encontrado ou sem lotes:", lote.auctionId);
+        logger.error("❌ Leilão não encontrado ou sem lotes:", lote.auctionId);
         return;
       }
 
@@ -1306,11 +1313,11 @@ function Lotes() {
       // Encontrar o lote específico dentro do leilão
       const loteIndex = auction.lotes.findIndex(l => l.id === originalLoteId);
       if (loteIndex === -1) {
-        console.error("❌ Lote não encontrado no leilão:", originalLoteId);
+        logger.error("❌ Lote não encontrado no leilão:", originalLoteId);
         return;
       }
 
-      console.log("📦 Arquivando lote:", {
+      logger.debug("📦 Arquivando lote:", {
         loteNumero: lote.numero,
         originalLoteId,
         loteIndex,
@@ -1365,28 +1372,28 @@ function Lotes() {
         queryClient.refetchQueries({ queryKey: ['auctions'] });
       }, 300);
       
-      console.log(`✅ Lote #${lote.numero} arquivado com sucesso`);
+      logger.debug(`✅ Lote #${lote.numero} arquivado com sucesso`);
       
     } catch (error) {
-      console.error("❌ Erro ao arquivar lote:", error);
+      logger.error('Erro ao arquivar lote', { error });
     }
   };
 
   const handleUnarchiveLote = async (loteId: string) => {
     try {
-      console.log("📤 Iniciando desarquivamento do lote:", loteId);
+      logger.debug("📤 Iniciando desarquivamento do lote:", loteId);
 
       // Encontrar o lote específico
       const lote = mockLotes.find(l => l.id === loteId);
       if (!lote) {
-        console.error("❌ Lote não encontrado:", loteId);
+        logger.error('Lote não encontrado', { loteId });
         return;
       }
 
       // Buscar o leilão original
       const auction = auctions?.find(a => a.id === lote.auctionId);
       if (!auction || !auction.lotes) {
-        console.error("❌ Leilão não encontrado ou sem lotes:", lote.auctionId);
+        logger.error("❌ Leilão não encontrado ou sem lotes:", lote.auctionId);
         return;
       }
 
@@ -1396,11 +1403,11 @@ function Lotes() {
       // Encontrar o lote específico dentro do leilão
       const loteIndex = auction.lotes.findIndex(l => l.id === originalLoteId);
       if (loteIndex === -1) {
-        console.error("❌ Lote não encontrado no leilão:", originalLoteId);
+        logger.error("❌ Lote não encontrado no leilão:", originalLoteId);
         return;
       }
 
-      console.log("📦 Desarquivando lote:", {
+      logger.debug("📦 Desarquivando lote:", {
         loteNumero: lote.numero,
         originalLoteId,
         loteIndex,
@@ -1456,10 +1463,10 @@ function Lotes() {
         queryClient.refetchQueries({ queryKey: ['auctions'] });
       }, 300);
       
-      console.log(`✅ Lote #${lote.numero} desarquivado com sucesso`);
+      logger.debug(`✅ Lote #${lote.numero} desarquivado com sucesso`);
       
     } catch (error) {
-      console.error("❌ Erro ao desarquivar lote:", error);
+      logger.error('Erro ao desarquivar lote', { error });
     }
   };
 
@@ -2124,13 +2131,13 @@ function Lotes() {
                             alt={foto.nome}
                             className="w-full h-full object-cover"
                             onLoad={() => {
-                              console.log('✅ Imagem carregada com sucesso:', {
+                              logger.debug('✅ Imagem carregada com sucesso:', {
                                 nome: foto.nome,
                                 urlType: foto.url?.startsWith('blob:') ? 'blob' : foto.url?.startsWith('data:') ? 'base64' : 'other'
                               });
                             }}
                             onError={(e) => {
-                              console.error('❌ Erro ao carregar imagem:', {
+                              logger.error('❌ Erro ao carregar imagem:', {
                                 nome: foto.nome,
                                 url: foto.url?.substring(0, 50) + '...',
                                 urlLength: foto.url?.length,
@@ -2184,7 +2191,7 @@ function Lotes() {
                       url: blobUrl
                     };
                     
-                    console.log("🔗 Criando nova URL blob:", {
+                    logger.debug("🔗 Criando nova URL blob:", {
                       nome: file.name,
                       blobUrl: blobUrl,
                       id: novoDocumento.id
@@ -2247,7 +2254,7 @@ function Lotes() {
                             url: blobUrl
                           };
                           
-                          console.log("🔗 Criando nova URL blob (input):", {
+                          logger.debug("🔗 Criando nova URL blob (input):", {
                             nome: file.name,
                             blobUrl: blobUrl,
                             id: novoDocumento.id
