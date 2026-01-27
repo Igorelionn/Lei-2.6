@@ -180,8 +180,6 @@ export function AuctionForm({
     } else {
       // Validar lotes
       values.lotes.forEach((lote, index) => {
-        const _lotePrefix = `Lote ${lote.numero || index + 1}`;
-        
         if (!lote.numero?.trim()) missing.push(`Número do Lote ${index + 1}`);
         if (!lote.descricao?.trim()) missing.push(`Descrição do Lote ${index + 1}`);
         
@@ -383,15 +381,6 @@ export function AuctionForm({
     update("historicoNotas", updatedNotes);
   };
 
-  const _getLocalIcon = (local: string) => {
-    switch (local) {
-      case "presencial": return <Building className="h-4 w-4" />;
-      case "online": return <Globe className="h-4 w-4" />;
-      case "hibrido": return <Users className="h-4 w-4" />;
-      default: return <MapPin className="h-4 w-4" />;
-    }
-  };
-
   // Estado para controlar o valor digitado no campo de custos - SIMPLIFICADO
   const [costInputValue, setCostInputValue] = useState(() => {
     // Inicialização simples: prioriza texto, depois numérico formatado
@@ -423,21 +412,6 @@ export function AuctionForm({
     }
   }, [isCostDetailDialogOpen, values.detalheCustos]);
 
-  // Função para atualizar os itens de custo e recalcular o total
-  const _updateCostItems = (items: ItemCustoInfo[]) => {
-    setCostItems(items);
-    
-    // Atualizar values de forma síncrona
-    const newValues = { ...values, detalheCustos: items };
-    setValues(newValues);
-    setHasUserChanges(true);
-    
-    // Notificar onChange se existir
-    if (onChange) {
-      onChange(newValues, "detalheCustos");
-    }
-  };
-
   // Estados para detalhamento de patrocínios
   const [isSponsorDetailDialogOpen, setIsSponsorDetailDialogOpen] = useState(false);
   const [sponsorItems, setSponsorItems] = useState<ItemPatrocinioInfo[]>(initial.detalhePatrocinios || []);
@@ -457,20 +431,6 @@ export function AuctionForm({
     }
   }, [isSponsorDetailDialogOpen, values.detalhePatrocinios]);
   
-  // Função para calcular e atualizar o total baseado nos itens
-  const _calcularEAtualizarTotal = (items: ItemCustoInfo[]) => {
-    const total = items.reduce((sum, item) => sum + item.valorNumerico, 0);
-    
-    const totalFormatado = total.toLocaleString('pt-BR', { 
-      minimumFractionDigits: 2, 
-      maximumFractionDigits: 2 
-    });
-    
-    setCostInputValue(totalFormatado);
-    update("custos", totalFormatado);
-    update("custosNumerico", total);
-  };
-
   // Função para atualizar status automaticamente baseado na data
   const updateStatusBasedOnDate = useCallback((dataInicio: string, dataEncerramento?: string) => {
     if (!dataInicio) return;

@@ -77,7 +77,6 @@ const normalizarMesInicioPagamento = (mesInicioPagamento: string): string => {
 };
 
 function Faturas() {
-  const _navigate = useNavigate();
   const { auctions, isLoading } = useSupabaseAuctions();
   const { toast } = useToast();
   
@@ -108,12 +107,6 @@ function Faturas() {
     vencimento: "",
     status: "em_aberto" as InvoiceStatus
   });
-
-  // Função para calcular próxima data de vencimento baseada no sistema de parcelas (DESABILITADA - usando lógica específica por lote)
-  const _calculateNextPaymentDate = (_arrematante: ArrematanteInfo) => {
-    // Esta função foi desabilitada pois agora usamos configurações específicas por lote
-    return null;
-  };
 
   // Função para determinar status da fatura baseado na data atual e parcelas
   const getInvoiceStatus = (arrematante: ArrematanteInfo, parcelaIndex: number, dueDate: Date): InvoiceStatus => {
@@ -1052,24 +1045,6 @@ function Faturas() {
       vencimento: "",
       status: "em_aberto"
     });
-  };
-
-
-  const _handleEditFatura = (fatura: FaturaExtendida) => {
-    setFaturaForm({
-      lotId: fatura.lotId,
-      auctionId: fatura.auctionId,
-      arrematanteId: fatura.arrematanteId,
-      valorArremate: fatura.valorLiquido.toString(),
-      comissao: "0",
-      custosAdicionais: "0",
-      valorLiquido: fatura.valorLiquido.toString(),
-      vencimento: fatura.dataVencimento || '',
-      status: fatura.status
-    });
-    setSelectedFatura(fatura);
-    setIsEditingFatura(true);
-    setIsFaturaModalOpen(true);
   };
 
   const handleDeleteFatura = (faturaId: string) => {

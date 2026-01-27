@@ -265,22 +265,6 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     updateField("lotes", [...(values.lotes || []), newLote]);
   };
 
-  const _addMercadoria = (loteIndex: number) => {
-    const newMercadoria: MercadoriaInfo = {
-      id: Date.now().toString(),
-      tipo: "",
-      descricao: "",
-      valor: "0,00",
-      valorNumerico: 0
-    };
-    const updatedLotes = [...(values.lotes || [])];
-    updatedLotes[loteIndex] = {
-      ...updatedLotes[loteIndex],
-      mercadorias: [...(updatedLotes[loteIndex].mercadorias || []), newMercadoria]
-    };
-    updateField("lotes", updatedLotes);
-  };
-
   const validateCurrentStep = (): boolean => {
     switch (currentStep) {
       case 0: // Informações Básicas
