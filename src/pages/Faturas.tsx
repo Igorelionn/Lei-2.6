@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -174,7 +175,7 @@ function Faturas() {
         const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || 'parcelamento';
         
         // LOGS DE DEBUG - Verificar por que faturas não estão sendo geradas
-        console.log('🔍 DEBUG FATURAS - Processando arrematante:', {
+        logger.debug('Processando arrematante para faturas', {
           arrematanteNome: arrematante.nome,
           arrematanteId: arrematante.id,
           leilaoNome: auction.nome || auction.identificacao,
@@ -195,7 +196,7 @@ function Faturas() {
         
         // Se não encontrou o lote E não tem tipoPagamento no arrematante, pular
         if (!loteArrematado && !arrematante.tipoPagamento) {
-          console.warn('⚠️ FATURAS - Lote não encontrado e arrematante sem tipoPagamento:', {
+          logger.warn('Lote não encontrado e arrematante sem tipoPagamento', {
             arrematanteNome: arrematante.nome,
             loteId: arrematante.loteId
           });
@@ -221,7 +222,7 @@ function Faturas() {
             
             // Validar se os valores de data são válidos
             if (isNaN(year) || isNaN(month) || isNaN(day)) {
-              console.error('Data de vencimento à vista inválida:', {
+              logger.error('Data de vencimento à vista inválida', {
                 dateStr,
                 year,
                 month,
@@ -235,7 +236,7 @@ function Faturas() {
             
             // Validar se a data criada é válida
             if (isNaN(dueDateObj.getTime())) {
-              console.error('Data objeto inválida criada para à vista:', {
+              logger.error('Data objeto inválida criada para à vista', {
                 year,
                 month,
                 day
@@ -311,7 +312,7 @@ function Faturas() {
               // PRIORIZAR dataEntrada do arrematante (mais específico) sobre o do lote
               const dataEntrada = arrematante.dataEntrada || loteArrematado?.dataEntrada || new Date().toISOString().split('T')[0];
               
-              console.log('🔍 DEBUG FATURAS - Data de Entrada:', {
+              logger.debug('Data de Entrada', {
                 arrematanteNome: arrematante.nome,
                 dataEntradaArrematante: arrematante.dataEntrada,
                 dataEntradaLote: loteArrematado?.dataEntrada,
@@ -322,7 +323,7 @@ function Faturas() {
               
               // Validar se a data de entrada é válida
               if (isNaN(dueDateObjEntrada.getTime())) {
-                console.error('Data de entrada inválida:', {
+                logger.error('Data de entrada inválida', {
                   dataEntrada,
                   loteId: loteArrematado.id
                 });
@@ -376,7 +377,7 @@ function Faturas() {
                 
                 // Validar se os valores de data são válidos
                 if (isNaN(startYear) || isNaN(startMonth) || isNaN(diaVencimento)) {
-                  console.error('Valores de data inválidos para entrada+parcelamento:', {
+                  logger.error('Valores de data inválidos para entrada+parcelamento', {
                     startYear,
                     startMonth,
                     diaVencimento,
@@ -393,7 +394,7 @@ function Faturas() {
                 
                 // Validar se a data criada é válida
                 if (isNaN(dueDate.getTime())) {
-                  console.error('Data de vencimento inválida criada para entrada+parcelamento:', {
+                  logger.error('Data de vencimento inválida criada para entrada+parcelamento', {
                     startYear,
                     startMonth,
                     i,
@@ -457,7 +458,7 @@ function Faturas() {
             const diaVencimento = arrematante.diaVencimentoMensal || loteArrematado?.diaVencimentoPadrao;
             const quantidadeParcelas = arrematante.quantidadeParcelas || loteArrematado?.parcelasPadrao;
             
-            console.log('🔍 DEBUG FATURAS - Parcelamento validação:', {
+            logger.debug('Parcelamento validação', {
               arrematanteNome: arrematante.nome,
               mesInicioPagamento,
               diaVencimento,
@@ -466,7 +467,7 @@ function Faturas() {
             });
             
             if (!quantidadeParcelas || !mesInicioPagamento || !diaVencimento) {
-              console.warn('⚠️ FATURAS - Campos obrigatórios faltando para parcelamento:', {
+              logger.warn('Campos obrigatórios faltando para parcelamento', {
                 arrematanteNome: arrematante.nome,
                 quantidadeParcelasFaltando: !quantidadeParcelas,
                 mesInicioPagamentoFaltando: !mesInicioPagamento,
@@ -501,7 +502,7 @@ function Faturas() {
             
             // Validar se os valores de data são válidos
             if (isNaN(startYear) || isNaN(startMonth) || isNaN(diaVencimento)) {
-              console.error('Valores de data inválidos no lote:', {
+              logger.error('Valores de data inválidos no lote', {
                 startYear,
                 startMonth,
                 diaVencimento,
@@ -519,7 +520,7 @@ function Faturas() {
             const mesCalculado = startMonth - 1 + i; // Mês no formato Date (0-11)
             const dueDate = new Date(startYear, mesCalculado, diaVencimento, 23, 59, 59);
             
-            console.log('🔍 DEBUG FATURAS - Cálculo de data:', {
+            logger.debug('Cálculo de data', {
               arrematante: arrematante.nome,
               mesInicioPagamento: mesInicioPagamento,
               mesInicioPagamentoNormalizado: mesInicioPagamentoNormalizado,
@@ -535,7 +536,7 @@ function Faturas() {
             
             // Validar se a data criada é válida
             if (isNaN(dueDate.getTime())) {
-              console.error('❌ Data de vencimento inválida criada:', {
+              logger.error('Data de vencimento inválida criada', {
                 startYear,
                 startMonth,
                 i,
@@ -547,8 +548,8 @@ function Faturas() {
             
             // ✅ Validar se o ano está no intervalo razoável
             const anoCalculado = dueDate.getFullYear();
-            if (anoCalculado < 2020 || anoCalculado > 2100) {
-              console.error('❌ Ano calculado fora do intervalo esperado:', {
+              if (anoCalculado < 2020 || anoCalculado > 2100) {
+              logger.error('Ano calculado fora do intervalo esperado', {
                 anoCalculado,
                 startYear,
                 startMonth,
@@ -569,7 +570,7 @@ function Faturas() {
             let valorParcelaComJuros = valorParcela;
             if (now > dueDate && arrematante.percentualJurosAtraso) {
               const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-              console.log('🔍 DEBUG FATURAS - Parcelamento Simples:', {
+              logger.debug('Parcelamento Simples', {
                 arrematanteNome: arrematante.nome,
                 valorTotal: arrematante.valorPagarNumerico,
                 quantidadeParcelas,
@@ -1071,7 +1072,7 @@ function Faturas() {
 
   const handleDeleteFatura = (faturaId: string) => {
     // Implementar exclusão da fatura
-    console.log("Excluir fatura:", faturaId);
+    logger.info('Excluir fatura', { faturaId });
     
     // Em um sistema real, você faria uma chamada para a API para deletar
     // Por exemplo:
@@ -1079,7 +1080,7 @@ function Faturas() {
     
     // Por enquanto, apenas remove da lista local (mock)
     handleSmoothTransitionFaturas(() => {
-      console.log(`Fatura ${faturaId} excluída com sucesso`);
+      logger.info('Fatura excluída com sucesso', { faturaId });
       // A lista será regenerada automaticamente na próxima renderização
     });
   };
@@ -1103,7 +1104,7 @@ function Faturas() {
     if (!selectedFaturaForPreview) return;
 
     try {
-      console.log('🔍 Iniciando geração do PDF da fatura...');
+      logger.info('Iniciando geração do PDF da fatura');
       
       // 1. Abrir modal temporário invisível (igual aos relatórios)
       setIsExportFaturaModalOpen(true);
@@ -1117,8 +1118,8 @@ function Faturas() {
         throw new Error('Elemento PDF da fatura não encontrado - modal não renderizou');
       }
 
-      console.log('📄 Elemento da fatura encontrado:', element);
-      console.log('📐 Dimensões:', element.offsetWidth, 'x', element.offsetHeight);
+      logger.debug('Elemento da fatura encontrado', { element });
+      logger.debug('Dimensões', { width: element.offsetWidth, height: element.offsetHeight });
 
       // 4. Usar html2pdf importado estaticamente
 
@@ -1138,12 +1139,12 @@ function Faturas() {
         }
       };
 
-      console.log('🔄 Iniciando conversão da fatura para PDF...');
+      logger.info('Iniciando conversão da fatura para PDF');
       
       // 5. Gerar PDF do elemento renderizado pelo React (igual aos relatórios)
       await html2pdf().set(opt).from(element).save();
       
-      console.log('✅ PDF da fatura gerado com sucesso!');
+      logger.info('PDF da fatura gerado com sucesso');
 
       toast({
         title: "PDF Gerado",
@@ -1152,7 +1153,7 @@ function Faturas() {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao gerar PDF da fatura:', error);
+      logger.error('Erro ao gerar PDF da fatura', { error });
       toast({
         title: "Erro ao Gerar PDF",
         description: "Ocorreu um erro ao gerar o PDF. Tente novamente.",
@@ -1171,7 +1172,7 @@ function Faturas() {
   const handleArchiveFatura = (faturaId: string) => {
     setArchivedFaturas(prev => new Set(prev).add(faturaId));
     handleSmoothTransitionFaturas(() => {
-      console.log(`Fatura ${faturaId} arquivada com sucesso`);
+      logger.info('Fatura arquivada com sucesso', { faturaId });
     });
   };
 
@@ -1182,14 +1183,14 @@ function Faturas() {
       return newSet;
     });
     handleSmoothTransitionFaturas(() => {
-      console.log(`Fatura ${faturaId} desarquivada com sucesso`);
+      logger.info('Fatura desarquivada com sucesso', { faturaId });
     });
   };
 
   const handleSaveFatura = () => {
     // Validar campos obrigatórios
     if (!faturaForm.arrematanteId || !faturaForm.valorLiquido) {
-      console.error("Campos obrigatórios não preenchidos");
+      logger.error('Campos obrigatórios não preenchidos');
       return;
     }
 
@@ -1201,10 +1202,10 @@ function Faturas() {
     };
 
     if (isEditingFatura) {
-      console.log("Atualizando fatura:", faturaData);
+      logger.info('Atualizando fatura', faturaData);
       // Em um sistema real: await updateFatura(faturaData);
     } else {
-      console.log("Criando nova fatura:", faturaData);
+      logger.info('Criando nova fatura', faturaData);
       // Em um sistema real: await createFatura(faturaData);
     }
 
@@ -1216,7 +1217,7 @@ function Faturas() {
 
     // Aplicar transição suave
     handleSmoothTransitionFaturas(() => {
-      console.log("Fatura salva com sucesso");
+      logger.info('Fatura salva com sucesso');
     });
   };
 
