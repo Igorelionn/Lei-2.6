@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabaseClient } from '@/lib/supabase-client';
 import { Database } from '@/lib/database.types';
+import { logger } from '@/lib/logger';
 
 type Tables = Database['public']['Tables'];
 
@@ -64,7 +65,7 @@ export function useRealtimeSync() {
           table: 'lots',
         },
         (payload) => {
-          console.log('Lot change received:', payload);
+          logger.debug('Lot change received', { payload });
           queryClientRef.current.invalidateQueries({ queryKey: ['supabase-lots'] });
           queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
         }
@@ -82,7 +83,7 @@ export function useRealtimeSync() {
           table: 'merchandise',
         },
         (payload) => {
-          console.log('Merchandise change received:', payload);
+          logger.debug('Merchandise change received', { payload });
           queryClientRef.current.invalidateQueries({ queryKey: ['supabase-merchandise'] });
         }
       )
@@ -99,7 +100,7 @@ export function useRealtimeSync() {
           table: 'invoices',
         },
         (payload) => {
-          console.log('Invoice change received:', payload);
+          logger.debug('Invoice change received', { payload });
           queryClientRef.current.invalidateQueries({ queryKey: ['supabase-invoices'] });
           queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
         }
@@ -117,7 +118,7 @@ export function useRealtimeSync() {
           table: 'documents',
         },
         (payload) => {
-          console.log('Document change received:', payload);
+          logger.debug('Document change received', { payload });
           queryClientRef.current.invalidateQueries({ queryKey: ['supabase-documents'] });
         }
       )

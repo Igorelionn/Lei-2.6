@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useEmailNotifications } from './use-email-notifications';
 import { useSupabaseAuctions } from './use-supabase-auctions';
 import { parseISO, differenceInDays, isAfter, isBefore } from 'date-fns';
+import { logger } from '@/lib/logger';
 
 /**
  * Hook para envio automático de emails de lembretes e cobranças
@@ -63,7 +64,7 @@ export function useAutoEmailNotifications() {
     }
     ultimaVerificacaoRef.current = agora;
 
-    console.log('🔍 Verificando pagamentos para envio automático de emails...');
+    logger.info('Verificando pagamentos para envio automático de emails');
 
     const hoje = new Date();
     let lembretesEnviados = 0;
@@ -146,18 +147,18 @@ export function useAutoEmailNotifications() {
           const jaEnviou = await currentJaEnviouEmail(emailId, 'lembrete');
           
           if (jaEnviou) {
-            console.log(`⏭️ Lembrete já foi enviado hoje para ${arrematante.nome}, pulando...`);
+            logger.debug('Lembrete já enviado hoje, pulando', { nome: arrematante.nome });
             continue;
           }
           
-          console.log(`📧 Enviando lembrete para ${arrematante.nome} (${diasDiferenca} dias para vencer)`);
+          logger.info('Enviando lembrete', { nome: arrematante.nome, diasRestantes: diasDiferenca });
           
           const resultado = await currentEnviarLembrete(auctionComArrematante);
           if (resultado.success) {
             lembretesEnviados++;
-            console.log(`✅ Lembrete enviado: ${arrematante.nome}`);
+            logger.info('Lembrete enviado com sucesso', { nome: arrematante.nome });
           } else {
-            console.log(`❌ Erro ao enviar lembrete: ${resultado.message}`);
+            logger.error('Erro ao enviar lembrete', { nome: arrematante.nome, erro: resultado.message });
           }
         }
 
@@ -168,27 +169,27 @@ export function useAutoEmailNotifications() {
           const jaEnviou = await currentJaEnviouEmail(emailId, 'cobranca');
           
           if (jaEnviou) {
-            console.log(`⏭️ Cobrança já foi enviada hoje para ${arrematante.nome}, pulando...`);
+            logger.debug('Cobrança já enviada hoje, pulando', { nome: arrematante.nome });
             continue;
           }
           
-          console.log(`⚠️ Enviando cobrança para ${arrematante.nome} (${Math.abs(diasDiferenca)} dias atrasado)`);
+          logger.warn('Enviando cobrança', { nome: arrematante.nome, diasAtraso: Math.abs(diasDiferenca) });
           
           const resultado = await currentEnviarCobranca(auctionComArrematante);
           if (resultado.success) {
             cobrancasEnviadas++;
-            console.log(`✅ Cobrança enviada: ${arrematante.nome}`);
+            logger.info('Cobrança enviada com sucesso', { nome: arrematante.nome });
           } else {
-            console.log(`❌ Erro ao enviar cobrança: ${resultado.message}`);
+            logger.error('Erro ao enviar cobrança', { nome: arrematante.nome, erro: resultado.message });
           }
         }
       }
     }
 
     if (lembretesEnviados > 0 || cobrancasEnviadas > 0) {
-      console.log(`✅ Emails enviados automaticamente: ${lembretesEnviados} lembrete(s), ${cobrancasEnviadas} cobrança(s)`);
+      logger.info('Emails enviados automaticamente', { lembretes: lembretesEnviados, cobrancas: cobrancasEnviadas });
     } else {
-      console.log('ℹ️ Nenhum email precisou ser enviado neste momento');
+      logger.debug('Nenhum email precisou ser enviado neste momento');
     }
   };
 
@@ -202,14 +203,15 @@ export function useAutoEmailNotifications() {
     
     // Só inicia se o envio automático estiver ativado
     if (!config.enviarAutomatico) {
-      console.log('ℹ️ Envio automático de emails está desativado');
+      logger.info('Envio automático de emails está desativado');
       return;
     }
 
-    console.log('🤖 Sistema de envio automático de emails ATIVADO');
-    console.log(`⏰ Verificando a cada 5 minutos`);
-    console.log(`📅 Lembretes: ${config.diasAntesLembrete} dias antes do vencimento`);
-    console.log(`⚠️ Cobranças: ${config.diasDepoisCobranca} dias após o vencimento`);
+    logger.info('Sistema de envio automático de emails ATIVADO', {
+      intervalo: '5 minutos',
+      diasAntesLembrete: config.diasAntesLembrete,
+      diasDepoisCobranca: config.diasDepoisCobranca
+    });
 
     // Executar imediatamente
     verificarEEnviarEmails();
@@ -222,7 +224,7 @@ export function useAutoEmailNotifications() {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
-        console.log('🛑 Sistema de envio automático desativado');
+        logger.info('Sistema de envio automático desativado');
       }
     };
   }, [config.enviarAutomatico, config.diasAntesLembrete, config.diasDepoisCobranca]);
