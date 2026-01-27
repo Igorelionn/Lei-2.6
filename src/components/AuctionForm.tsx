@@ -268,33 +268,44 @@ export function AuctionForm({
     const files = event.target.files;
     if (!files || files.length === 0) return;
 
+    const maxFiles = 20;
+    if (files.length > maxFiles) {
+      toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} por vez.`, variant: "destructive" });
+      event.target.value = '';
+      return;
+    }
     
-    // Processar todos os arquivos e coletar em um array
     const novosDocumentos: DocumentoInfo[] = [];
+    const erros: string[] = [];
     
     for (const file of Array.from(files)) {
       try {
+        // 🔒 VALIDAÇÃO
+        const maxSize = tipo === 'fotosMercadoria' ? 10 * 1024 * 1024 : 20 * 1024 * 1024;
+        if (file.size > maxSize) throw new Error(`Muito grande (máx. ${tipo === 'fotosMercadoria' ? '10MB' : '20MB'})`);
+        if (file.size === 0) throw new Error(`Arquivo vazio`);
+
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
         const blobUrl = URL.createObjectURL(file);
         
         const novoDocumento: DocumentoInfo = {
-          id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
-          nome: file.name,
+          id: crypto.randomUUID(),
+          nome: safeName,
           tipo: file.type,
           tamanho: file.size,
           dataUpload: new Date().toISOString(),
-          url: blobUrl // Usar sempre blob URL para preview local
+          url: blobUrl
         };
         
-        // Adicionar blob URL ao set de URLs temporárias
         tempBlobUrlsRef.current.add(blobUrl);
         novosDocumentos.push(novoDocumento);
         
       } catch (error) {
+        erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
         console.error("❌ Erro ao processar arquivo:", file.name, error);
       }
     }
 
-    // Atualizar state com todos os documentos de uma só vez
     if (novosDocumentos.length > 0) {
       if (tipo === 'fotosMercadoria') {
         const atualizados = [...(values.fotosMercadoria || []), ...novosDocumentos];
@@ -303,9 +314,16 @@ export function AuctionForm({
         const atualizados = [...(values.documentos || []), ...novosDocumentos];
         update("documentos", atualizados);
       }
+
+      if (erros.length === 0) {
+        toast({ title: "Arquivos adicionados", description: `${novosDocumentos.length} arquivo(s) adicionado(s).` });
+      }
     }
 
-    // Limpar input
+    if (erros.length > 0) {
+      toast({ title: "Alguns arquivos rejeitados", description: erros.slice(0, 2).join('\n'), variant: "destructive" });
+    }
+
     event.target.value = '';
   };
 

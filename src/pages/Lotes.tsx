@@ -2218,31 +2218,52 @@ function Lotes() {
                     type="file"
                     multiple
                     accept="image/*"
-                    onChange={(e) => {
+                    onChange={async (e) => {
                       const files = e.target.files;
                       if (!files) return;
-                      Array.from(files).forEach((file) => {
-                        const blobUrl = URL.createObjectURL(file);
-                        const novoDocumento: DocumentoInfo = {
-                          id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
-                          nome: file.name,
-                          tipo: file.type,
-                          tamanho: file.size,
-                          dataUpload: new Date().toISOString(),
-                          url: blobUrl
-                        };
-                        
-                        console.log("🔗 Criando nova URL blob (input):", {
-                          nome: file.name,
-                          blobUrl: blobUrl,
-                          id: novoDocumento.id
-                        });
-                        
-                        // Adicionar URL ao set de URLs temporárias
-                        tempBlobUrlsRef.current.add(blobUrl);
-                        
-                        addFotoSafely(novoDocumento);
-                      });
+                      
+                      const maxFiles = 20;
+                      if (files.length > maxFiles) {
+                        toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} por vez.`, variant: "destructive" });
+                        e.target.value = '';
+                        return;
+                      }
+
+                      const erros: string[] = [];
+                      for (const file of Array.from(files)) {
+                        try {
+                          const maxSize = 10 * 1024 * 1024;
+                          if (file.size > maxSize) throw new Error(`Muito grande (máx. 10MB)`);
+                          if (file.size === 0) throw new Error(`Vazio`);
+
+                          const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
+                          const blobUrl = URL.createObjectURL(file);
+                          const novoDocumento: DocumentoInfo = {
+                            id: crypto.randomUUID(),
+                            nome: safeName,
+                            tipo: file.type,
+                            tamanho: file.size,
+                            dataUpload: new Date().toISOString(),
+                            url: blobUrl
+                          };
+                          
+                          console.log("🔗 Criando nova URL blob (input):", {
+                            nome: file.name,
+                            blobUrl: blobUrl,
+                            id: novoDocumento.id
+                          });
+                          
+                          tempBlobUrlsRef.current.add(blobUrl);
+                          addFotoSafely(novoDocumento);
+                        } catch (error) {
+                          erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
+                        }
+                      }
+
+                      if (erros.length > 0) {
+                        toast({ title: "Alguns arquivos rejeitados", description: erros.slice(0, 2).join('\n'), variant: "destructive" });
+                      }
+                      
                       e.target.value = '';
                     }}
                     className="hidden"

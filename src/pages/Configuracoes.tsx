@@ -208,26 +208,42 @@ export default function Configuracoes() {
 
   const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      // Validar tipo de arquivo
+    if (!file) return;
+
+    try {
+      // 🔒 VALIDAÇÃO: Tipo de arquivo
       if (!file.type.startsWith('image/')) {
-      toast({
+        toast({
           title: "Arquivo inválido",
-          description: "Por favor, selecione apenas arquivos de imagem.",
+          description: "Por favor, selecione apenas arquivos de imagem (JPG, PNG, GIF).",
           variant: "destructive",
-      });
+        });
         return;
       }
       
-      // Validar tamanho (máximo 5MB)
+      // 🔒 VALIDAÇÃO: Tamanho máximo 5MB
       if (file.size > 5 * 1024 * 1024) {
-      toast({
+        toast({
           title: "Arquivo muito grande",
           description: "A imagem deve ter no máximo 5MB.",
-        variant: "destructive",
-      });
+          variant: "destructive",
+        });
         return;
       }
+
+      // 🔒 VALIDAÇÃO: Arquivo vazio
+      if (file.size === 0) {
+        toast({
+          title: "Arquivo vazio",
+          description: "O arquivo selecionado está vazio.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // 🔒 SANITIZAR: Nome do arquivo (para logs)
+      const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
+      console.log('🖼️ Upload de imagem:', safeName, `(${(file.size / 1024 / 1024).toFixed(2)}MB)`);
 
       const reader = new FileReader();
       reader.onload = (e) => {
@@ -239,8 +255,24 @@ export default function Configuracoes() {
           description: "Sua foto de perfil foi atualizada com sucesso.",
         });
       };
+      reader.onerror = () => {
+        toast({
+          title: "Erro ao carregar imagem",
+          description: "Não foi possível processar o arquivo selecionado.",
+          variant: "destructive",
+        });
+      };
       reader.readAsDataURL(file);
+    } catch (error) {
+      toast({
+        title: "Erro no upload",
+        description: error instanceof Error ? error.message : "Erro desconhecido ao processar imagem.",
+        variant: "destructive",
+      });
     }
+    
+    event.target.value = '';
+  };
   };
 
 

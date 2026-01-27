@@ -710,31 +710,81 @@ function Leiloes() {
   };
 
   // Função para lidar com upload de arquivo
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
-    Array.from(files).forEach((file) => {
-      const blobUrl = URL.createObjectURL(file);
-      const novoDocumento: DocumentoInfo = {
-        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
-        nome: file.name,
-        tipo: file.type,
-        tamanho: file.size,
-        dataUpload: new Date().toISOString(),
-        url: blobUrl // Para preview local
-      };
-      
-      // Adicionar URL ao set de URLs temporárias
-      tempBlobUrlsRef.current.add(blobUrl);
+    const maxFiles = 20;
+    if (files.length > maxFiles) {
+      toast({
+        title: "Muitos arquivos",
+        description: `Você pode fazer upload de no máximo ${maxFiles} arquivos por vez.`,
+        variant: "destructive",
+      });
+      event.target.value = '';
+      return;
+    }
 
+    const novosDocumentos: DocumentoInfo[] = [];
+    const erros: string[] = [];
+
+    for (const file of Array.from(files)) {
+      try {
+        // 🔒 VALIDAÇÃO: Tamanho máximo 20MB
+        const maxSize = 20 * 1024 * 1024;
+        if (file.size > maxSize) {
+          throw new Error(`Arquivo muito grande (máx. 20MB)`);
+        }
+
+        if (file.size === 0) {
+          throw new Error(`Arquivo vazio`);
+        }
+
+        // 🔒 SANITIZAR NOME
+        const safeName = file.name
+          .replace(/[^a-zA-Z0-9.-]/g, '_')
+          .replace(/\.{2,}/g, '_')
+          .substring(0, 255);
+        
+        const blobUrl = URL.createObjectURL(file);
+        const novoDocumento: DocumentoInfo = {
+          id: crypto.randomUUID(),
+          nome: safeName,
+          tipo: file.type,
+          tamanho: file.size,
+          dataUpload: new Date().toISOString(),
+          url: blobUrl
+        };
+        
+        tempBlobUrlsRef.current.add(blobUrl);
+        novosDocumentos.push(novoDocumento);
+      } catch (error) {
+        erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
+      }
+    }
+
+    if (novosDocumentos.length > 0) {
       setArrematanteForm(prev => ({
         ...prev,
-        documentos: [...prev.documentos, novoDocumento]
+        documentos: [...prev.documentos, ...novosDocumentos]
       }));
-    });
+      
+      if (erros.length === 0) {
+        toast({
+          title: "Arquivos adicionados",
+          description: `${novosDocumentos.length} arquivo(s) adicionado(s) com sucesso.`,
+        });
+      }
+    }
 
-    // Limpar input
+    if (erros.length > 0) {
+      toast({
+        title: erros.length === files.length ? "Nenhum arquivo adicionado" : "Alguns arquivos foram rejeitados",
+        description: erros.slice(0, 3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length - 3}` : ''),
+        variant: "destructive",
+      });
+    }
+
     event.target.value = '';
   };
 

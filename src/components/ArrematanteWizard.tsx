@@ -1286,29 +1286,54 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
     const files = event.target.files;
     if (!files) return;
 
-    const newDocs: DocumentoInfo[] = [];
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      
-      // ✅ Converter arquivo para Base64
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      
-      newDocs.push({
-        id: Date.now().toString() + i,
-        nome: file.name,
-        tipo: file.type,
-        tamanho: file.size,
-        dataUpload: new Date().toISOString(),
-        url: base64, // ✅ Salvar Base64 ao invés de blob URL
-      });
+    const maxFiles = 20;
+    if (files.length > maxFiles) {
+      toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} por vez.`, variant: "destructive" });
+      event.target.value = '';
+      return;
     }
 
-    updateField("documentos", [...values.documentos, ...newDocs]);
-    // Resetar o input para permitir upload do mesmo arquivo novamente
+    const newDocs: DocumentoInfo[] = [];
+    const erros: string[] = [];
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const maxSize = 20 * 1024 * 1024;
+        if (file.size > maxSize) throw new Error(`Muito grande (máx. 20MB)`);
+        if (file.size === 0) throw new Error(`Arquivo vazio`);
+
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        
+        newDocs.push({
+          id: Date.now().toString() + i,
+          nome: safeName,
+          tipo: file.type,
+          tamanho: file.size,
+          dataUpload: new Date().toISOString(),
+          url: base64,
+        });
+      } catch (error) {
+        erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
+      }
+    }
+
+    if (newDocs.length > 0) {
+      updateField("documentos", [...values.documentos, ...newDocs]);
+      if (erros.length === 0) {
+        toast({ title: "Arquivos adicionados", description: `${newDocs.length} arquivo(s) adicionado(s).` });
+      }
+    }
+
+    if (erros.length > 0) {
+      toast({ title: "Alguns arquivos rejeitados", description: erros.slice(0, 2).join('\n'), variant: "destructive" });
+    }
+
     event.target.value = '';
   };
 
@@ -1326,25 +1351,41 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
     const files = event.target.files;
     if (!files) return;
 
+    const maxFiles = 20;
+    if (files.length > maxFiles) {
+      toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} por vez.`, variant: "destructive" });
+      event.target.value = '';
+      return;
+    }
+
     const newDocs: DocumentoInfo[] = [];
+    const erros: string[] = [];
+
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
-      
-      // Converter arquivo para Base64
-      const base64 = await new Promise<string>((resolve) => {
-        const reader = new FileReader();
-        reader.onloadend = () => resolve(reader.result as string);
-        reader.readAsDataURL(file);
-      });
-      
-      newDocs.push({
-        id: Date.now().toString() + i,
-        nome: file.name,
-        tipo: file.type,
-        tamanho: file.size,
-        dataUpload: new Date().toISOString(),
-        url: base64,
-      });
+      try {
+        const maxSize = 20 * 1024 * 1024;
+        if (file.size > maxSize) throw new Error(`Muito grande (máx. 20MB)`);
+        if (file.size === 0) throw new Error(`Arquivo vazio`);
+
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
+        const base64 = await new Promise<string>((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+        
+        newDocs.push({
+          id: Date.now().toString() + i,
+          nome: safeName,
+          tipo: file.type,
+          tamanho: file.size,
+          dataUpload: new Date().toISOString(),
+          url: base64,
+        });
+      } catch (error) {
+        erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
+      }
     }
 
     // Atualizar documentos do arrematante atual na divisão

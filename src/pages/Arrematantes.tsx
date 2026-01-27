@@ -1024,39 +1024,71 @@ function Arrematantes() {
   };
 
   // Funções para upload de documentos
-  const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
+    const maxFiles = 20;
+    if (files.length > maxFiles) {
+      toast({
+        title: "Muitos arquivos",
+        description: `Você pode fazer upload de no máximo ${maxFiles} arquivos por vez.`,
+        variant: "destructive",
+      });
+      event.target.value = '';
+      return;
+    }
+
     const novosDocumentos: DocumentoInfo[] = [];
+    const erros: string[] = [];
 
-    Array.from(files).forEach((file) => {
-      const blobUrl = URL.createObjectURL(file);
-      const novoDocumento: DocumentoInfo = {
-        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
-        nome: file.name,
-        tipo: file.type,
-        tamanho: file.size,
-        dataUpload: new Date().toISOString(),
-        url: blobUrl
-      };
+    for (const file of Array.from(files)) {
+      try {
+        // 🔒 VALIDAÇÃO
+        const maxSize = 20 * 1024 * 1024;
+        if (file.size > maxSize) throw new Error(`Arquivo muito grande (máx. 20MB)`);
+        if (file.size === 0) throw new Error(`Arquivo vazio`);
+
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
+        const blobUrl = URL.createObjectURL(file);
+        const novoDocumento: DocumentoInfo = {
+          id: crypto.randomUUID(),
+          nome: safeName,
+          tipo: file.type,
+          tamanho: file.size,
+          dataUpload: new Date().toISOString(),
+          url: blobUrl
+        };
+        
+        tempBlobUrlsRef.current.add(blobUrl);
+        novosDocumentos.push(novoDocumento);
+      } catch (error) {
+        erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
+      }
+    }
+
+    if (novosDocumentos.length > 0) {
+      setEditForm(prev => ({
+        ...prev,
+        documentos: [...prev.documentos, ...novosDocumentos]
+      }));
+      syncDocumentsToDetails(novosDocumentos, 'add');
       
-      // Adicionar URL ao set de URLs temporárias
-      tempBlobUrlsRef.current.add(blobUrl);
-      novosDocumentos.push(novoDocumento);
-    });
+      if (erros.length === 0) {
+        toast({ title: "Arquivos adicionados", description: `${novosDocumentos.length} arquivo(s) adicionado(s).` });
+      }
+    }
 
-    // Atualizar formulário de edição primeiro
-    setEditForm(prev => ({
-      ...prev,
-      documentos: [...prev.documentos, ...novosDocumentos]
-    }));
-
-    // 🔄 SINCRONIZAÇÃO ROBUSTA com debounce
-    syncDocumentsToDetails(novosDocumentos, 'add');
+    if (erros.length > 0) {
+      toast({
+        title: erros.length === files.length ? "Nenhum arquivo adicionado" : "Alguns arquivos rejeitados",
+        description: erros.slice(0, 3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length - 3}` : ''),
+        variant: "destructive",
+      });
+    }
 
     event.target.value = '';
-  }, [syncDocumentsToDetails]);
+  }, [syncDocumentsToDetails, toast]);
 
   const handleRemoveDocument = useCallback((id: string) => {
     // Encontrar e limpar a blob URL do documento que será removido
@@ -1121,39 +1153,66 @@ function Arrematantes() {
   }, [syncDocumentsToDetails]);
 
   // Funções para upload de documentos no modal completo
-  const handleFullEditFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFullEditFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (!files) return;
 
+    const maxFiles = 20;
+    if (files.length > maxFiles) {
+      toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} arquivos por vez.`, variant: "destructive" });
+      event.target.value = '';
+      return;
+    }
+
     const novosDocumentos: DocumentoInfo[] = [];
+    const erros: string[] = [];
 
-    Array.from(files).forEach((file) => {
-      const blobUrl = URL.createObjectURL(file);
-      const novoDocumento: DocumentoInfo = {
-        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
-        nome: file.name,
-        tipo: file.type,
-        tamanho: file.size,
-        dataUpload: new Date().toISOString(),
-        url: blobUrl
-      };
+    for (const file of Array.from(files)) {
+      try {
+        const maxSize = 20 * 1024 * 1024;
+        if (file.size > maxSize) throw new Error(`Muito grande (máx. 20MB)`);
+        if (file.size === 0) throw new Error(`Arquivo vazio`);
+
+        const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
+        const blobUrl = URL.createObjectURL(file);
+        const novoDocumento: DocumentoInfo = {
+          id: crypto.randomUUID(),
+          nome: safeName,
+          tipo: file.type,
+          tamanho: file.size,
+          dataUpload: new Date().toISOString(),
+          url: blobUrl
+        };
+        
+        tempBlobUrlsRef.current.add(blobUrl);
+        novosDocumentos.push(novoDocumento);
+      } catch (error) {
+        erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
+      }
+    }
+
+    if (novosDocumentos.length > 0) {
+      setFullEditForm(prev => ({
+        ...prev,
+        documentos: [...prev.documentos, ...novosDocumentos]
+      }));
+      syncDocumentsToDetails(novosDocumentos, 'add');
       
-      // Adicionar URL ao set de URLs temporárias
-      tempBlobUrlsRef.current.add(blobUrl);
-      novosDocumentos.push(novoDocumento);
-    });
+      if (erros.length === 0) {
+        toast({ title: "Arquivos adicionados", description: `${novosDocumentos.length} arquivo(s) adicionado(s).` });
+      }
+    }
 
-    // Atualizar formulário completo primeiro
-    setFullEditForm(prev => ({
-      ...prev,
-      documentos: [...prev.documentos, ...novosDocumentos]
-    }));
-
-    // 🔄 SINCRONIZAÇÃO ROBUSTA com debounce
-    syncDocumentsToDetails(novosDocumentos, 'add');
+    if (erros.length > 0) {
+      toast({
+        title: "Alguns arquivos rejeitados",
+        description: erros.slice(0, 2).join('\n'),
+        variant: "destructive",
+      });
+    }
 
     event.target.value = '';
-  }, [syncDocumentsToDetails]);
+  }, [syncDocumentsToDetails, toast]);
 
   const handleRemoveFullEditDocument = useCallback((id: string) => {
     // Encontrar e limpar a blob URL do documento que será removido
