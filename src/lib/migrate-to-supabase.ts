@@ -2,6 +2,7 @@ import { supabaseClient } from './supabase-client';
 import { db } from './storage';
 import { Auction, Bidder, Lot, Invoice, LoteInfo } from './types';
 import { Database } from './database.types';
+import { logger } from './logger';
 
 // 🔒 SEGURANÇA: Gerar UUID criptograficamente seguro
 function generateUUID(): string {
@@ -43,7 +44,7 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
     // Obter dados do localStorage
     const localData = db.getState();
     
-    console.log('Iniciando migração para Supabase...', {
+    logger.info('Iniciando migração para Supabase', {
       auctions: localData.auctions.length,
       bidders: localData.bidders.length,
       lots: localData.lots.length,
@@ -51,17 +52,17 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
     });
 
     // Log detalhado dos dados para debug
-    console.log('Dados locais encontrados:', localData);
+    logger.debug('Dados locais encontrados', localData);
 
     // Criar mapa de IDs antigos para novos UUIDs (usado em todas as migrações)
     const auctionIdMap = new Map<string, string>();
 
     // Migrar leilões
     if (localData.auctions.length > 0) {
-      console.log('Preparando migração de leilões...', localData.auctions);
+      logger.info('Preparando migração de leilões', { auctions: localData.auctions });
       
       const auctionsToInsert = localData.auctions.map(auction => {
-        console.log('Processando leilão:', auction);
+        logger.debug('Processando leilão', { id: auction.id });
         
         // Validar campos obrigatórios
         if (!auction.id || !auction.nome || !auction.dataInicio) {
@@ -73,7 +74,7 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
         if (!isValidUUID(auction.id)) {
           validId = generateUUID();
           auctionIdMap.set(auction.id, validId);
-          console.log(`ID inválido convertido: ${auction.id} -> ${validId}`);
+          logger.info('ID inválido convertido', { oldId: auction.id, newId: validId });
         }
         
         // Validar enum values
@@ -100,11 +101,11 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
           arquivado: auction.arquivado || false,
         };
         
-        console.log('Leilão mapeado:', mappedAuction);
+        logger.debug('Leilão mapeado', { id: mappedAuction.id });
         return mappedAuction;
       });
 
-      console.log('Enviando leilões para Supabase:', auctionsToInsert);
+      logger.info('Enviando leilões para Supabase', { count: auctionsToInsert.length });
 
       const { data: insertedAuctions, error: auctionsError } = await supabaseClient
         .from('auctions')
@@ -112,7 +113,7 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
         .select();
 
       if (auctionsError) {
-        console.error('Erro detalhado ao migrar leilões:', auctionsError);
+        logger.error('Erro ao migrar leilões', { error: auctionsError });
         result.errors.push(`Erro ao migrar leilões: ${auctionsError.message} - Código: ${auctionsError.code} - Detalhes: ${auctionsError.details}`);
       } else {
         result.migratedCounts.auctions = insertedAuctions?.length || 0;
@@ -121,11 +122,11 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
         const biddersToInsert = [];
         for (const auction of localData.auctions) {
           if (auction.arrematante) {
-            console.log('Processando arrematante do leilão:', auction.id, auction.arrematante);
+            logger.debug('Processando arrematante do leilão', { auctionId: auction.id });
             
             // Validar campos obrigatórios do arrematante
             if (!auction.arrematante.nome) {
-              console.warn(`Arrematante inválido no leilão ${auction.id}: nome faltando`);
+              logger.warn('Arrematante inválido: nome faltando', { auctionId: auction.id });
               continue; // Pular este arrematante
             }
             
@@ -142,13 +143,13 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
               arquivado: auction.arquivado || false,
             };
             
-            console.log('Arrematante mapeado:', mappedBidder);
+            logger.debug('Arrematante mapeado', { id: mappedBidder.id });
             biddersToInsert.push(mappedBidder);
           }
         }
 
         if (biddersToInsert.length > 0) {
-          console.log('Enviando arrematantes para Supabase:', biddersToInsert);
+          logger.info('Enviando arrematantes para Supabase', { count: biddersToInsert.length });
           
           const { data: insertedBidders, error: biddersError } = await supabaseClient
             .from('bidders')
@@ -156,7 +157,7 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
             .select();
 
           if (biddersError) {
-            console.error('Erro detalhado ao migrar arrematantes:', biddersError);
+            logger.error('Erro ao migrar arrematantes', { error: biddersError });
             result.errors.push(`Erro ao migrar arrematantes: ${biddersError.message} - Código: ${biddersError.code} - Detalhes: ${biddersError.details}`);
           } else {
             result.migratedCounts.bidders = insertedBidders?.length || 0;
@@ -172,7 +173,7 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
         let validId = lot.id;
         if (!isValidUUID(lot.id)) {
           validId = generateUUID();
-          console.log(`ID de lote inválido convertido: ${lot.id} -> ${validId}`);
+          logger.info('ID de lote inválido convertido', { oldId: lot.id, newId: validId });
         }
         
         // Usar o ID correto do leilão
@@ -182,7 +183,7 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
         let validBidderId = lot.arrematanteId;
         if (lot.arrematanteId && !isValidUUID(lot.arrematanteId)) {
           validBidderId = null; // Remover se inválido
-          console.warn(`ID de arrematante inválido removido do lote: ${lot.arrematanteId}`);
+          logger.warn('ID de arrematante inválido removido do lote', { arrematanteId: lot.arrematanteId });
         }
         
         return {
@@ -216,7 +217,7 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
         let validId = invoice.id;
         if (!isValidUUID(invoice.id)) {
           validId = generateUUID();
-          console.log(`ID de fatura inválido convertido: ${invoice.id} -> ${validId}`);
+          logger.info('ID de fatura inválido convertido', { oldId: invoice.id, newId: validId });
         }
         
         // Usar IDs corretos
@@ -226,14 +227,14 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
         let validLotId = invoice.lotId;
         if (invoice.lotId && !isValidUUID(invoice.lotId)) {
           validLotId = null;
-          console.warn(`ID de lote inválido removido da fatura: ${invoice.lotId}`);
+          logger.warn('ID de lote inválido removido da fatura', { lotId: invoice.lotId });
         }
         
         // Validar bidder_id se existir
         let validBidderId = invoice.arrematanteId;
         if (invoice.arrematanteId && !isValidUUID(invoice.arrematanteId)) {
           validBidderId = null;
-          console.warn(`ID de arrematante inválido removido da fatura: ${invoice.arrematanteId}`);
+          logger.warn('ID de arrematante inválido removido da fatura', { arrematanteId: invoice.arrematanteId });
         }
         
         // Validar status
@@ -303,11 +304,11 @@ export async function checkSupabaseConnection(): Promise<boolean> {
     // Verificar se algum teste falhou
     const hasErrors = tests.some(test => test.error);
     if (hasErrors) {
-      console.error('Erros nos testes de conexão:', tests.map(t => t.error).filter(Boolean));
+      logger.error('Erros nos testes de conexão', { errors: tests.map(t => t.error).filter(Boolean) });
       return false;
     }
     
-    console.log('Conexão Supabase OK - Contadores:', {
+    logger.info('Conexão Supabase OK - Contadores', {
       auctions: tests[0].count,
       bidders: tests[1].count,
       lots: tests[2].count,
@@ -316,7 +317,7 @@ export async function checkSupabaseConnection(): Promise<boolean> {
     
     return true;
   } catch (error) {
-    console.error('Erro na verificação de conexão:', error);
+    logger.error('Erro na verificação de conexão', { error });
     return false;
   }
 }
@@ -331,7 +332,7 @@ export async function migratePaymentSettingsToLots(): Promise<{ success: boolean
   };
 
   try {
-    console.log('Iniciando migração de configurações de pagamento para lotes...');
+    logger.info('Iniciando migração de configurações de pagamento para lotes');
 
     // Buscar todos os leilões que têm configurações de pagamento globais
     const { data: auctionsWithGlobalPayment, error: fetchError } = await supabaseClient
@@ -350,7 +351,7 @@ export async function migratePaymentSettingsToLots(): Promise<{ success: boolean
       return result;
     }
 
-    console.log(`Encontrados ${auctionsWithGlobalPayment.length} leilões com configurações globais de pagamento`);
+    logger.info('Encontrados leilões com configurações globais de pagamento', { count: auctionsWithGlobalPayment.length });
 
     const auctionsToUpdate = [];
 
@@ -358,7 +359,7 @@ export async function migratePaymentSettingsToLots(): Promise<{ success: boolean
       try {
         // Se o leilão não tem lotes, pular
         if (!auction.lotes || !Array.isArray(auction.lotes) || auction.lotes.length === 0) {
-          console.log(`Leilão ${auction.id} não tem lotes, pulando migração.`);
+          logger.debug('Leilão não tem lotes, pulando migração', { auctionId: auction.id });
           continue;
         }
 
@@ -400,10 +401,10 @@ export async function migratePaymentSettingsToLots(): Promise<{ success: boolean
             parcelas_padrao: null,
           });
 
-          console.log(`Preparado para atualizar leilão ${auction.id} com ${updatedLotes.length} lotes`);
+          logger.debug('Preparado para atualizar leilão', { auctionId: auction.id, lotesCount: updatedLotes.length });
         }
       } catch (loteError) {
-        console.error(`Erro ao processar lotes do leilão ${auction.id}:`, loteError);
+        logger.error('Erro ao processar lotes do leilão', { auctionId: auction.id, error: loteError });
         result.errors.push(`Erro ao processar leilão ${auction.id}: ${loteError instanceof Error ? loteError.message : 'Erro desconhecido'}`);
       }
     }
@@ -415,7 +416,7 @@ export async function migratePaymentSettingsToLots(): Promise<{ success: boolean
     }
 
     // Executar atualizações em lotes
-    console.log(`Iniciando atualização de ${auctionsToUpdate.length} leilões...`);
+    logger.info('Iniciando atualização de leilões', { count: auctionsToUpdate.length });
     
     for (const auctionUpdate of auctionsToUpdate) {
       try {
@@ -433,14 +434,14 @@ export async function migratePaymentSettingsToLots(): Promise<{ success: boolean
           .eq('id', auctionUpdate.id);
 
         if (updateError) {
-          console.error(`Erro ao atualizar leilão ${auctionUpdate.id}:`, updateError);
+          logger.error('Erro ao atualizar leilão', { auctionId: auctionUpdate.id, error: updateError });
           result.errors.push(`Erro ao atualizar leilão ${auctionUpdate.id}: ${updateError.message}`);
         } else {
           result.migratedAuctionIds.push(auctionUpdate.id);
-          console.log(`Leilão ${auctionUpdate.id} atualizado com sucesso`);
+          logger.info('Leilão atualizado com sucesso', { auctionId: auctionUpdate.id });
         }
       } catch (individualError) {
-        console.error(`Erro ao processar atualização individual do leilão ${auctionUpdate.id}:`, individualError);
+        logger.error('Erro ao processar atualização individual do leilão', { auctionId: auctionUpdate.id, error: individualError });
         result.errors.push(`Erro individual leilão ${auctionUpdate.id}: ${individualError instanceof Error ? individualError.message : 'Erro desconhecido'}`);
       }
     }
@@ -450,10 +451,13 @@ export async function migratePaymentSettingsToLots(): Promise<{ success: boolean
       ? `Migração concluída com sucesso. ${result.migratedAuctionIds.length} leilões migrados.`
       : 'Migração falhou. Verifique os erros.';
 
-    console.log(`Migração de configurações de pagamento concluída. Sucessos: ${result.migratedAuctionIds.length}, Erros: ${result.errors.length}`);
+    logger.info('Migração de configurações de pagamento concluída', { 
+      sucessos: result.migratedAuctionIds.length, 
+      erros: result.errors.length 
+    });
 
   } catch (error) {
-    console.error('Erro na migração de configurações de pagamento:', error);
+    logger.error('Erro na migração de configurações de pagamento', { error });
     result.errors.push(`Erro geral: ${error instanceof Error ? error.message : 'Erro desconhecido'}`);
     result.message = 'Migração de configurações de pagamento falhou com erro';
     result.success = false;

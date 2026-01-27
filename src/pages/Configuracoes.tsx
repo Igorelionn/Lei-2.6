@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { logger } from "@/lib/logger";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   Settings, 
@@ -286,7 +287,7 @@ export default function Configuracoes() {
         .eq('id', user?.id);
 
       if (error) {
-        console.error('Erro ao salvar no banco:', error);
+        logger.error('Erro ao salvar no banco', { error });
         throw error;
       }
       
@@ -335,7 +336,7 @@ export default function Configuracoes() {
       });
       
     } catch (error) {
-      console.error('Erro no salvamento:', error);
+      logger.error('Erro no salvamento', { error });
       toast({
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar suas configurações.",
@@ -361,7 +362,7 @@ export default function Configuracoes() {
           .single();
 
         if (error) {
-          console.error('Erro ao carregar perfil:', error);
+          logger.error('Erro ao carregar perfil', { error });
           return;
         }
 
@@ -384,7 +385,7 @@ export default function Configuracoes() {
           setOriginalData(profileData);
         }
       } catch (error) {
-        console.error('Erro ao buscar dados do usuário:', error);
+        logger.error('Erro ao buscar dados do usuário', { error });
       }
     };
 
@@ -409,8 +410,8 @@ export default function Configuracoes() {
   // Listener para atualizar automaticamente quando permissões forem alteradas
   useEffect(() => {
     const handlePermissionsUpdate = (event: Event) => {
-      console.log('🔄 Evento de permissões recebido - atualizando lista de usuários');
-      console.log('📋 Detalhes do evento:', (event as CustomEvent).detail);
+      logger.info('Evento de permissões recebido - atualizando lista de usuários');
+      logger.debug('Detalhes do evento', { detail: (event as CustomEvent).detail });
       
       // Recarregar lista de usuários silenciosamente
       loadTeamUsers(false);
@@ -465,7 +466,7 @@ export default function Configuracoes() {
         .single();
 
       if (error || !data) {
-        console.error("Erro ao buscar credenciais:", error);
+        logger.error('Erro ao buscar credenciais', { error });
         toast({
           title: "Erro na consulta",
           description: "Não foi possível verificar as credenciais.",
@@ -493,7 +494,7 @@ export default function Configuracoes() {
         });
 
       if (verifyError) {
-        console.error("Erro na verificação RPC:", verifyError);
+        logger.error('Erro na verificação RPC', { error: verifyError });
         toast({
           title: "Erro na verificação",
           description: "Ocorreu um erro ao verificar a senha. Tente novamente.",
@@ -523,10 +524,10 @@ export default function Configuracoes() {
         description: "Sua senha atual está sendo exibida temporariamente.",
       });
       
-      console.log("Senha verificada com sucesso para o usuário:", user?.name);
+      logger.info('Senha verificada com sucesso', { userName: user?.name });
       
     } catch (error) {
-      console.error("Erro na verificação:", error);
+      logger.error('Erro na verificação', { error });
       toast({
         title: "Erro na verificação",
         description: "Ocorreu um erro ao verificar a senha. Tente novamente.",
@@ -575,13 +576,13 @@ export default function Configuracoes() {
         .range((page - 1) * ACTIVITIES_PER_PAGE, page * ACTIVITIES_PER_PAGE - 1);
 
       if (error) {
-        console.error('Erro ao buscar atividades:', error);
+        logger.error('Erro ao buscar atividades', { error });
         setUserActivities([]);
       } else {
         setUserActivities(data || []);
       }
     } catch (error) {
-      console.error('Erro na consulta de atividades:', error);
+      logger.error('Erro na consulta de atividades', { error });
       setUserActivities([]);
     }
   };
@@ -637,7 +638,7 @@ export default function Configuracoes() {
       setShowClearHistoryModal(false);
 
     } catch (error) {
-      console.error('Erro ao limpar histórico:', error);
+      logger.error('Erro ao limpar histórico', { error });
       toast({
         title: "Erro ao limpar histórico",
         description: "Não foi possível limpar o histórico de atividades.",
@@ -809,7 +810,7 @@ export default function Configuracoes() {
       loadTeamUsers();
 
     } catch (error) {
-      console.error('Erro ao criar usuário:', error);
+      logger.error('Erro ao criar usuário', { error });
       toast({
         title: "Erro ao criar usuário",
         description: "Não foi possível adicionar o novo usuário à equipe.",
@@ -904,7 +905,7 @@ export default function Configuracoes() {
 
       loadTeamUsers(); // Recarregar lista
     } catch (error) {
-      console.error('Erro ao reativar usuário:', error);
+      logger.error('Erro ao reativar usuário', { error });
       toast({
         title: "Erro ao reativar usuário",
         description: "Não foi possível reativar o usuário.",
@@ -1039,7 +1040,7 @@ export default function Configuracoes() {
 
       setShowDeleteModal(false);
     } catch (error) {
-      console.error('Erro ao excluir usuário:', error);
+      logger.error('Erro ao excluir usuário', { error });
       toast({
         title: "Erro ao excluir",
         description: "Não foi possível excluir o usuário completamente.",
@@ -1134,7 +1135,7 @@ export default function Configuracoes() {
         .select();
 
       if (error) {
-        console.error('❌ Erro na atualização do banco:', error);
+        logger.error('Erro na atualização do banco', { error });
         throw error;
       }
 
@@ -1173,8 +1174,8 @@ export default function Configuracoes() {
 
       setShowPromotionModal(false);
     } catch (error) {
-      console.error('❌ Erro completo ao alterar permissões:', error);
-      console.error('❌ Dados do erro:', {
+      logger.error('Erro ao alterar permissões', {
+        error,
         message: error.message,
         details: error.details,
         hint: error.hint,
@@ -1258,7 +1259,7 @@ export default function Configuracoes() {
         .order('registration_date', { ascending: false, nullsFirst: false });
 
       if (error) {
-        console.error('Erro ao carregar equipe:', error);
+        logger.error('Erro ao carregar equipe', { error });
         return;
       }
 
@@ -1303,7 +1304,7 @@ export default function Configuracoes() {
 
       setTeamUsers(sortedData);
     } catch (error) {
-      console.error('Erro na consulta da equipe:', error);
+      logger.error('Erro na consulta da equipe', { error });
     } finally {
       if (showLoading) {
         setLoadingTeam(false);
@@ -1410,7 +1411,7 @@ export default function Configuracoes() {
         .single();
 
       if (error || !data) {
-        console.error("Erro ao buscar credenciais do admin:", error);
+        logger.error('Erro ao buscar credenciais do admin', { error });
         toast({
           title: "Erro na verificação",
           description: "Não foi possível verificar suas credenciais.",
@@ -1427,7 +1428,7 @@ export default function Configuracoes() {
         });
 
       if (verifyError) {
-        console.error("Erro na verificação RPC:", verifyError);
+        logger.error('Erro na verificação RPC', { error: verifyError });
         toast({
           title: "Erro na verificação",
           description: "Ocorreu um erro ao verificar sua senha. Tente novamente.",
@@ -1455,7 +1456,7 @@ export default function Configuracoes() {
       });
 
     } catch (error) {
-      console.error("Erro na verificação:", error);
+      logger.error('Erro na verificação', { error });
       toast({
         title: "Erro na verificação",
         description: "Ocorreu um erro ao verificar sua senha. Tente novamente.",
@@ -1497,7 +1498,7 @@ export default function Configuracoes() {
         .eq('user_id', selectedUserForPasswordChange.id);
 
       if (deleteError) {
-        console.error('Erro ao deletar credenciais antigas:', deleteError);
+        logger.error('Erro ao deletar credenciais antigas', { error: deleteError });
         throw deleteError;
       }
 
@@ -1509,7 +1510,7 @@ export default function Configuracoes() {
         });
 
       if (createError) {
-        console.error('Erro ao criar nova senha:', createError);
+        logger.error('Erro ao criar nova senha', { error: createError });
         throw createError;
       }
 
@@ -1539,7 +1540,7 @@ export default function Configuracoes() {
       setConfirmNewUserPassword("");
 
     } catch (error) {
-      console.error('Erro ao alterar senha:', error);
+      logger.error('Erro ao alterar senha', { error });
       toast({
         title: "Erro ao alterar senha",
         description: "Não foi possível alterar a senha do usuário.",
