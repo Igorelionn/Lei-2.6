@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
@@ -8,13 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import html2pdf from 'html2pdf.js';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Search, Eye, Trash2, Receipt, 
-  Calendar, DollarSign, FileText, Check, X, MoreHorizontal, 
+  MoreHorizontal, 
   Archive, Download, ArrowLeft
 } from "lucide-react";
 import { Invoice, InvoiceStatus, ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
@@ -77,7 +77,7 @@ const normalizarMesInicioPagamento = (mesInicioPagamento: string): string => {
 };
 
 function Faturas() {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { auctions, isLoading } = useSupabaseAuctions();
   const { toast } = useToast();
   
@@ -110,7 +110,7 @@ function Faturas() {
   });
 
   // Função para calcular próxima data de vencimento baseada no sistema de parcelas (DESABILITADA - usando lógica específica por lote)
-  const calculateNextPaymentDate = (arrematante: ArrematanteInfo) => {
+  const _calculateNextPaymentDate = (_arrematante: ArrematanteInfo) => {
     // Esta função foi desabilitada pois agora usamos configurações específicas por lote
     return null;
   };
@@ -1055,7 +1055,7 @@ function Faturas() {
   };
 
 
-  const handleEditFatura = (fatura: FaturaExtendida) => {
+  const _handleEditFatura = (fatura: FaturaExtendida) => {
     setFaturaForm({
       lotId: fatura.lotId,
       auctionId: fatura.auctionId,
@@ -2380,7 +2380,7 @@ function Faturas() {
                           const [ano, mes] = mesNormalizado.split('-');
                           const data = new Date(parseInt(ano), parseInt(mes) - 1);
                           mesInicioTexto = data.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-                        } catch (error) {
+                        } catch (_error) {
                           mesInicioTexto = 'Não definido';
                         }
                       }
@@ -2633,7 +2633,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
       const [ano, mes] = mesInicioParcelas.split('-');
       const data = new Date(parseInt(ano), parseInt(mes) - 1);
       mesInicioTexto = data.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' });
-    } catch (error) {
+    } catch (_error) {
       mesInicioTexto = 'Não definido';
     }
   }
