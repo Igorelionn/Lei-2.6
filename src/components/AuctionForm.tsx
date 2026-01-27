@@ -1,7 +1,9 @@
-﻿import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Auction, AuctionStatus, DocumentoInfo, MercadoriaInfo, LoteInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
+import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 import { calcularValorTotal } from "@/lib/parcelamento-calculator";
 import { ParcelamentoPreview } from "@/components/ParcelamentoPreview";
 import { ProprietarioWizard } from "@/components/ProprietarioWizard";
@@ -74,6 +76,7 @@ export function AuctionForm({
   const [values, setValues] = useState<AuctionFormValues>(initial);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { logDocumentAction } = useActivityLogger();
+  const { toast } = useToast();
   const [newNote, setNewNote] = useState("");
   const [editingMercadoria, setEditingMercadoria] = useState<string | null>(null);
   const [tempMercadoriaNome, setTempMercadoriaNome] = useState("");
@@ -302,7 +305,7 @@ export function AuctionForm({
         
       } catch (error) {
         erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
-        logger.error("❌ Erro ao processar arquivo:", file.name, error);
+        logger.error(`❌ Erro ao processar arquivo ${file.name}:`, error);
       }
     }
 
