@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { parseCurrencyToNumber } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 import { ArrematanteInfo, DocumentoInfo, Auction, LoteInfo } from "@/lib/types";
 import html2pdf from 'html2pdf.js';
 import { parseISO } from 'date-fns';
@@ -127,7 +128,7 @@ function Arrematantes() {
     const parcelasPagas = arrematante.parcelasPagas || 0;
     const loteArrematado = auction?.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
     
-    console.log('🔍 calculateNextPaymentDateEntradaParcelamento:', {
+    logger.debug('calculateNextPaymentDateEntradaParcelamento', {
       arrematante: arrematante.nome,
       parcelasPagas,
       arrematanteDataEntrada: arrematante.dataEntrada,
@@ -143,7 +144,7 @@ function Arrematantes() {
     if (parcelasPagas === 0) {
       // Entrada pendente - mostrar data da entrada (priorizar arrematante)
       const dataEntrada = arrematante.dataEntrada || loteArrematado?.dataEntrada || auction?.dataEntrada;
-      console.log('📅 Data de entrada selecionada:', dataEntrada);
+      logger.debug('Data de entrada selecionada', { dataEntrada });
       return dataEntrada ? new Date(dataEntrada + 'T00:00:00') : null;
     } else {
       // Entrada paga, calcular próxima parcela
@@ -2283,7 +2284,7 @@ function Arrematantes() {
         // Buscar dados atualizados após reload
         const updatedAuction = auctions.find(a => a.id === selectedArrematanteForFullEdit?.leilaoId);
         if (updatedAuction && updatedAuction.arrematante) {
-          console.log('🔄 Dados atualizados encontrados após salvamento (edição completa):', {
+          logger.info('Dados atualizados encontrados após salvamento', {
             documentos: updatedAuction.arrematante.documentos?.length || 0,
             documentosList: updatedAuction.arrematante.documentos?.map(d => ({nome: d.nome, hasUrl: !!d.url})) || []
           });
@@ -2294,14 +2295,14 @@ function Arrematantes() {
             ...updatedAuction.arrematante
           });
         } else {
-          console.warn('⚠️ Dados atualizados não encontrados após salvamento (edição completa)');
+          logger.warn('Dados atualizados não encontrados após salvamento');
         }
         
         // Fechar modal após sincronização
         handleCloseFullEdit();
       }, 1000); // Aguardar 1 segundo para garantir que React Query recarregou
     } catch (error) {
-      console.error('Erro ao salvar edição completa:', error);
+      logger.error('Erro ao salvar edição completa', { error });
     } finally {
       setIsSavingFullEdit(false);
     }
@@ -2316,7 +2317,7 @@ function Arrematantes() {
     const loteArrematado = auction?.lotes?.find(lote => lote.id === arrematante.loteId);
     const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction?.tipoPagamento || "parcelamento";
     
-    console.log('🎯 Tipo de pagamento detectado:', {
+    logger.debug('Tipo de pagamento detectado', {
       tipoPagamento,
       arrematanteTipoPagamento: arrematante.tipoPagamento,
       loteTipoPagamento: loteArrematado?.tipoPagamento,
@@ -2431,11 +2432,11 @@ function Arrematantes() {
         
         // Só permite desmarcar se for a última parcela paga
         if (monthIndex !== ultimaParcelaPaga) {
-          console.warn(`⚠️ Você só pode desmarcar a última parcela paga (índice ${ultimaParcelaPaga})`);
+          logger.warn('Você só pode desmarcar a última parcela paga', { indice: ultimaParcelaPaga });
           return prev; // Não faz nada
         }
         
-        console.log(`✓ Desmarcando última parcela (índice ${monthIndex})`);
+        logger.info('Desmarcando última parcela', { indice: monthIndex });
       }
       
       // Se está marcando (paid = true)
@@ -2444,11 +2445,11 @@ function Arrematantes() {
         const todasAnterioresPagas = prev.slice(0, monthIndex).every(m => m.paid);
         
         if (!todasAnterioresPagas) {
-          console.warn(`⚠️ Você precisa marcar as parcelas anteriores primeiro`);
+          logger.warn('Você precisa marcar as parcelas anteriores primeiro');
           return prev; // Não faz nada
         }
         
-        console.log(`✓ Marcando parcela ${monthIndex}`);
+        logger.info('Marcando parcela', { indice: monthIndex });
       }
       
       // Atualiza a parcela
@@ -2504,7 +2505,7 @@ function Arrematantes() {
       isFullyPaid = paidMonths >= selectedArrematanteForPayment.quantidadeParcelas;
     }
 
-    console.log('💾 Salvando pagamento:', { 
+    logger.info('Salvando pagamento', { 
       tipoPagamento, 
       paidMonths, 
       parcelasPagasValue,
@@ -2563,14 +2564,17 @@ function Arrematantes() {
       
       // Aguardar apenas a atualização (log é em paralelo)
       await updatePromise;
-      logPromise.catch(err => console.error('Erro ao registrar log:', err));
+      logPromise.catch(err => logger.error('Erro ao registrar log', { error: err }));
       
       // 📧 ENVIO DE EMAIL EM SEGUNDO PLANO (não bloqueia o fechamento do modal)
       // Executar em paralelo sem aguardar conclusão
       (async () => {
       if (parcelasPagasValue > oldParcelasPagas && auction.arrematante.email) {
-        console.log(`📧 Enviando emails de confirmação (${oldParcelasPagas + 1} até ${parcelasPagasValue})...`);
-        console.log(`   Tipo de pagamento: ${tipoPagamento}`);
+        logger.info('Enviando emails de confirmação', { 
+          de: oldParcelasPagas + 1, 
+          ate: parcelasPagasValue,
+          tipoPagamento 
+        });
         
         // Função para calcular juros progressivos (EXATAMENTE igual ao modal)
         const calcularJurosProgressivos = (valorOriginal: number, percentualJuros: number, mesesAtraso: number) => {
@@ -2589,7 +2593,7 @@ function Arrematantes() {
         // Enviar email para CADA parcela que foi marcada como paga nesta ação
         for (let numeroParcela = oldParcelasPagas + 1; numeroParcela <= parcelasPagasValue; numeroParcela++) {
           try {
-            console.log(`📧 Processando email para parcela ${numeroParcela}...`);
+            logger.debug('Processando email para parcela', { numeroParcela });
             
             // Calcular valor BASE da parcela (sem juros)
             let valorParcela = auction.arrematante.valorPagarNumerico;
@@ -2624,12 +2628,14 @@ function Arrematantes() {
             const indiceParcela = numeroParcela - 1;
             const parcelaPaga = paymentMonths[indiceParcela];
             
-            console.log(`🔍 Verificando juros para parcela ${numeroParcela}:`);
-            console.log(`   - paymentMonths existe: ${paymentMonths ? 'sim' : 'não'}`);
-            console.log(`   - paymentMonths.length: ${paymentMonths?.length || 0}`);
-            console.log(`   - parcelaPaga encontrada: ${parcelaPaga ? 'sim' : 'não'}`);
-            console.log(`   - dueDate: ${parcelaPaga?.dueDate || 'não definida'}`);
-            console.log(`   - percentualJurosAtraso: ${auction.arrematante.percentualJurosAtraso || 0}%`);
+            logger.debug('Verificando juros para parcela', {
+              numeroParcela,
+              paymentMonthsExiste: !!paymentMonths,
+              paymentMonthsLength: paymentMonths?.length || 0,
+              parcelaPagaEncontrada: !!parcelaPaga,
+              dueDate: parcelaPaga?.dueDate || 'não definida',
+              percentualJurosAtraso: auction.arrematante.percentualJurosAtraso || 0
+            });
             
             if (parcelaPaga && parcelaPaga.dueDate && auction.arrematante.percentualJurosAtraso && auction.arrematante.percentualJurosAtraso > 0) {
               // Converter data de vencimento do formato BR para Date
@@ -2643,53 +2649,59 @@ function Arrematantes() {
                 valorFinalComJuros = calcularJurosProgressivos(valorParcela, auction.arrematante.percentualJurosAtraso, mesesAtraso);
                 const valorJuros = valorFinalComJuros - valorParcela;
                 
-                console.log(`💰 [Parcela ${numeroParcela}] Juros progressivos aplicados:`);
-                console.log(`   - Parcela: ${parcelaPaga.monthName}`);
-                console.log(`   - Data vencimento: ${parcelaPaga.dueDate}`);
-                console.log(`   - Meses de atraso: ${mesesAtraso}`);
-                console.log(`   - Valor base: R$ ${valorParcela.toFixed(2)}`);
-                console.log(`   - Juros: R$ ${valorJuros.toFixed(2)}`);
-                console.log(`   - Valor final: R$ ${valorFinalComJuros.toFixed(2)}`);
+                logger.info('Juros progressivos aplicados', {
+                  numeroParcela,
+                  parcela: parcelaPaga.monthName,
+                  dataVencimento: parcelaPaga.dueDate,
+                  mesesAtraso,
+                  valorBase: valorParcela.toFixed(2),
+                  juros: valorJuros.toFixed(2),
+                  valorFinal: valorFinalComJuros.toFixed(2)
+                });
               } else {
-                console.log(`✓ [Parcela ${numeroParcela}] Paga em dia - sem juros (R$ ${valorParcela.toFixed(2)})`);
+                logger.info('Parcela paga em dia - sem juros', { 
+                  numeroParcela, 
+                  valor: valorParcela.toFixed(2) 
+                });
               }
             }
             
             // Enviar email para esta parcela AGUARDANDO conclusão
             try {
-              console.log(`📧 Enviando email de confirmação para parcela ${numeroParcela} (tipo: ${tipoPagamento})...`);
+              logger.info('Enviando email de confirmação para parcela', { numeroParcela, tipoPagamento });
               const result = await enviarConfirmacao(auction, numeroParcela, valorFinalComJuros);
               
               if (result.success) {
-                console.log(`✅ [Parcela ${numeroParcela}] Email de confirmação enviado com sucesso`);
+                logger.info('Email de confirmação enviado com sucesso', { numeroParcela });
               } else {
-                console.warn(`⚠️ [Parcela ${numeroParcela}] Falha ao enviar email de confirmação: ${result.message}`);
+                logger.warn('Falha ao enviar email de confirmação', { numeroParcela, message: result.message });
               }
             } catch (err) {
-              console.error(`❌ [Parcela ${numeroParcela}] Erro ao enviar email de confirmação:`, err);
+              logger.error('Erro ao enviar email de confirmação', { numeroParcela, error: err });
             }
             
             // Delay de 1 segundo entre emails (obrigatório para evitar sobrecarga)
             if (numeroParcela < parcelasPagasValue) {
-              console.log(`⏳ Aguardando 1 segundo antes da próxima parcela...`);
+              logger.debug('Aguardando 1 segundo antes da próxima parcela');
               await new Promise(resolve => setTimeout(resolve, 1000));
             }
           } catch (error) {
-            console.error(`❌ Erro ao processar email da parcela ${numeroParcela}:`, error);
+            logger.error('Erro ao processar email da parcela', { numeroParcela, error });
           }
         }
         
-        console.log(`✅ Processo de envio de emails iniciado para ${parcelasPagasValue - oldParcelasPagas} parcela(s)`);
+        logger.info('Processo de envio de emails iniciado', { 
+          parcelas: parcelasPagasValue - oldParcelasPagas 
+        });
       }
       
       // 🎉 ENVIAR EMAIL DE QUITAÇÃO se todas as parcelas foram pagas
       if (isFullyPaid && auction.arrematante.email) {
-        console.log(`🎉 Todas as parcelas foram quitadas! Enviando email de quitação...`);
-        console.log(`   Tipo de pagamento: ${tipoPagamento}`);
+        logger.info('Todas as parcelas foram quitadas! Enviando email de quitação', { tipoPagamento });
         
         try {
           // Aguardar 3 segundos após os emails de confirmação para dar tempo de processar
-          console.log(`⏳ Aguardando 3 segundos antes de enviar email de quitação...`);
+          logger.debug('Aguardando 3 segundos antes de enviar email de quitação');
           await new Promise(resolve => setTimeout(resolve, 3000));
           
           // 🔧 CRIAR OBJETO COM VALORES ATUALIZADOS (não usar auction que está desatualizado)
@@ -2699,11 +2711,12 @@ function Arrematantes() {
             pago: true // Usar valor NOVO
           };
           
-          console.log(`🔍 DEBUG - Dados para cálculo de quitação:`);
-          console.log(`   - parcelasPagas: ${arrematanteAtualizado.parcelasPagas}`);
-          console.log(`   - quantidadeParcelas: ${arrematanteAtualizado.quantidadeParcelas}`);
-          console.log(`   - pago: ${arrematanteAtualizado.pago}`);
-          console.log(`   - valorPagarNumerico: R$ ${arrematanteAtualizado.valorPagarNumerico}`);
+          logger.debug('Dados para cálculo de quitação', {
+            parcelasPagas: arrematanteAtualizado.parcelasPagas,
+            quantidadeParcelas: arrematanteAtualizado.quantidadeParcelas,
+            pago: arrematanteAtualizado.pago,
+            valorPagarNumerico: arrematanteAtualizado.valorPagarNumerico
+          });
           
           const arrematanteExtendido: ArrematanteExtendido = {
             ...arrematanteAtualizado,
@@ -2715,7 +2728,9 @@ function Arrematantes() {
           };
           const valorTotalComJuros = calcularValorTotalComJuros(arrematanteExtendido);
           
-          console.log(`💰 Valor total com juros para email de quitação: R$ ${valorTotalComJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}`);
+          logger.info('Valor total com juros para email de quitação', { 
+            valorTotal: valorTotalComJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2 }) 
+          });
           
           // Criar objeto auction atualizado para enviar no email
           const auctionAtualizado = {
@@ -2726,22 +2741,22 @@ function Arrematantes() {
           const result = await enviarQuitacao(auctionAtualizado, valorTotalComJuros);
           
           if (result.success) {
-            console.log(`✅ Email de quitação completa enviado com sucesso para ${auction.arrematante.email}!`);
-            console.log(`   📧 Resumo dos emails enviados:`);
-            console.log(`      1️⃣ Email de Confirmação de Pagamento (parcela ${parcelasPagasValue})`);
-            console.log(`      2️⃣ Email de Comprovante de Quitação`);
+            logger.info('Email de quitação completa enviado com sucesso', { 
+              email: auction.arrematante.email,
+              parcelaFinal: parcelasPagasValue
+            });
           } else {
-            console.warn(`⚠️ Falha ao enviar email de quitação: ${result.message}`);
+            logger.warn('Falha ao enviar email de quitação', { message: result.message });
           }
         } catch (error) {
-          console.error(`❌ Erro ao enviar email de quitação:`, error);
+          logger.error('Erro ao enviar email de quitação', { error });
         }
       }
-      })().catch(err => console.error('Erro no processo de envio de emails:', err));
+      })().catch(err => logger.error('Erro no processo de envio de emails', { error: err }));
       
       // Toast de sucesso removido - notificação silenciosa
     } catch (error) {
-      console.error('Erro ao salvar pagamentos:', error);
+      logger.error('Erro ao salvar pagamentos', { error });
       toast({
         title: "Erro",
         description: "Não foi possível atualizar o pagamento.",
@@ -2766,7 +2781,7 @@ function Arrematantes() {
     try {
       await archiveAuction(arrematante.leilaoId);
     } catch (error) {
-      console.error('Erro ao arquivar:', error);
+      logger.error('Erro ao arquivar', { error });
     }
   };
 
@@ -2774,7 +2789,7 @@ function Arrematantes() {
     try {
       await unarchiveAuction(arrematante.leilaoId);
     } catch (error) {
-      console.error('Erro ao desarquivar:', error);
+      logger.error('Erro ao desarquivar', { error });
     }
   };
 
@@ -2809,7 +2824,10 @@ function Arrematantes() {
       const parcelasPagasAtual = arrematanteNoArray.parcelasPagas || 0;
       const novasParcelas = Math.max(0, parcelasPagasAtual - 1); // Remove apenas 1 parcela
       
-      console.log(`🔄 Desconfirmando última parcela: ${parcelasPagasAtual} → ${novasParcelas}`);
+      logger.info('Desconfirmando última parcela', { 
+        de: parcelasPagasAtual, 
+        para: novasParcelas 
+      });
       
       const updatedArrematante = {
         ...arrematanteNoArray,
@@ -2834,7 +2852,7 @@ function Arrematantes() {
       });
 
     } catch (error) {
-      console.error('Erro ao desconfirmar pagamento:', error);
+      logger.error('Erro ao desconfirmar pagamento', { error });
       toast({
         title: "Erro",
         description: "Não foi possível desconfirmar o pagamento. Por favor, tente novamente.",
@@ -2870,7 +2888,7 @@ function Arrematantes() {
         }
       });
     } catch (error) {
-      console.error('Erro ao excluir arrematante:', error);
+      logger.error('Erro ao excluir arrematante', { error });
     }
   };
 
@@ -3194,7 +3212,7 @@ function Arrematantes() {
                                 
                                 if (now > parcelaDate && arrematante.percentualJurosAtraso) {
                                   const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-                                  console.log('🔍 DEBUG ARREMATANTES - Parcelamento Simples:', {
+                                  logger.debug('Parcelamento Simples', {
                                     arrematanteNome: arrematante.nome,
                                     valorTotal: arrematante.valorPagarNumerico,
                                     quantidadeParcelas,
@@ -4198,7 +4216,7 @@ function Arrematantes() {
                 setIsEditModalOpen(false);
           setSelectedArrematante(null);
               } catch (error) {
-                console.error("Erro ao salvar:", error);
+                logger.error('Erro ao salvar', { error });
                 toast({
                   title: "Erro ao salvar",
                   description: "Não foi possível atualizar o arrematante.",
@@ -5173,7 +5191,7 @@ function Arrematantes() {
                                   onChange={(value) => {
                                     // Aqui você pode implementar a lógica para salvar a data de entrada
                                     // Por enquanto, vamos manter como read-only mostrando a data configurada
-                                    console.log('Data de entrada alterada:', value);
+                                    logger.debug('Data de entrada alterada', { value });
                                   }}
                                   placeholder="dd/mm/aaaa"
                                   disabled={true} // Manter como read-only por enquanto
