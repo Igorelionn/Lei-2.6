@@ -7,6 +7,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useClientPagination } from "@/hooks/use-pagination"; // ⚡ PERFORMANCE: Paginação
 import { Pagination } from "@/components/Pagination"; // ⚡ PERFORMANCE: Componente de paginação
+import { logger } from "@/lib/logger";
 import { AuctionForm, AuctionFormValues, createEmptyAuctionForm } from "@/components/AuctionForm";
 import { AuctionWizard } from "@/components/AuctionWizard";
 import { ArrematanteWizard } from "@/components/ArrematanteWizard";
@@ -98,7 +99,7 @@ function Leiloes() {
   
   // 🔍 LOG: Monitorar mudanças no editingAuction
   useEffect(() => {
-    console.log('🔄 [Leiloes.tsx] editingAuction mudou:', {
+    logger.debug('editingAuction mudou', {
       hasEditingAuction: !!editingAuction,
       auctionId: editingAuction?.id,
       auctionNome: editingAuction?.nome,
@@ -109,7 +110,7 @@ function Leiloes() {
 
   // 🔍 LOG: Monitorar mudanças no initialStep e initialLoteIndex
   useEffect(() => {
-    console.log('🔄 [Leiloes.tsx] initialStep/initialLoteIndex mudaram:', {
+    logger.debug('initialStep/initialLoteIndex mudaram', {
       initialStep,
       initialLoteIndex,
       hasEditingAuction: !!editingAuction
@@ -137,7 +138,7 @@ function Leiloes() {
     if (state?.editAuctionId && auctions) {
       const auction = auctions.find(a => a.id === state.editAuctionId);
       if (auction) {
-        console.log("📍 Abrindo formulário do leilão:", {
+        logger.info('Abrindo formulário do leilão', {
           auctionId: state.editAuctionId,
           loteIndex: state.editLoteIndex,
           step: state.openStep,
@@ -166,7 +167,7 @@ function Leiloes() {
             status: 'disponivel' as const
           };
           
-          console.log("✨ Criando novo lote automaticamente:", novoLote);
+          logger.debug('Criando novo lote automaticamente', novoLote);
           
           // Adicionar o novo lote temporariamente ao auction
           auctionToEdit = {
@@ -178,7 +179,7 @@ function Leiloes() {
           loteIndexToOpen = (auctionToEdit.lotes?.length || 1) - 1;
         }
         
-        console.log('✨ [Leiloes.tsx] Setando editingAuction (navigation state):', {
+        logger.debug('Setando editingAuction (navigation state)', {
           auctionId: auctionToEdit.id,
           auctionNome: auctionToEdit.nome,
           stepToOpen,
@@ -226,7 +227,7 @@ function Leiloes() {
           });
         }
       } else {
-        console.log(`ℹ️ Evento ignorado - não corresponde ao arrematante atual ou modal não está aberto`);
+        logger.debug('Evento ignorado - não corresponde ao arrematante atual ou modal não está aberto');
       }
     };
 
@@ -244,7 +245,7 @@ function Leiloes() {
     const handleGlobalAuctionFormChanged = (event: CustomEvent) => {
       const { auctionId, changedField, newValue } = event.detail;
       
-      console.log(`🌐 GLOBAL - Evento auctionFormChanged capturado:`, {
+      logger.debug('Evento auctionFormChanged capturado', {
         auctionId,
         changedField,
         newValue,
@@ -262,7 +263,7 @@ function Leiloes() {
         
         const arrematanteField = fieldMapping[changedField as keyof typeof fieldMapping];
         if (arrematanteField) {
-          console.log(`🌐 GLOBAL - Sincronizando ${arrematanteField} = ${newValue}`);
+          logger.debug('Sincronizando campo arrematante', { field: arrematanteField, value: newValue });
           
           setArrematanteForm(prev => ({
             ...prev,
@@ -913,7 +914,7 @@ function Leiloes() {
       const leilaoAtualizado = auctions.find(a => a.id === addingArrematanteFor.id);
       if (leilaoAtualizado) {
         setAddingArrematanteFor(leilaoAtualizado);
-        console.log('✅ Estado sincronizado - Arrematantes atuais:', leilaoAtualizado.arrematantes?.length || 0);
+        logger.debug('Estado sincronizado', { arrematantesCount: leilaoAtualizado.arrematantes?.length || 0 });
       }
 
       // Log da criação/edição do arrematante
@@ -936,7 +937,7 @@ function Leiloes() {
         }
       );
     } catch (error) {
-      console.error('Erro ao salvar arrematante:', error);
+      logger.error('Erro ao salvar arrematante', { error });
       toast({
         title: "Erro ao salvar",
         description: "Ocorreu um erro ao salvar as alterações. Tente novamente.",
@@ -1035,7 +1036,7 @@ function Leiloes() {
       const lotesAnfitriao = (values.lotes || []).filter(l => !l.isConvidado);
       const lotesConvidados = (values.lotes || []).filter(l => l.isConvidado);
       
-      console.log('📊 Separação de lotes:', {
+      logger.debug('Separação de lotes', {
         total: values.lotes?.length || 0,
         anfitriao: lotesAnfitriao.length,
         convidados: lotesConvidados.length
@@ -1052,15 +1053,15 @@ function Leiloes() {
       
       // ✅ Criar lotes de convidados separadamente na tabela guest_lots
       if (lotesConvidados.length > 0) {
-        console.log('🎯 Processando lotes de convidados:', lotesConvidados.length);
+        logger.info('Processando lotes de convidados', { count: lotesConvidados.length });
         
         // Filtrar apenas lotes que ainda não foram salvos como guest_lots
         const lotesNovos = lotesConvidados.filter(l => !l.guestLotId);
-        console.log('📝 Lotes novos para criar:', lotesNovos.length);
+        logger.info('Lotes novos para criar', { count: lotesNovos.length });
         
         for (const loteConvidado of lotesNovos) {
           try {
-            console.log('📝 Criando lote de convidado:', loteConvidado.numero);
+            logger.debug('Criando lote de convidado', { numero: loteConvidado.numero });
             
             // Criar o lote de convidado no Supabase
             // Nota: guest_lots table não está no database.types.ts gerado
@@ -1084,11 +1085,11 @@ function Leiloes() {
               .single();
             
             if (guestLotError) {
-              console.error('❌ Erro ao criar lote de convidado:', guestLotError);
+              logger.error('Erro ao criar lote de convidado', { error: guestLotError });
               throw guestLotError;
             }
             
-            console.log('✅ Lote de convidado criado:', guestLot.id);
+            logger.info('Lote de convidado criado', { id: guestLot.id });
             
             // Atualizar o lote no array values.lotes com o guestLotId
             // Isso será refletido no próximo save
@@ -1110,15 +1111,15 @@ function Leiloes() {
                 .insert(mercadoriasParaInserir);
               
               if (mercadoriaError) {
-                console.error('❌ Erro ao criar mercadorias:', mercadoriaError);
+                logger.error('Erro ao criar mercadorias', { error: mercadoriaError });
               } else {
-                console.log(`✅ ${mercadoriasParaInserir.length} mercadorias criadas`);
+                logger.info('Mercadorias criadas', { count: mercadoriasParaInserir.length });
               }
             }
             
-            console.log(`✅ Lote de convidado ${loteConvidado.numero} criado com sucesso`);
+            logger.info('Lote de convidado criado com sucesso', { numero: loteConvidado.numero });
           } catch (error) {
-            console.error(`❌ Erro ao criar lote de convidado ${loteConvidado.numero}:`, error);
+            logger.error('Erro ao criar lote de convidado', { numero: loteConvidado.numero, error });
             toast({
               title: "Aviso",
               description: `Não foi possível criar o lote de convidado ${loteConvidado.numero}. Você pode criá-lo manualmente depois.`,
@@ -1146,7 +1147,7 @@ function Leiloes() {
       
       setIsCreateModalOpen(false);
     } catch (error) {
-      console.error("Erro ao criar leilão:", error);
+      logger.error('Erro ao criar leilão', { error });
       toast({
         title: "Erro ao criar",
         description: "Não foi possível criar o leilão.",
@@ -1162,7 +1163,7 @@ function Leiloes() {
     setIsRefreshing(true);
     
     try {
-      console.log('🔄 [Leiloes.tsx] Iniciando atualização do leilão:', editingAuction.id);
+      logger.info('Iniciando atualização do leilão', { id: editingAuction.id });
       const auctionId = editingAuction.id;
       
       // ✅ Detectar lotes que mudaram de Convidado → Anfitrião
@@ -1180,13 +1181,13 @@ function Leiloes() {
         return loteOriginal?.isConvidado && !loteAtual.isConvidado && loteOriginal.guestLotId;
       });
       
-      console.log('🔄 Lotes mudados para Anfitrião:', lotesMudadosParaAnfitriao.length);
+      logger.info('Lotes mudados para Anfitrião', { count: lotesMudadosParaAnfitriao.length });
       
       // Deletar esses lotes da tabela guest_lots
       for (const lote of lotesMudadosParaAnfitriao) {
         if (lote.guestLotId) {
           try {
-            console.log(`🗑️ Deletando lote convidado #${lote.numero} (guestLotId: ${lote.guestLotId})`);
+            logger.info('Deletando lote convidado', { numero: lote.numero, guestLotId: lote.guestLotId });
             
             // Primeiro, deletar arrematantes vinculados a este lote
             const { error: biddersError } = await supabase
@@ -1195,9 +1196,9 @@ function Leiloes() {
               .eq('guest_lot_id', lote.guestLotId);
             
             if (biddersError) {
-              console.error('❌ Erro ao deletar arrematantes do lote:', biddersError);
+              logger.error('Erro ao deletar arrematantes do lote', { error: biddersError });
             } else {
-              console.log(`✅ Arrematantes do lote #${lote.numero} deletados`);
+              logger.info('Arrematantes do lote deletados', { numero: lote.numero });
             }
             
             // Depois, deletar o lote convidado
@@ -1208,15 +1209,15 @@ function Leiloes() {
               .eq('id', lote.guestLotId);
             
             if (deleteError) {
-              console.error('❌ Erro ao deletar lote convidado:', deleteError);
+              logger.error('Erro ao deletar lote convidado', { error: deleteError });
             } else {
-              console.log(`✅ Lote convidado #${lote.numero} deletado com sucesso`);
+              logger.info('Lote convidado deletado com sucesso', { numero: lote.numero });
               // Remover o guestLotId do lote
               delete lote.guestLotId;
               delete lote.isConvidado;
             }
           } catch (error) {
-            console.error(`❌ Erro ao processar deleção do lote ${lote.numero}:`, error);
+            logger.error('Erro ao processar deleção do lote', { numero: lote.numero, error });
           }
         }
       }
@@ -1225,7 +1226,7 @@ function Leiloes() {
       const lotesAnfitriao = (values.lotes || []).filter(l => !l.isConvidado);
       const lotesConvidados = (values.lotes || []).filter(l => l.isConvidado);
       
-      console.log('📊 Separação de lotes na edição:', {
+      logger.debug('Separação de lotes na edição', {
         total: values.lotes?.length || 0,
         anfitriao: lotesAnfitriao.length,
         convidados: lotesConvidados.length,
@@ -1241,19 +1242,19 @@ function Leiloes() {
       
       // Salvar no banco de dados
       const updated = await updateAuction({ id: auctionId, data: valuesParaLeilao });
-      console.log('✅ [Leiloes.tsx] Leilão atualizado no banco:', updated);
+      logger.info('Leilão atualizado no banco', { id: updated?.id });
       
       // ✅ Processar lotes de convidados (criar apenas novos)
       if (lotesConvidados.length > 0) {
-        console.log('🎯 Processando lotes de convidados:', lotesConvidados.length);
+        logger.info('Processando lotes de convidados', { count: lotesConvidados.length });
         
         // Filtrar apenas lotes que ainda não foram salvos como guest_lots
         const lotesNovos = lotesConvidados.filter(l => !l.guestLotId);
-        console.log('📝 Lotes novos para criar:', lotesNovos.length);
+        logger.info('Lotes novos para criar', { count: lotesNovos.length });
         
         for (const loteConvidado of lotesNovos) {
           try {
-            console.log('📝 Criando lote de convidado:', loteConvidado.numero);
+            logger.debug('Criando lote de convidado', { numero: loteConvidado.numero });
             
             // Criar o lote de convidado no Supabase
             // Nota: guest_lots table não está no database.types.ts gerado
@@ -1277,11 +1278,11 @@ function Leiloes() {
               .single();
             
             if (guestLotError) {
-              console.error('❌ Erro ao criar lote de convidado:', guestLotError);
+              logger.error('Erro ao criar lote de convidado', { error: guestLotError });
               throw guestLotError;
             }
             
-            console.log('✅ Lote de convidado criado:', guestLot.id);
+            logger.info('Lote de convidado criado', { id: guestLot.id });
             
             // Atualizar o lote no array values.lotes com o guestLotId
             loteConvidado.guestLotId = guestLot.id;
@@ -1302,15 +1303,15 @@ function Leiloes() {
                 .insert(mercadoriasParaInserir);
               
               if (mercadoriaError) {
-                console.error('❌ Erro ao criar mercadorias:', mercadoriaError);
+                logger.error('Erro ao criar mercadorias', { error: mercadoriaError });
               } else {
-                console.log(`✅ ${mercadoriasParaInserir.length} mercadorias criadas`);
+                logger.info('Mercadorias criadas', { count: mercadoriasParaInserir.length });
               }
             }
             
-            console.log(`✅ Lote de convidado ${loteConvidado.numero} criado com sucesso`);
+            logger.info('Lote de convidado criado com sucesso', { numero: loteConvidado.numero });
           } catch (error) {
-            console.error(`❌ Erro ao criar lote de convidado ${loteConvidado.numero}:`, error);
+            logger.error('Erro ao criar lote de convidado', { numero: loteConvidado.numero, error });
           }
         }
         
@@ -1334,22 +1335,22 @@ function Leiloes() {
         }
       });
       
-      console.log('✅ [Leiloes.tsx] Atualização completa! Fechando modal...');
+      logger.info('Atualização completa! Fechando modal');
       
       // Desativar estado de carregamento
       setIsRefreshing(false);
       
       // Fechar modal e limpar estado
-      console.log('✨ [Leiloes.tsx] handleEditAuction - Limpando editingAuction após salvar');
+      logger.debug('handleEditAuction - Limpando editingAuction após salvar');
       setEditingAuction(null);
       setIsFormBeingEdited(false);
       setAuctionFormChanges({});
       
       // Forçar reload da página para garantir que todos os dados sejam atualizados
-      console.log('🔄 [Leiloes.tsx] Recarregando página...');
+      logger.debug('Recarregando página');
       window.location.reload();
     } catch (error) {
-      console.error("❌ [Leiloes.tsx] Erro ao atualizar leilão:", error);
+      logger.error('Erro ao atualizar leilão', { error });
       
       // Desativar estado de carregamento
       setIsRefreshing(false);
@@ -1422,7 +1423,7 @@ function Leiloes() {
 
   // Função para cancelar edição e limpar estado
   const handleCancelEdit = () => {
-    console.log('❌ [Leiloes.tsx] handleCancelEdit - Limpando editingAuction');
+    logger.debug('handleCancelEdit - Limpando editingAuction');
     setEditingAuction(null);
     setIsFormBeingEdited(false);
     setAuctionFormChanges({}); // Limpar mudanças ao cancelar
@@ -1430,7 +1431,7 @@ function Leiloes() {
 
   // Função para iniciar edição de leilão
   const startEditingAuction = (auction: Auction) => {
-    console.log('✏️ [Leiloes.tsx] startEditingAuction chamado:', {
+    logger.debug('startEditingAuction chamado', {
       auctionId: auction.id,
       auctionNome: auction.nome,
       auctionIdentificacao: auction.identificacao
@@ -1514,7 +1515,7 @@ function Leiloes() {
       });
       
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logger.error('Erro ao gerar PDF', { error });
       toast({
         title: "Erro ao Gerar PDF",
         description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
@@ -1577,7 +1578,7 @@ function Leiloes() {
       
       setIsExportModalOpen(false);
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logger.error('Erro ao gerar PDF', { error });
       toast({
         title: "Erro ao Gerar PDF",
         description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
@@ -1590,7 +1591,7 @@ function Leiloes() {
     try {
       const auction = auctions.find(a => a.id === id);
       if (auction) {
-        console.log('🗑️ Deletando leilão e seus lotes convidados:', id);
+        logger.info('Deletando leilão e seus lotes convidados', { id });
         
         // ✅ PASSO 1: Deletar lotes convidados associados ao leilão
         try {
@@ -1605,9 +1606,9 @@ function Leiloes() {
           const fetchError = fetchResult.error;
           
           if (fetchError) {
-            console.error('❌ Erro ao buscar lotes convidados:', fetchError);
+            logger.error('Erro ao buscar lotes convidados', { error: fetchError });
           } else if (guestLots && guestLots.length > 0) {
-            console.log(`🗑️ Encontrados ${guestLots.length} lote(s) convidado(s) para deletar:`, guestLots.map(l => l.numero));
+            logger.info('Encontrados lotes convidados para deletar', { count: guestLots.length, numeros: guestLots.map(l => l.numero) });
             
             // Deletar arrematantes de todos os lotes convidados associados
             for (const guestLot of guestLots) {
@@ -1618,9 +1619,9 @@ function Leiloes() {
                 .eq('guest_lot_id', guestLot.id);
               
               if (biddersDeleteResult.error) {
-                console.error(`❌ Erro ao deletar arrematantes do lote ${guestLot.numero}:`, biddersDeleteResult.error);
+                logger.error('Erro ao deletar arrematantes do lote', { numero: guestLot.numero, error: biddersDeleteResult.error });
               } else {
-                console.log(`✅ Arrematantes do lote ${guestLot.numero} deletados`);
+                logger.info('Arrematantes do lote deletados', { numero: guestLot.numero });
               }
             }
             
@@ -1634,15 +1635,15 @@ function Leiloes() {
             const deleteError = deleteResult.error;
             
             if (deleteError) {
-              console.error('❌ Erro ao deletar lotes convidados:', deleteError);
+              logger.error('Erro ao deletar lotes convidados', { error: deleteError });
             } else {
-              console.log(`✅ ${guestLots.length} lote(s) convidado(s) deletado(s) com sucesso`);
+              logger.info('Lotes convidados deletados com sucesso', { count: guestLots.length });
             }
           } else {
-            console.log('ℹ️ Nenhum lote convidado associado a este leilão');
+            logger.debug('Nenhum lote convidado associado a este leilão');
           }
         } catch (error) {
-          console.error('❌ Erro ao processar lotes convidados:', error);
+          logger.error('Erro ao processar lotes convidados', { error });
           // Continuar com a exclusão do leilão mesmo se houver erro
         }
         
@@ -1654,12 +1655,12 @@ function Leiloes() {
             .eq('auction_id', id);
           
           if (auctionBiddersError) {
-            console.error('❌ Erro ao deletar arrematantes do leilão:', auctionBiddersError);
+            logger.error('Erro ao deletar arrematantes do leilão', { error: auctionBiddersError });
           } else {
-            console.log('✅ Arrematantes do leilão deletados');
+            logger.info('Arrematantes do leilão deletados');
           }
         } catch (error) {
-          console.error('❌ Erro ao processar arrematantes do leilão:', error);
+          logger.error('Erro ao processar arrematantes do leilão', { error });
         }
         
         // ✅ PASSO 3: Deletar o leilão
@@ -1681,7 +1682,7 @@ function Leiloes() {
         });
       }
     } catch (error) {
-      console.error("Erro ao excluir leilão:", error);
+      logger.error('Erro ao excluir leilão', { error });
       toast({
         title: "Erro ao excluir leilão",
         description: "Não foi possível excluir o leilão. Tente novamente.",
@@ -1711,7 +1712,7 @@ function Leiloes() {
         });
       }
     } catch (error) {
-      console.error("Erro ao arquivar leilão:", error);
+      logger.error('Erro ao arquivar leilão', { error });
       toast({
         title: "Erro ao arquivar leilão",
         description: "Não foi possível arquivar o leilão. Tente novamente.",
@@ -1741,7 +1742,7 @@ function Leiloes() {
         });
       }
     } catch (error) {
-      console.error("Erro ao desarquivar leilão:", error);
+      logger.error('Erro ao desarquivar leilão', { error });
       toast({
         title: "Erro ao desarquivar leilão",
         description: "Não foi possível desarquivar o leilão. Tente novamente.",
@@ -1769,7 +1770,7 @@ function Leiloes() {
         description: `O leilão "${auction.nome}" foi duplicado com sucesso.`,
       });
     } catch (error) {
-      console.error("Erro ao duplicar leilão:", error);
+      logger.error('Erro ao duplicar leilão', { error });
       toast({
         title: "Erro ao duplicar leilão",
         description: "Não foi possível duplicar o leilão. Tente novamente.",
@@ -2437,7 +2438,7 @@ function Leiloes() {
                 arquivado: editingAuction.arquivado || false
             };
 
-            console.log('🏗️ [Leiloes.tsx] Renderizando AuctionWizard de Edição:', {
+            logger.debug('Renderizando AuctionWizard de Edição', {
               hasEditingAuction: !!editingAuction,
               editingAuctionId: editingAuction?.id,
               editingAuctionNome: editingAuction?.nome,
@@ -2604,7 +2605,7 @@ function Leiloes() {
         const hasArrematantes = (addingArrematanteFor.arrematantes?.length || 0) >= 1;
         const isNewArrematante = editingArrematanteId === '__NEW__' || (editingArrematanteId === null && !hasArrematantes);
         
-        console.log('📝 [Leiloes.tsx] Abrindo wizard:', {
+        logger.debug('Abrindo wizard', {
           editingArrematanteId,
           qtdArrematantes: addingArrematanteFor.arrematantes?.length,
           hasArrematantes: hasArrematantes,
@@ -2668,13 +2669,13 @@ function Leiloes() {
                       .eq('id', lote.guestLotId);
                     
                     if (guestLotError) {
-                      console.error('Erro ao atualizar status do lote de convidado:', guestLotError);
+                      logger.error('Erro ao atualizar status do lote de convidado', { error: guestLotError });
                     } else {
-                      console.log('✅ Status do lote de convidado atualizado para "disponível"');
+                      logger.info('Status do lote de convidado atualizado para disponível');
                       await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
                     }
                   } catch (error) {
-                    console.error('Erro ao atualizar lote de convidado:', error);
+                    logger.error('Erro ao atualizar lote de convidado', { error });
                   }
                 }
               }
@@ -2698,7 +2699,7 @@ function Leiloes() {
                 description: `${arrematanteRemovido?.nome || 'Arrematante'} foi excluído com sucesso.`,
               });
             } catch (error) {
-              console.error('Erro ao excluir arrematante:', error);
+              logger.error('Erro ao excluir arrematante', { error });
               toast({
                 title: "Erro ao excluir",
                 description: "Não foi possível excluir o arrematante.",
@@ -2780,7 +2781,7 @@ function Leiloes() {
               // ✅ ATUALIZAR STATUS DO LOTE DE CONVIDADO ANTIGO (se o lote foi alterado)
               if (isEditing && loteAntigoId && loteAntigoId !== data.loteId) {
                 const loteAntigo = (addingArrematanteFor.lotes || []).find(l => l.id === loteAntigoId);
-                console.log('🔍 [Leiloes.tsx] Verificando lote antigo:', { loteAntigoId, loteAntigo, guestLotId: loteAntigo?.guestLotId });
+                logger.debug('Verificando lote antigo', { loteAntigoId, loteAntigo, guestLotId: loteAntigo?.guestLotId });
                 
                 // Verificar se ainda há outros arrematantes para o lote antigo
                 const outrosArrematantesDoLoteAntigo = arrematantesAtualizados.filter(a => a.loteId === loteAntigoId);
@@ -2794,16 +2795,16 @@ function Leiloes() {
                         .eq('id', loteAntigo.guestLotId);
                       
                       if (guestLotError) {
-                        console.error('Erro ao atualizar status do lote de convidado antigo:', guestLotError);
+                        logger.error('Erro ao atualizar status do lote de convidado antigo', { error: guestLotError });
                       } else {
-                        console.log('✅ Status do lote de convidado antigo atualizado para "disponível"');
+                        logger.info('Status do lote de convidado antigo atualizado para disponível');
                       }
                     } catch (error) {
-                      console.error('Erro ao atualizar lote de convidado antigo:', error);
+                      logger.error('Erro ao atualizar lote de convidado antigo', { error });
                     }
                   } else if (loteAntigo && loteAntigo.isConvidado && !loteAntigo.guestLotId) {
                     // 🔧 Lote antigo é convidado mas sem guestLotId - tentar encontrar pelo número
-                    console.log('🔧 [Leiloes.tsx] Lote antigo é convidado mas sem guestLotId, buscando pelo número...');
+                    logger.debug('Lote antigo é convidado mas sem guestLotId, buscando pelo número');
                     const { data: guestLots } = await supabase
                       .from('guest_lots')
                       .select('id')
@@ -2813,7 +2814,7 @@ function Leiloes() {
                     
                     if (guestLots && guestLots.length > 0) {
                       const guestLotId = guestLots[0].id;
-                      console.log('✅ [Leiloes.tsx] Lote de convidado antigo encontrado pelo número:', guestLotId);
+                      logger.info('Lote de convidado antigo encontrado pelo número', { guestLotId });
                       
                       const { error: guestLotError } = await supabase
                         .from('guest_lots')
@@ -2821,7 +2822,7 @@ function Leiloes() {
                         .eq('id', guestLotId);
                       
                       if (!guestLotError) {
-                        console.log('✅ Status do lote de convidado antigo atualizado para "disponível" (via número)');
+                        logger.info('Status do lote de convidado antigo atualizado para disponível (via número)');
                       }
                     }
                   }
@@ -2830,7 +2831,7 @@ function Leiloes() {
               
               // ✅ ATUALIZAR STATUS DO NOVO LOTE DE CONVIDADO (se aplicável)
               const loteArrematado = (addingArrematanteFor.lotes || []).find(l => l.id === data.loteId);
-              console.log('🔍 [Leiloes.tsx] Verificando novo lote:', { 
+              logger.debug('Verificando novo lote', { 
                 loteId: data.loteId, 
                 loteArrematado, 
                 guestLotId: loteArrematado?.guestLotId,
@@ -2845,18 +2846,18 @@ function Leiloes() {
                     .eq('id', loteArrematado.guestLotId);
                   
                   if (guestLotError) {
-                    console.error('Erro ao atualizar status do lote de convidado:', guestLotError);
+                    logger.error('Erro ao atualizar status do lote de convidado', { error: guestLotError });
                   } else {
-                    console.log('✅ Status do lote de convidado atualizado para "arrematado"');
+                    logger.info('Status do lote de convidado atualizado para arrematado');
                     // Invalidar cache dos lotes de convidados
                     await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
                   }
                 } catch (error) {
-                  console.error('Erro ao atualizar lote de convidado:', error);
+                  logger.error('Erro ao atualizar lote de convidado', { error });
                 }
               } else if (loteArrematado && !loteArrematado.guestLotId) {
                 // 🔍 Se não temos guestLotId no objeto, tentar buscar diretamente do banco
-                console.log('⚠️ [Leiloes.tsx] guestLotId não encontrado no objeto do lote, buscando no banco...');
+                logger.warn('guestLotId não encontrado no objeto do lote, buscando no banco');
                 try {
                   // Buscar o lote no banco para verificar se tem guestLotId
                   const { data: auctionData, error: fetchError } = await supabase
@@ -2867,7 +2868,7 @@ function Leiloes() {
                   
                   if (!fetchError && auctionData && auctionData.lotes) {
                     const loteNoBanco = (auctionData.lotes as unknown as LoteInfo[]).find(l => l.id === data.loteId);
-                    console.log('🔍 [Leiloes.tsx] Lote encontrado no banco:', { 
+                    logger.debug('Lote encontrado no banco', { 
                       loteNoBanco, 
                       id: loteNoBanco?.id, 
                       numero: loteNoBanco?.numero,
@@ -2877,21 +2878,21 @@ function Leiloes() {
                     });
                     
                     if (loteNoBanco && loteNoBanco.guestLotId) {
-                      console.log('🚀 [Leiloes.tsx] Atualizando guest_lots com ID:', loteNoBanco.guestLotId);
+                      logger.debug('Atualizando guest_lots com ID', { guestLotId: loteNoBanco.guestLotId });
                       const { error: guestLotError } = await supabase
                         .from('guest_lots')
                         .update({ status: 'arrematado' })
                         .eq('id', loteNoBanco.guestLotId);
                       
                       if (guestLotError) {
-                        console.error('❌ Erro ao atualizar status do lote de convidado:', guestLotError);
+                        logger.error('Erro ao atualizar status do lote de convidado', { error: guestLotError });
                       } else {
-                        console.log('✅ Status do lote de convidado atualizado para "arrematado" (via banco)');
+                        logger.info('Status do lote de convidado atualizado para arrematado (via banco)');
                         await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
                       }
                     } else if (loteNoBanco && loteNoBanco.isConvidado) {
                       // 🔧 Lote marcado como convidado mas sem guestLotId - tentar encontrar pelo número
-                      console.log('🔧 [Leiloes.tsx] Lote é convidado mas sem guestLotId, buscando pelo número...');
+                      logger.debug('Lote é convidado mas sem guestLotId, buscando pelo número');
                       const { data: guestLots } = await supabase
                         .from('guest_lots')
                         .select('id')
@@ -2901,7 +2902,7 @@ function Leiloes() {
                       
                       if (guestLots && guestLots.length > 0) {
                         const guestLotId = guestLots[0].id;
-                        console.log('✅ [Leiloes.tsx] Lote de convidado encontrado pelo número:', guestLotId);
+                        logger.info('Lote de convidado encontrado pelo número', { guestLotId });
                         
                         // Atualizar o status do lote de convidado
                         const { error: guestLotError } = await supabase
@@ -2910,7 +2911,7 @@ function Leiloes() {
                           .eq('id', guestLotId);
                         
                         if (!guestLotError) {
-                          console.log('✅ Status do lote de convidado atualizado para "arrematado" (via número)');
+                          logger.info('Status do lote de convidado atualizado para arrematado (via número)');
                           
                           // 🔧 IMPORTANTE: Atualizar o array de lotes para incluir o guestLotId
                           const lotesAtualizadosComId = (auctionData.lotes as unknown as LoteInfo[]).map(l =>
@@ -2922,21 +2923,21 @@ function Leiloes() {
                             .update({ lotes: JSON.parse(JSON.stringify(lotesAtualizadosComId)) })
                             .eq('id', addingArrematanteFor.id);
                           
-                          console.log('✅ guestLotId adicionado ao array de lotes');
+                          logger.debug('guestLotId adicionado ao array de lotes');
                           await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
                           await queryClient.invalidateQueries({ queryKey: ['auctions'] });
                         }
                       } else {
-                        console.warn('⚠️ [Leiloes.tsx] Nenhum lote de convidado encontrado com este número');
+                        logger.warn('Nenhum lote de convidado encontrado com este número');
                       }
                     } else {
-                      console.warn('⚠️ [Leiloes.tsx] Lote não é um lote de convidado ou guestLotId não encontrado no banco');
+                      logger.warn('Lote não é um lote de convidado ou guestLotId não encontrado no banco');
                     }
                   } else {
-                    console.error('❌ [Leiloes.tsx] Erro ao buscar lote no banco:', fetchError);
+                    logger.error('Erro ao buscar lote no banco', { error: fetchError });
                   }
                 } catch (error) {
-                  console.error('Erro ao buscar lote no banco:', error);
+                  logger.error('Erro ao buscar lote no banco', { error });
                 }
               }
               
@@ -2976,7 +2977,7 @@ function Leiloes() {
                 }
               );
             } catch (error) {
-              console.error('Erro ao salvar arrematante:', error);
+              logger.error('Erro ao salvar arrematante', { error });
               
               // ✅ Tratamento de erros
               const errorObj = error as { code?: string; message?: string };
