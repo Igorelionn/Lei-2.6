@@ -1497,7 +1497,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                   <SelectContent position="popper" sideOffset={5} className="bg-white z-[100000]">
                     {sponsorItems
                       .filter(s => s.formaPagamento === 'parcelamento' || s.formaPagamento === 'entrada_parcelamento')
-                      .map((sponsor, index) => {
+                      .map((sponsor, _index) => {
                         const originalIndex = sponsorItems.indexOf(sponsor);
                         return (
                           <SelectItem key={sponsor.id} value={originalIndex.toString()}>
@@ -1596,7 +1596,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                   <SelectContent position="popper" sideOffset={5} className="bg-white z-[100000]">
                     {sponsorItems
                       .filter(s => s.formaPagamento === 'parcelamento' || s.formaPagamento === 'entrada_parcelamento')
-                      .map((sponsor, index) => {
+                      .map((sponsor, _index) => {
                         const originalIndex = sponsorItems.indexOf(sponsor);
                         return (
                           <SelectItem key={sponsor.id} value={originalIndex.toString()}>
