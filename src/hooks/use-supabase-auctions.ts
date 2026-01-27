@@ -408,8 +408,8 @@ export function useSupabaseAuctions() {
           return mappedBidder;
           });
           
-          // Ordenar por data de criação (mais recente primeiro)
-          mappedAuction.arrematantes.sort((a, b) => {
+          // Ordenar por data de criação (mais recente primeiro) - usando spread para não mutar
+          mappedAuction.arrematantes = [...mappedAuction.arrematantes].sort((a, b) => {
             if (!a.created_at || !b.created_at) return 0;
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           });
@@ -1318,8 +1318,8 @@ export function useSupabaseAuctions() {
           };
           });
           
-          // Ordenar por data de criação (mais recente primeiro)
-          mappedAuction.arrematantes.sort((a, b) => {
+          // Ordenar por data de criação (mais recente primeiro) - usando spread para não mutar
+          mappedAuction.arrematantes = [...mappedAuction.arrematantes].sort((a, b) => {
             if (!a.created_at || !b.created_at) return 0;
             return new Date(b.created_at).getTime() - new Date(a.created_at).getTime();
           });

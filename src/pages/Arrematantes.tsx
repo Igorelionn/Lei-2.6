@@ -721,7 +721,7 @@ function Arrematantes() {
       }
     }
     
-    return result.sort((a, b) => {
+    return [...result].sort((a, b) => {
         const today = new Date();
         
         // Calcular próximas datas de pagamento para comparação
