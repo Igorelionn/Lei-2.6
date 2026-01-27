@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -332,8 +333,8 @@ function Relatorios() {
 
   // Função para gerar PDF de todos os leilões - usando o mesmo método que funciona
   const generateLeiloesReport = async () => {
-    console.log('🔍 Iniciando geração do relatório de leilões...');
-    console.log('📊 Leilões disponíveis:', auctions?.length);
+    logger.debug('🔍 Iniciando geração do relatório de leilões...');
+    logger.debug('📊 Leilões disponíveis:', auctions?.length);
 
     if (!auctions || auctions.length === 0) {
       toast({
@@ -349,7 +350,7 @@ function Relatorios() {
       
       // Filtrar apenas leilões não arquivados
       const leiloesAtivos = auctions.filter(a => !a.arquivado);
-      console.log('📈 Leilões ativos (não arquivados):', leiloesAtivos.length);
+      logger.debug('📈 Leilões ativos (não arquivados):', leiloesAtivos.length);
       
       if (leiloesAtivos.length === 0) {
         toast({
@@ -374,8 +375,8 @@ function Relatorios() {
         throw new Error('Elemento PDF não encontrado - modal não renderizou');
       }
 
-      console.log('📄 Elemento encontrado:', element);
-      console.log('📐 Dimensões:', element.offsetWidth, 'x', element.offsetHeight);
+      logger.debug('📄 Elemento encontrado:', element);
+      logger.debug('📐 Dimensões:', element.offsetWidth, 'x', element.offsetHeight);
 
       // 4. Usar html2pdf importado estaticamente
 
@@ -395,13 +396,13 @@ function Relatorios() {
         }
       };
 
-      console.log('🔄 Iniciando conversão para PDF...');
+      logger.debug('🔄 Iniciando conversão para PDF...');
       
       // 5. Gerar PDF do elemento renderizado pelo React (mesmo método que funciona)
       await html2pdf().set(opt).from(element).save();
       
     } catch (error) {
-      console.error('❌ Erro ao gerar relatório:', error);
+      logger.error('❌ Erro ao gerar relatório:', error);
       toast({
         title: "Erro ao Gerar Relatório",
         description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
@@ -660,7 +661,7 @@ function Relatorios() {
                 return true;
               }
             } catch (error) {
-              console.error('Erro ao calcular inadimplência:', error);
+              logger.error('Erro ao calcular inadimplência:', error);
             }
           }
           
@@ -894,7 +895,7 @@ function Relatorios() {
       document.body.removeChild(element);
       
     } catch (error) {
-      console.error('Erro ao gerar relatório:', error);
+      logger.error('Erro ao gerar relatório:', error);
       toast({
         title: "Erro ao Gerar Relatório",
         description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
@@ -929,7 +930,7 @@ function Relatorios() {
 
   // Função unificada para gerar qualquer tipo de relatório usando o método que funciona
   const generateAnyReport = async (reportType: 'leiloes' | 'inadimplencia' | 'historico' | 'faturas') => {
-    console.log(`🔍 Iniciando geração do relatório de ${reportType}...`);
+    logger.debug(`🔍 Iniciando geração do relatório de ${reportType}...`);
 
     if (!auctions || auctions.length === 0) {
       toast({
@@ -956,8 +957,8 @@ function Relatorios() {
         throw new Error('Elemento PDF não encontrado - modal não renderizou');
       }
 
-      console.log('📄 Elemento encontrado:', element);
-      console.log('📐 Dimensões:', element.offsetWidth, 'x', element.offsetHeight);
+      logger.debug('📄 Elemento encontrado:', element);
+      logger.debug('📐 Dimensões:', element.offsetWidth, 'x', element.offsetHeight);
 
       // 4. Usar html2pdf importado estaticamente
 
@@ -977,7 +978,7 @@ function Relatorios() {
         }
       };
 
-      console.log('🔄 Iniciando conversão para PDF...');
+      logger.debug('🔄 Iniciando conversão para PDF...');
       
       // 5. Gerar PDF do elemento renderizado pelo React
       await html2pdf().set(opt).from(element).save();
@@ -999,7 +1000,7 @@ function Relatorios() {
       });
       
     } catch (error) {
-      console.error('❌ Erro ao gerar relatório:', error);
+      logger.error('❌ Erro ao gerar relatório:', error);
       toast({
         title: "Erro ao Gerar Relatório",
         description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
@@ -2735,7 +2736,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               }
             }
           } catch (error) {
-            console.error('Erro ao calcular inadimplência de parcela:', error);
+            logger.error('Erro ao calcular inadimplência de parcela:', error);
           }
         }
         
@@ -2775,7 +2776,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             }
           }
         } catch (error) {
-          console.error('Erro ao calcular inadimplência:', error);
+          logger.error('Erro ao calcular inadimplência:', error);
         }
       }
       
@@ -2908,7 +2909,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               dataVencimentoParcela = dataPrimeiraParcelaAtrasada;
             }
           } catch (error) {
-            console.error('Erro ao calcular vencimento de parcela:', error);
+            logger.error('Erro ao calcular vencimento de parcela:', error);
           }
         }
         
@@ -3029,7 +3030,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               };
             }
           } catch (error) {
-            console.error('Erro ao calcular detalhes de inadimplência:', error);
+            logger.error('Erro ao calcular detalhes de inadimplência:', error);
           }
         }
       }
@@ -3477,7 +3478,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             }
                           }
                         } catch (error) {
-                          console.error('Erro ao calcular próxima parcela:', error);
+                          logger.error('Erro ao calcular próxima parcela:', error);
                         }
                       }
 
@@ -3597,7 +3598,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             statusProximaParcela = 'Concluído';
                           }
                         } catch (error) {
-                          console.error('Erro ao calcular próxima parcela:', error);
+                          logger.error('Erro ao calcular próxima parcela:', error);
                         }
                       }
                       
@@ -4225,7 +4226,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                           }
                                         }
                                       } catch (error) {
-                                        console.error('Erro ao calcular data de vencimento:', error);
+                                        logger.error('Erro ao calcular data de vencimento:', error);
                                         return null;
                                       }
                                     };
@@ -4309,7 +4310,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                               }
                                             }
                                           } catch (error) {
-                                            console.error('Erro ao calcular parcelas em atraso:', error);
+                                            logger.error('Erro ao calcular parcelas em atraso:', error);
                                           }
                                           
                                           // Valor da próxima parcela
@@ -4357,7 +4358,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                               }
                                             }
                                           } catch (error) {
-                                            console.error('Erro ao calcular parcelas em atraso:', error);
+                                            logger.error('Erro ao calcular parcelas em atraso:', error);
                                           }
                                           
                                           // Valor da próxima parcela
@@ -4698,7 +4699,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                   }
                                 }
                               } catch (error) {
-                                console.error('Erro ao calcular parcelas atrasadas:', error);
+                                logger.error('Erro ao calcular parcelas atrasadas:', error);
                               }
                             }
                             
@@ -4741,7 +4742,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                   }
                                 }
                               } catch (error) {
-                                console.error('Erro ao calcular parcelas atrasadas:', error);
+                                logger.error('Erro ao calcular parcelas atrasadas:', error);
                               }
                             }
                             
@@ -4870,7 +4871,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                         }
                       }
                     } catch (error) {
-                      console.error('Erro ao calcular detalhamento de parcelas:', error);
+                      logger.error('Erro ao calcular detalhamento de parcelas:', error);
                       return null;
                     }
                     

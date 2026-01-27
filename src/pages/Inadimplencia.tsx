@@ -1,6 +1,7 @@
 import { useState, useMemo, createContext, useContext } from "react";
 import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -294,7 +295,7 @@ export default function Inadimplencia() {
     for (let mes = 1; mes <= mesesAtraso; mes++) {
       const jurosMes = valorAtual * taxaMensal;
       valorAtual = valorAtual + jurosMes;
-      console.log(`📈 Juros Progressivos - Mês ${mes}: Valor=${valorAtual.toFixed(2)}, Juros aplicados=${jurosMes.toFixed(2)}`);
+      logger.debug(`📈 Juros Progressivos - Mês ${mes}: Valor=${valorAtual.toFixed(2)}, Juros aplicados=${jurosMes.toFixed(2)}`);
     }
     
     return Math.round(valorAtual * 100) / 100;
@@ -396,7 +397,7 @@ export default function Inadimplencia() {
       });
       
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logger.error('Erro ao gerar PDF:', error);
       toast({
         title: "Erro ao Gerar PDF",
         description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
@@ -464,7 +465,7 @@ export default function Inadimplencia() {
       setSelectedArrematanteForExport("");
       
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logger.error('Erro ao gerar PDF:', error);
       toast({
         title: "Erro ao Gerar PDF",
         description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
@@ -880,14 +881,14 @@ Atenciosamente,
 
   // Função para verificar se um arrematante está inadimplente (considera tipos de pagamento)
   const isOverdue = (arrematante: ArrematanteInfo, auction: Auction) => {
-    console.log(`🔍 [isOverdue] Verificando ${arrematante.nome}:`, {
+    logger.debug(`🔍 [isOverdue] Verificando ${arrematante.nome}:`, {
       pago: arrematante.pago,
       loteId: arrematante.loteId,
       totalLotes: auction.lotes?.length || 0
     });
     
     if (arrematante.pago) {
-      console.log(`✅ [isOverdue] ${arrematante.nome} já está pago`);
+      logger.debug(`✅ [isOverdue] ${arrematante.nome} já está pago`);
       return false;
     }
     
@@ -897,7 +898,7 @@ Atenciosamente,
     // ✅ CORREÇÃO: Usar tipoPagamento do lote, do arrematante ou do leilão como fallback
     const tipoPagamento = loteArrematado?.tipoPagamento || arrematante.tipoPagamento || auction.tipoPagamento || 'parcelamento';
     
-    console.log(`🔍 [isOverdue] Lote encontrado para ${arrematante.nome}:`, {
+    logger.debug(`🔍 [isOverdue] Lote encontrado para ${arrematante.nome}:`, {
       loteEncontrado: !!loteArrematado,
       loteId: arrematante.loteId,
       tipoPagamentoLote: loteArrematado?.tipoPagamento,
@@ -908,7 +909,7 @@ Atenciosamente,
     });
     
     if (!loteArrematado) {
-      console.log(`❌ [isOverdue] ${arrematante.nome} - Lote não encontrado`);
+      logger.debug(`❌ [isOverdue] ${arrematante.nome} - Lote não encontrado`);
       return false;
     }
     const now = new Date();
@@ -924,7 +925,7 @@ Atenciosamente,
         dueDate.setHours(23, 59, 59, 999);
         
         const isOverdueResult = now > dueDate;
-        console.log(`🔍 [isOverdue] ${arrematante.nome} - À vista:`, {
+        logger.debug(`🔍 [isOverdue] ${arrematante.nome} - À vista:`, {
           dataVencimento: dateStr,
           dueDate: dueDate.toISOString(),
           now: now.toISOString(),
@@ -939,7 +940,7 @@ Atenciosamente,
         const parcelasPagas = arrematante.parcelasPagas || 0;
         const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
         
-        console.log(`🔍 [isOverdue] ${arrematante.nome} - Entrada + Parcelamento:`, {
+        logger.debug(`🔍 [isOverdue] ${arrematante.nome} - Entrada + Parcelamento:`, {
           parcelasPagas,
           quantidadeParcelas,
           totalEsperado: 1 + quantidadeParcelas,
@@ -951,21 +952,21 @@ Atenciosamente,
         // Para entrada_parcelamento: entrada + parcelas
         // Se parcelasPagas >= (1 + quantidadeParcelas), está tudo pago
         if (parcelasPagas >= (1 + quantidadeParcelas)) {
-          console.log(`✅ [isOverdue] ${arrematante.nome} - Tudo pago (${parcelasPagas}/${1 + quantidadeParcelas})`);
+          logger.debug(`✅ [isOverdue] ${arrematante.nome} - Tudo pago (${parcelasPagas}/${1 + quantidadeParcelas})`);
           return false;
         }
         
         if (parcelasPagas === 0) {
           // Entrada não foi paga - verificar se está atrasada
           if (!loteArrematado.dataEntrada) {
-            console.log(`❌ [isOverdue] ${arrematante.nome} - Sem data de entrada definida`);
+            logger.debug(`❌ [isOverdue] ${arrematante.nome} - Sem data de entrada definida`);
             return false;
           }
           const entradaDueDate = new Date(loteArrematado.dataEntrada);
           entradaDueDate.setHours(23, 59, 59, 999);
           const isEntradaOverdue = now > entradaDueDate;
           
-          console.log(`🔍 [isOverdue] ${arrematante.nome} - Verificando entrada:`, {
+          logger.debug(`🔍 [isOverdue] ${arrematante.nome} - Verificando entrada:`, {
             dataEntrada: loteArrematado.dataEntrada,
             entradaDueDate: entradaDueDate.toISOString(),
             now: now.toISOString(),
@@ -977,7 +978,7 @@ Atenciosamente,
         } else {
           // Entrada foi paga - verificar se há parcelas atrasadas
           if (!arrematante.mesInicioPagamento || !arrematante.diaVencimentoMensal) {
-            console.log(`❌ [isOverdue] ${arrematante.nome} - Sem dados de parcelamento`);
+            logger.debug(`❌ [isOverdue] ${arrematante.nome} - Sem dados de parcelamento`);
             return false;
           }
           const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
@@ -985,7 +986,7 @@ Atenciosamente,
           // Verificar todas as parcelas que deveriam ter sido pagas até agora
           const parcelasEfetivasPagas = parcelasPagas - 1; // -1 porque a primeira "parcela paga" é a entrada
           
-          console.log(`🔍 [isOverdue] ${arrematante.nome} - Verificando parcelas:`, {
+          logger.debug(`🔍 [isOverdue] ${arrematante.nome} - Verificando parcelas:`, {
             parcelasEfetivasPagas,
             startYear,
             startMonth,
@@ -998,7 +999,7 @@ Atenciosamente,
             
             const isParcelaOverdue = now > parcelaDate && i >= parcelasEfetivasPagas;
             
-            console.log(`🔍 [isOverdue] ${arrematante.nome} - Parcela ${i + 1}:`, {
+            logger.debug(`🔍 [isOverdue] ${arrematante.nome} - Parcela ${i + 1}:`, {
               dataVencimento: parcelaDate.toISOString(),
               vencida: now > parcelaDate,
               deveriaTerSidoPaga: i < parcelasEfetivasPagas,
@@ -1006,19 +1007,19 @@ Atenciosamente,
             });
             
             if (isParcelaOverdue) {
-              console.log(`❌ [isOverdue] ${arrematante.nome} - Parcela ${i + 1} em atraso!`);
+              logger.debug(`❌ [isOverdue] ${arrematante.nome} - Parcela ${i + 1} em atraso!`);
               return true; // Encontrou uma parcela em atraso
             }
           }
           
-          console.log(`✅ [isOverdue] ${arrematante.nome} - Nenhuma parcela em atraso`);
+          logger.debug(`✅ [isOverdue] ${arrematante.nome} - Nenhuma parcela em atraso`);
           return false; // Nenhuma parcela está atrasada
         }
       }
       
       case 'parcelamento':
       default: {
-        console.log(`🔍 [isOverdue] ${arrematante.nome} - Parcelamento simples:`, {
+        logger.debug(`🔍 [isOverdue] ${arrematante.nome} - Parcelamento simples:`, {
           mesInicioPagamento: arrematante.mesInicioPagamento,
           diaVencimentoMensal: arrematante.diaVencimentoMensal,
           parcelasPagas: arrematante.parcelasPagas,
@@ -1026,7 +1027,7 @@ Atenciosamente,
         });
         
         if (!arrematante.mesInicioPagamento || !arrematante.diaVencimentoMensal) {
-          console.log(`❌ [isOverdue] ${arrematante.nome} - Sem dados de parcelamento`);
+          logger.debug(`❌ [isOverdue] ${arrematante.nome} - Sem dados de parcelamento`);
           return false;
         }
         
@@ -1035,7 +1036,7 @@ Atenciosamente,
         const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
         
         if (parcelasPagas >= quantidadeParcelas) {
-          console.log(`✅ [isOverdue] ${arrematante.nome} - Tudo pago (${parcelasPagas}/${quantidadeParcelas})`);
+          logger.debug(`✅ [isOverdue] ${arrematante.nome} - Tudo pago (${parcelasPagas}/${quantidadeParcelas})`);
           return false;
         }
         
@@ -1043,7 +1044,7 @@ Atenciosamente,
         nextPaymentDate.setHours(23, 59, 59, 999);
         const isOverdueResult = now > nextPaymentDate;
         
-        console.log(`🔍 [isOverdue] ${arrematante.nome} - Próximo pagamento:`, {
+        logger.debug(`🔍 [isOverdue] ${arrematante.nome} - Próximo pagamento:`, {
           proximaParcela: parcelasPagas + 1,
           dataVencimento: nextPaymentDate.toISOString(),
           now: now.toISOString(),
@@ -1164,7 +1165,7 @@ Atenciosamente,
   const overdueAuctions = useMemo(() => {
     const activeAuctions = auctions.filter(auction => !auction.arquivado);
     
-    console.log('🔍 [Inadimplência] Analisando leilões ativos:', {
+    logger.debug('🔍 [Inadimplência] Analisando leilões ativos:', {
       totalAuctions: auctions.length,
       activeAuctions: activeAuctions.length,
       archivedAuctions: auctions.filter(a => a.arquivado).length,
@@ -1181,14 +1182,14 @@ Atenciosamente,
         const arrematantes = auction.arrematantes || (auction.arrematante ? [auction.arrematante] : []);
         
         if (arrematantes.length === 0) {
-          console.log(`⚠️ [Inadimplência] Leilão ${auction.nome} sem arrematantes`);
+          logger.debug(`⚠️ [Inadimplência] Leilão ${auction.nome} sem arrematantes`);
           return [];
         }
         
         // Filtrar apenas os arrematantes inadimplentes
         const inadimplentes = arrematantes.filter(arrematante => {
         const isOverdueResult = isOverdue(arrematante, auction);
-        console.log(`🔍 [Inadimplência] Leilão ${auction.nome}:`, {
+        logger.debug(`🔍 [Inadimplência] Leilão ${auction.nome}:`, {
           arrematante: arrematante.nome,
           pago: arrematante.pago,
           isOverdue: isOverdueResult,
@@ -1208,7 +1209,7 @@ Atenciosamente,
         }));
       });
       
-    console.log('✅ [Inadimplência] Resultado final:', {
+    logger.debug('✅ [Inadimplência] Resultado final:', {
       totalOverdue: overdueResults.length,
       overdueAuctions: overdueResults.map(a => ({
         nome: a.nome,

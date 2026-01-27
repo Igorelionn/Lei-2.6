@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import { ArrematanteInfo, LoteInfo, DocumentoInfo, Auction } from "@/lib/types";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -575,7 +576,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
   // - NÃO está criando novo arrematante (isNewArrematante)
   const shouldShowSelection = arrematantesExistentes.length >= 1 && !initial.arrematante && !isNewArrematante;
   
-  console.log('🔍 [ArrematanteWizard] Verificando seleção:', {
+  logger.debug('🔍 [ArrematanteWizard] Verificando seleção:', {
     qtdArrematantes: arrematantesExistentes.length,
     hasArrematanteInicial: !!initial.arrematante,
     isNewArrematante,
@@ -668,7 +669,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
   const [values, setValues] = useState<FormValues>(() => {
     const arr = initial.arrematante;
     
-    console.log('📥 CONDIÇÕES DE PAGAMENTO - Carregando do banco:', {
+    logger.debug('📥 CONDIÇÕES DE PAGAMENTO - Carregando do banco:', {
       tipoPagamento: arr?.tipoPagamento,
       dataVencimentoVista: arr?.dataVencimentoVista,
       dataEntrada: arr?.dataEntrada,
@@ -703,7 +704,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
     
     // ⚠️ FALLBACK: Se os campos separados não existirem, tentar parsear do endereço completo (dados antigos)
     if (!ruaVal && !bairroVal && !cidadeVal && arr?.endereco) {
-      console.log('⚠️ Usando fallback - parseando endereço completo');
+      logger.debug('⚠️ Usando fallback - parseando endereço completo');
       
       // Tentar extrair informações do endereço salvo
       // Formato esperado: "Rua X, nº Y, Complemento, Bairro, Cidade - UF"
@@ -947,10 +948,10 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         endereco: enderecoCompleto
         }));
       
-      console.log("✅ CEP encontrado com sucesso:", cepNumeros);
+      logger.debug("✅ CEP encontrado com sucesso:", cepNumeros);
       setCepError(null);
     } catch (error) {
-      console.error("❌ Erro ao buscar CEP:", error);
+      logger.error("❌ Erro ao buscar CEP:", error);
       setCepError("Erro ao buscar CEP. Por favor, preencha manualmente.");
     } finally {
       setLoadingCep(false);
@@ -1053,7 +1054,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
             const valorResidual = valorTotalGeral - (parcelasCompletas * valorLanceParsed);
             const parcelasNecessarias = valorResidual > 0 ? parcelasCompletas + 1 : parcelasCompletas;
             
-            console.log('🔍 [VALIDAÇÃO ENTRADA+PARCELAMENTO - RESIDUAL]', {
+            logger.debug('🔍 [VALIDAÇÃO ENTRADA+PARCELAMENTO - RESIDUAL]', {
               valorLanceParsed,
               fatorParsed,
               valorEntrada,
@@ -1200,7 +1201,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         ? quantidadeParcelasCalculada 
         : values.quantidadeParcelas;
 
-      console.log('💾 CONDIÇÕES DE PAGAMENTO - Values:', {
+      logger.debug('💾 CONDIÇÕES DE PAGAMENTO - Values:', {
         tipoPagamento: values.tipoPagamento,
         dataVencimentoVista: values.dataVencimentoVista,
         dataEntrada: values.dataEntrada,
@@ -1255,7 +1256,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         }),
       };
       
-      console.log('💾 CONDIÇÕES DE PAGAMENTO - arrematanteData:', {
+      logger.debug('💾 CONDIÇÕES DE PAGAMENTO - arrematanteData:', {
         tipoPagamento: arrematanteData.tipoPagamento,
         dataVencimentoVista: arrematanteData.dataVencimentoVista,
         dataEntrada: arrematanteData.dataEntrada,
@@ -1267,16 +1268,16 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         parcelasSimples: arrematanteData.parcelasSimples
       });
       
-      console.log('📋 DADOS COMPLETOS DO ARREMATANTE:', arrematanteData);
+      logger.debug('📋 DADOS COMPLETOS DO ARREMATANTE:', arrematanteData);
       
       await onSubmit(arrematanteData);
       
-      console.log('✅ [Wizard] onSubmit concluído com sucesso');
+      logger.debug('✅ [Wizard] onSubmit concluído com sucesso');
       
       // ✅ NÃO chamar handleClose() - o componente pai vai fechar
       // handleClose() pode causar conflitos com o fechamento do pai
     } catch (error) {
-      console.error('❌ [Wizard] Erro ao submeter formulário:', error);
+      logger.error('❌ [Wizard] Erro ao submeter formulário:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -1570,14 +1571,14 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         todosArrematantes.push(arrematante);
       }
 
-      console.log('💾 Salvando divisão com arrematantes:', todosArrematantes);
+      logger.debug('💾 Salvando divisão com arrematantes:', todosArrematantes);
 
       // 3. Salvar todos os arrematantes
       for (const arrematante of todosArrematantes) {
         await onSubmit(arrematante);
       }
 
-      console.log('✅ Divisão finalizada com sucesso!');
+      logger.debug('✅ Divisão finalizada com sucesso!');
       
       // Fechar wizard de divisão
       setShowDivisaoWizard(false);
@@ -1601,7 +1602,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
       }
       
     } catch (error) {
-      console.error('❌ Erro ao finalizar divisão:', error);
+      logger.error('❌ Erro ao finalizar divisão:', error);
       alert('❌ Erro ao salvar a divisão. Por favor, tente novamente.');
     } finally {
       setIsSubmitting(false);
@@ -2525,7 +2526,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                     <button
                       type="button"
                       onClick={() => {
-                        console.log('📄 Abrindo documento:', { nome: doc.nome, url: doc.url?.substring(0, 50) + '...' });
+                        logger.debug('📄 Abrindo documento:', { nome: doc.nome, url: doc.url?.substring(0, 50) + '...' });
                         if (doc.url) {
                           // Abrir documento em nova aba (visualização)
                           const newWindow = window.open('', '_blank');
@@ -2591,7 +2592,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                     type="button"
                     onClick={() => {
                       const doc = values.documentos[selectedDocIndex];
-                      console.log('📄 Abrindo documento:', { nome: doc?.nome, url: doc?.url?.substring(0, 50) + '...' });
+                      logger.debug('📄 Abrindo documento:', { nome: doc?.nome, url: doc?.url?.substring(0, 50) + '...' });
                       if (doc?.url) {
                         // Abrir documento em nova aba (visualização)
                         const newWindow = window.open('', '_blank');
@@ -2677,7 +2678,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         .single();
       
       if (error) {
-        console.error('❌ Erro ao buscar arrematante:', error);
+        logger.error('❌ Erro ao buscar arrematante:', error);
         toast({
           title: "Erro",
           description: "Não foi possível carregar os dados completos do arrematante.",
@@ -2751,7 +2752,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
       setCurrentStep(0); // Ir para primeira etapa após carregar dados
       
     } catch (error) {
-      console.error('❌ Erro ao buscar arrematante:', error);
+      logger.error('❌ Erro ao buscar arrematante:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os dados do arrematante.",
@@ -3692,7 +3693,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                         };
                       }
                     } catch (error) {
-                      console.log('BrasilAPI falhou, tentando ViaCEP...');
+                      logger.debug('BrasilAPI falhou, tentando ViaCEP...');
                     }
                     
                     // Fallback para ViaCEP
@@ -3724,7 +3725,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                     };
                     setArrematantesDivisao(newArr);
                   } catch (error) {
-                    console.error('Erro ao buscar CEP:', error);
+                    logger.error('Erro ao buscar CEP:', error);
                     setCepErrorDivisao("Erro ao buscar CEP. Por favor, preencha manualmente.");
                   } finally {
                     setLoadingCepDivisao(false);
@@ -4574,7 +4575,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                                 }
                               }
                             } catch (error) {
-                              console.error('Erro ao remover arrematante:', error);
+                              logger.error('Erro ao remover arrematante:', error);
                               alert('Erro ao remover arrematante. Tente novamente.');
                             }
                           }

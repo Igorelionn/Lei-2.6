@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Auction } from '@/lib/types';
+import { logger } from '@/lib/logger';
 import { getLembreteEmailTemplate, getCobrancaEmailTemplate, getConfirmacaoPagamentoEmailTemplate, getQuitacaoCompletaEmailTemplate } from '@/lib/email-templates';
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -47,7 +48,7 @@ export function useEmailNotifications() {
         const parsed = JSON.parse(savedConfig);
         setConfig({ ...DEFAULT_CONFIG, ...parsed });
       } catch (error) {
-        console.error('Erro ao carregar configurações de email:', error);
+        logger.error('Erro ao carregar configurações de email:', error);
       }
     }
   }, []);
@@ -81,7 +82,7 @@ export function useEmailNotifications() {
       .limit(1);
 
     if (error) {
-      console.error('Erro ao verificar emails enviados:', error);
+      logger.error('Erro ao verificar emails enviados:', error);
       return false;
     }
 
@@ -94,7 +95,7 @@ export function useEmailNotifications() {
       .insert([log]);
 
     if (error) {
-      console.error('Erro ao registrar log de email:', error);
+      logger.error('Erro ao registrar log de email:', error);
     }
   };
 
@@ -177,7 +178,7 @@ export function useEmailNotifications() {
 
       if (!response.ok) {
         // Log detalhado do erro para debugging
-        console.error('❌ ERRO AO ENVIAR EMAIL:', {
+        logger.error('❌ ERRO AO ENVIAR EMAIL:', {
           status: response.status,
           statusText: response.statusText,
           erro: responseData.error,
@@ -201,14 +202,14 @@ export function useEmailNotifications() {
         throw new Error(mensagemErro);
       }
 
-      console.log('✅ Email enviado com sucesso:', {
+      logger.debug('✅ Email enviado com sucesso:', {
         destinatario,
         id: responseData.id
       });
 
       return { success: true };
     } catch (error) {
-      console.error('❌ ERRO COMPLETO:', error);
+      logger.error('❌ ERRO COMPLETO:', error);
       
       let mensagemErro = 'Erro ao enviar email';
       
@@ -643,7 +644,7 @@ export function useEmailNotifications() {
       erro: result.error,
     });
 
-    console.log(`🎉 Email de quitação completa ${result.success ? 'enviado' : 'falhou'} para ${auction.arrematante.email}`);
+    logger.debug(`🎉 Email de quitação completa ${result.success ? 'enviado' : 'falhou'} para ${auction.arrematante.email}`);
 
     return {
       success: result.success,
@@ -762,14 +763,14 @@ export function useEmailNotifications() {
             if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= config.diasDepoisCobranca) {
               const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', numParcela);
               if (!jaEnviou) {
-                console.log(`📧 Enviando cobrança da parcela ${numParcela}/${totalParcelas} (${Math.abs(diasDiferenca)} dias de atraso)`);
+                logger.debug(`📧 Enviando cobrança da parcela ${numParcela}/${totalParcelas} (${Math.abs(diasDiferenca)} dias de atraso)`);
                 const result = await enviarCobranca(auction, numParcela);
                 if (result.success) {
                   resultados.cobrancas++;
-                  console.log(`✅ Cobrança da parcela ${numParcela} enviada com sucesso`);
+                  logger.debug(`✅ Cobrança da parcela ${numParcela} enviada com sucesso`);
                 } else {
                   resultados.erros++;
-                  console.log(`❌ Erro ao enviar cobrança da parcela ${numParcela}: ${result.message}`);
+                  logger.debug(`❌ Erro ao enviar cobrança da parcela ${numParcela}: ${result.message}`);
                 }
               }
             }
@@ -802,14 +803,14 @@ export function useEmailNotifications() {
           if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= config.diasDepoisCobranca) {
             const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', numParcela);
             if (!jaEnviou) {
-              console.log(`📧 Enviando cobrança da parcela ${numParcela}/${totalParcelas} (${Math.abs(diasDiferenca)} dias de atraso)`);
+              logger.debug(`📧 Enviando cobrança da parcela ${numParcela}/${totalParcelas} (${Math.abs(diasDiferenca)} dias de atraso)`);
               const result = await enviarCobranca(auction, numParcela);
               if (result.success) {
                 resultados.cobrancas++;
-                console.log(`✅ Cobrança da parcela ${numParcela} enviada com sucesso`);
+                logger.debug(`✅ Cobrança da parcela ${numParcela} enviada com sucesso`);
               } else {
                 resultados.erros++;
-                console.log(`❌ Erro ao enviar cobrança da parcela ${numParcela}: ${result.message}`);
+                logger.debug(`❌ Erro ao enviar cobrança da parcela ${numParcela}: ${result.message}`);
               }
             }
           }
@@ -830,7 +831,7 @@ export function useEmailNotifications() {
       .limit(limit);
 
     if (error) {
-      console.error('Erro ao carregar logs:', error);
+      logger.error('Erro ao carregar logs:', error);
       return;
     }
 
@@ -845,7 +846,7 @@ export function useEmailNotifications() {
         .neq('id', '00000000-0000-0000-0000-000000000000');
 
       if (error) {
-        console.error('Erro ao limpar histórico:', error);
+        logger.error('Erro ao limpar histórico:', error);
         return {
           success: false,
           message: 'Erro ao limpar histórico de comunicações'
@@ -859,7 +860,7 @@ export function useEmailNotifications() {
         message: 'Histórico de comunicações limpo com sucesso'
       };
     } catch (error) {
-      console.error('Erro ao limpar histórico:', error);
+      logger.error('Erro ao limpar histórico:', error);
       return {
         success: false,
         message: 'Erro inesperado ao limpar histórico'
@@ -899,7 +900,7 @@ export function useEmailNotifications() {
         const erro = '❌ Data de vencimento à vista não configurada';
         detalhes.push(erro);
         errosDetalhados.push(erro);
-        console.error(erro);
+        logger.error(erro);
         return { success: false, message: 'Configuração incompleta', detalhes };
       }
 
@@ -914,20 +915,20 @@ export function useEmailNotifications() {
 
       if (diasDiferenca >= 0) { // ✅ CORRIGIDO
         detalhes.push('   📧 Enviando email de cobrança...');
-        console.log('📧 Enviando cobrança à vista...');
+        logger.debug('📧 Enviando cobrança à vista...');
         
         try {
           const result = await enviarCobranca(auction, 1, true); // forcarEnvio = true para teste
           if (result.success) {
             totalEnviados++;
             detalhes.push(`   ✅ ${result.message}`);
-            console.log('✅ Cobrança à vista enviada:', result.message);
+            logger.debug('✅ Cobrança à vista enviada:', result.message);
           } else {
             totalErros++;
             const erro = `   ❌ ERRO: ${result.message}`;
             detalhes.push(erro);
             errosDetalhados.push(`À Vista - ${result.message}`);
-            console.error('❌ Erro ao enviar cobrança à vista:', result.message);
+            logger.error('❌ Erro ao enviar cobrança à vista:', result.message);
           }
         } catch (error) {
           totalErros++;
@@ -935,11 +936,11 @@ export function useEmailNotifications() {
           const erro = `   ❌ EXCEÇÃO: ${mensagemErro}`;
           detalhes.push(erro);
           errosDetalhados.push(`À Vista - ${mensagemErro}`);
-          console.error('❌ Exceção ao enviar cobrança à vista:', error);
+          logger.error('❌ Exceção ao enviar cobrança à vista:', error);
         }
       } else {
         detalhes.push('   ℹ️ Pagamento não está em atraso ainda');
-        console.log('ℹ️ À vista não está em atraso');
+        logger.debug('ℹ️ À vista não está em atraso');
       }
       detalhes.push('');
     }
@@ -956,20 +957,20 @@ export function useEmailNotifications() {
 
         if (diasDiferenca >= 0) { // ✅ CORRIGIDO
           detalhes.push('   📧 Enviando email de cobrança...');
-          console.log('📧 Enviando cobrança da entrada...');
+          logger.debug('📧 Enviando cobrança da entrada...');
           
           try {
             const result = await enviarCobranca(auction, 1, true); // forcarEnvio = true para teste
             if (result.success) {
               totalEnviados++;
               detalhes.push(`   ✅ ${result.message}`);
-              console.log('✅ Cobrança da entrada enviada:', result.message);
+              logger.debug('✅ Cobrança da entrada enviada:', result.message);
             } else {
               totalErros++;
               const erro = `   ❌ ERRO: ${result.message}`;
               detalhes.push(erro);
               errosDetalhados.push(`Entrada - ${result.message}`);
-              console.error('❌ Erro ao enviar cobrança da entrada:', result.message);
+              logger.error('❌ Erro ao enviar cobrança da entrada:', result.message);
             }
           } catch (error) {
             totalErros++;
@@ -977,7 +978,7 @@ export function useEmailNotifications() {
             const erro = `   ❌ EXCEÇÃO: ${mensagemErro}`;
             detalhes.push(erro);
             errosDetalhados.push(`Entrada - ${mensagemErro}`);
-            console.error('❌ Exceção ao enviar cobrança da entrada:', error);
+            logger.error('❌ Exceção ao enviar cobrança da entrada:', error);
           }
         } else {
           detalhes.push('   ℹ️ Entrada não está em atraso ainda');
@@ -1001,20 +1002,20 @@ export function useEmailNotifications() {
 
           if (diasDiferenca >= 0) { // ✅ CORRIGIDO
             detalhes.push('   📧 Enviando email de cobrança...');
-            console.log(`📧 Enviando cobrança da parcela ${numParcela}...`);
+            logger.debug(`📧 Enviando cobrança da parcela ${numParcela}...`);
             
             try {
               const result = await enviarCobranca(auction, numParcela, true); // forcarEnvio = true para teste
               if (result.success) {
                 totalEnviados++;
                 detalhes.push(`   ✅ ${result.message}`);
-                console.log(`✅ Cobrança da parcela ${numParcela} enviada:`, result.message);
+                logger.debug(`✅ Cobrança da parcela ${numParcela} enviada:`, result.message);
               } else {
                 totalErros++;
                 const erro = `   ❌ ERRO: ${result.message}`;
                 detalhes.push(erro);
                 errosDetalhados.push(`Parcela ${numParcela} - ${result.message}`);
-                console.error(`❌ Erro ao enviar cobrança da parcela ${numParcela}:`, result.message);
+                logger.error(`❌ Erro ao enviar cobrança da parcela ${numParcela}:`, result.message);
               }
             } catch (error) {
               totalErros++;
@@ -1022,7 +1023,7 @@ export function useEmailNotifications() {
               const erro = `   ❌ EXCEÇÃO: ${mensagemErro}`;
               detalhes.push(erro);
               errosDetalhados.push(`Parcela ${numParcela} - ${mensagemErro}`);
-              console.error(`❌ Exceção ao enviar cobrança da parcela ${numParcela}:`, error);
+              logger.error(`❌ Exceção ao enviar cobrança da parcela ${numParcela}:`, error);
             }
           } else {
             detalhes.push(`   ℹ️ Parcela não está em atraso ainda`);
@@ -1037,7 +1038,7 @@ export function useEmailNotifications() {
         const erro = '❌ Mês de início ou dia de vencimento não configurado';
         detalhes.push(erro);
         errosDetalhados.push(erro);
-        console.error(erro);
+        logger.error(erro);
         return { success: false, message: 'Configuração incompleta', detalhes };
       }
 
@@ -1054,20 +1055,20 @@ export function useEmailNotifications() {
 
         if (diasDiferenca >= 0) { // ✅ CORRIGIDO: >= 0 para incluir "vence hoje"
           detalhes.push('   📧 Enviando email de cobrança...');
-          console.log(`📧 Enviando cobrança da parcela ${numParcela}/${totalParcelas}...`);
+          logger.debug(`📧 Enviando cobrança da parcela ${numParcela}/${totalParcelas}...`);
           
           try {
             const result = await enviarCobranca(auction, numParcela, true); // forcarEnvio = true para teste
             if (result.success) {
               totalEnviados++;
               detalhes.push(`   ✅ ${result.message}`);
-              console.log(`✅ Cobrança da parcela ${numParcela} enviada:`, result.message);
+              logger.debug(`✅ Cobrança da parcela ${numParcela} enviada:`, result.message);
             } else {
               totalErros++;
               const erro = `   ❌ ERRO: ${result.message}`;
               detalhes.push(erro);
               errosDetalhados.push(`Parcela ${numParcela} - ${result.message}`);
-              console.error(`❌ Erro ao enviar cobrança da parcela ${numParcela}:`, result.message);
+              logger.error(`❌ Erro ao enviar cobrança da parcela ${numParcela}:`, result.message);
             }
           } catch (error) {
             totalErros++;
@@ -1075,7 +1076,7 @@ export function useEmailNotifications() {
             const erro = `   ❌ EXCEÇÃO: ${mensagemErro}`;
             detalhes.push(erro);
             errosDetalhados.push(`Parcela ${numParcela} - ${mensagemErro}`);
-            console.error(`❌ Exceção ao enviar cobrança da parcela ${numParcela}:`, error);
+            logger.error(`❌ Exceção ao enviar cobrança da parcela ${numParcela}:`, error);
           }
         } else {
           detalhes.push(`   ℹ️ Parcela não está em atraso ainda`);
@@ -1099,7 +1100,7 @@ export function useEmailNotifications() {
     
     detalhes.push('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
 
-    console.log('📊 RESUMO DO TESTE:', {
+    logger.debug('📊 RESUMO DO TESTE:', {
       totalEnviados,
       totalErros,
       erros: errosDetalhados
