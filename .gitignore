@@ -40,3 +40,4 @@ credentials/
 .vercel
 
 .vercel
+.env*.local
