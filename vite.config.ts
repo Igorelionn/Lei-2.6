@@ -11,12 +11,40 @@ export default defineConfig(({ mode }) => ({
   },
   plugins: [
     react(),
-    mode === 'development' &&
-    componentTagger(),
+    mode === 'development' && componentTagger(),
   ].filter(Boolean),
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+    },
+  },
+  // ⚡ PERFORMANCE: Otimizações de build
+  build: {
+    // Aumentar aviso de tamanho de chunk para 1MB (padrão é 500KB)
+    chunkSizeWarningLimit: 1000,
+    rollupOptions: {
+      output: {
+        // ⚡ PERFORMANCE: Code splitting manual para melhor cacheamento
+        manualChunks: {
+          // Vendor chunks separados por biblioteca
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'ui-vendor': [
+            '@radix-ui/react-dialog',
+            '@radix-ui/react-dropdown-menu',
+            '@radix-ui/react-select',
+            '@radix-ui/react-toast',
+            '@radix-ui/react-tabs',
+            '@radix-ui/react-accordion',
+            '@radix-ui/react-alert-dialog',
+          ],
+          'supabase': ['@supabase/supabase-js'],
+          'query': ['@tanstack/react-query'],
+          'charts': ['recharts'],
+          'icons': ['lucide-react'],
+          'pdf': ['jspdf', 'html2canvas', 'html2pdf.js'],
+          'excel': ['xlsx', 'docx'],
+        },
+      },
     },
   },
 }));

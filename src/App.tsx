@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,26 +8,28 @@ import { Layout } from "./components/Layout";
 import { useRealtimeSync } from "@/hooks/use-realtime-sync";
 import { useAutoEmailNotifications } from "@/hooks/use-auto-email-notifications";
 import { usePaymentEmailWatcher } from "@/hooks/use-payment-email-watcher";
-import Dashboard from "./pages/Dashboard";
-import Leiloes from "./pages/Leiloes";
-import Arrematantes from "./pages/Arrematantes";
-import Lotes from "./pages/Lotes";
-import LotesConvidados from "./pages/LotesConvidados";
-import Patrocinadores from "./pages/Patrocinadores";
-import Faturas from "./pages/Faturas";
-import Relatorios from "./pages/Relatorios";
-import Inadimplencia from "./pages/Inadimplencia";
-import Historico from "./pages/Historico";
-import Configuracoes from "./pages/Configuracoes";
-import Email from "./pages/Email";
-import NotFoundPage from "./pages/NotFoundPage";
-import Login from "./pages/Login";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { AuthProvider } from "@/hooks/use-auth";
-import { MigrationManager } from "@/components/MigrationManager";
 import { MigrationNotification } from "@/components/MigrationNotification";
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
+
+// ⚡ PERFORMANCE: Lazy loading de páginas para reduzir bundle inicial
+const Dashboard = lazy(() => import("./pages/Dashboard"));
+const Leiloes = lazy(() => import("./pages/Leiloes"));
+const Arrematantes = lazy(() => import("./pages/Arrematantes"));
+const Lotes = lazy(() => import("./pages/Lotes"));
+const LotesConvidados = lazy(() => import("./pages/LotesConvidados"));
+const Patrocinadores = lazy(() => import("./pages/Patrocinadores"));
+const Faturas = lazy(() => import("./pages/Faturas"));
+const Relatorios = lazy(() => import("./pages/Relatorios"));
+const Inadimplencia = lazy(() => import("./pages/Inadimplencia"));
+const Historico = lazy(() => import("./pages/Historico"));
+const Configuracoes = lazy(() => import("./pages/Configuracoes"));
+const Email = lazy(() => import("./pages/Email"));
+const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
+const Login = lazy(() => import("./pages/Login"));
+const MigrationManager = lazy(() => import("@/components/MigrationManager"));
 
 // ⚡ PERFORMANCE: Cache otimizado conforme auditoria
 const queryClient = new QueryClient({
@@ -48,6 +51,16 @@ function AppWithRealtime({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+// ⚡ PERFORMANCE: Loading fallback component
+const LoadingFallback = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="flex flex-col items-center gap-2">
+      <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+      <p className="text-sm text-muted-foreground">Carregando...</p>
+    </div>
+  </div>
+);
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -62,8 +75,9 @@ const App = () => (
                   v7_startTransition: true,
                   v7_relativeSplatPath: true
                 }}>
-            <Routes>
-              <Route path="/login" element={<Login />} />
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
 
               <Route
                 path="/"
@@ -172,6 +186,7 @@ const App = () => (
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFoundPage />} />
             </Routes>
+            </Suspense>
           </BrowserRouter>
         </AppWithRealtime>
       </AuthProvider>
