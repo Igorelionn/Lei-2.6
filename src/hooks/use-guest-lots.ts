@@ -1,6 +1,7 @@
-﻿import { useMemo } from "react";
+import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase-client";
+import { LoteInfo, ArrematanteInfo } from "@/lib/types";
 
 // Tipos para o lote de convidado
 export interface GuestLotMerchandise {
@@ -209,7 +210,7 @@ export function useGuestLots() {
           const lotesExistentes = auctionData.lotes || [];
           
           // ✅ VERIFICAR se o lote já existe no array (prevenir duplicação)
-          const loteJaExiste = lotesExistentes.some((l: any) => l.guestLotId === createdLot.id);
+          const loteJaExiste = lotesExistentes.some((l: LoteInfo) => l.guestLotId === createdLot.id);
           
           if (!loteJaExiste) {
             logger.debug('➕ Adicionando lote convidado ao array do leilão (não existe ainda)');
@@ -273,7 +274,7 @@ export function useGuestLots() {
         .single();
 
       // 2. Atualizar o lote
-      const updateData: any = {};
+      const updateData: Partial<GuestLot> = {};
       
       if (data.numero !== undefined) updateData.numero = data.numero;
       if (data.descricao !== undefined) updateData.descricao = data.descricao;
@@ -337,7 +338,7 @@ export function useGuestLots() {
 
         if (oldAuctionData) {
           const lotesAtualizados = (oldAuctionData.lotes || []).filter(
-            (l: any) => l.guestLotId !== id
+            (l: LoteInfo) => l.guestLotId !== id
           );
 
           await supabaseClient
@@ -357,7 +358,7 @@ export function useGuestLots() {
 
         if (newAuctionData) {
           let lotesAtualizados = newAuctionData.lotes || [];
-          const loteExistente = lotesAtualizados.findIndex((l: any) => l.guestLotId === id);
+          const loteExistente = lotesAtualizados.findIndex((l: LoteInfo) => l.guestLotId === id);
 
           const loteAtualizado = {
             id: `guest-${id}`,
@@ -440,7 +441,7 @@ export function useGuestLots() {
         if (auctionData) {
           // Encontrar o lote no array para pegar seu lote_id interno
           const loteNoArray = (auctionData.lotes || []).find(
-            (l: any) => l.guestLotId === id
+            (l: LoteInfo) => l.guestLotId === id
           );
 
           if (loteNoArray) {
@@ -459,12 +460,12 @@ export function useGuestLots() {
 
             // Remover arrematantes do array de arrematantes do leilão
             const arrematantesAtualizados = (auctionData.arrematantes || []).filter(
-              (a: any) => a.loteId !== loteIdInterno
+              (a: ArrematanteInfo) => a.loteId !== loteIdInterno
             );
 
             // Remover lote do array de lotes
             const lotesAtualizados = (auctionData.lotes || []).filter(
-              (l: any) => l.guestLotId !== id
+              (l: LoteInfo) => l.guestLotId !== id
             );
 
             // Atualizar o leilão removendo o lote e os arrematantes
@@ -478,7 +479,7 @@ export function useGuestLots() {
           } else {
             // Se não encontrou o lote no array, apenas remover do array de lotes
             const lotesAtualizados = (auctionData.lotes || []).filter(
-              (l: any) => l.guestLotId !== id
+              (l: LoteInfo) => l.guestLotId !== id
             );
 
             await supabaseClient
