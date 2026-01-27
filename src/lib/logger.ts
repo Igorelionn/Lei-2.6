@@ -89,7 +89,7 @@ class Logger {
   /**
    * Formatar dados para exibição
    */
-  private formatData(data?: any): string {
+  private formatData(data?: unknown): string {
     if (data === undefined) return '';
     
     // Se for um objeto, formatar como JSON
@@ -111,7 +111,7 @@ class Logger {
   /**
    * Método genérico de log
    */
-  private log(level: LogLevel, message: string, data?: any): void {
+  private log(level: LogLevel, message: string, data?: unknown): void {
     if (!this.shouldLog(level)) return;
     
     const emoji = this.getEmoji(level);
@@ -141,7 +141,7 @@ class Logger {
    * 🔍 DEBUG - Informações detalhadas (apenas DEV)
    * Usado para debugging e desenvolvimento
    */
-  debug(message: string, data?: any): void {
+  debug(message: string, data?: unknown): void {
     this.log('debug', message, data);
   }
 
@@ -149,7 +149,7 @@ class Logger {
    * ℹ️ INFO - Informações gerais
    * Usado para logs informativos importantes
    */
-  info(message: string, data?: any): void {
+  info(message: string, data?: unknown): void {
     this.log('info', message, data);
   }
 
@@ -157,7 +157,7 @@ class Logger {
    * ⚠️ WARN - Avisos
    * Usado para situações que precisam atenção
    */
-  warn(message: string, data?: any): void {
+  warn(message: string, data?: unknown): void {
     this.log('warn', message, data);
   }
 
@@ -165,7 +165,7 @@ class Logger {
    * ❌ ERROR - Erros
    * Usado para erros que precisam investigação
    */
-  error(message: string, data?: any): void {
+  error(message: string, data?: unknown): void {
     this.log('error', message, data);
   }
 

@@ -16,16 +16,17 @@ import {
   Mail,
   Handshake,
   History,
+  LucideIcon,
 } from "lucide-react";
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "./ui/button";
 
 type MenuItem = {
-  icon: any;
+  icon: LucideIcon;
   label: string;
   path: string;
-  subitems?: { icon: any; label: string; path: string }[];
+  subitems?: { icon: LucideIcon; label: string; path: string }[];
 };
 
 const menuItems: MenuItem[] = [
