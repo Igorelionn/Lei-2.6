@@ -1,6 +1,7 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { checkSupabaseConnection, migrateLocalStorageToSupabase } from '@/lib/migrate-to-supabase';
 import { db } from '@/lib/storage';
+import { logger } from '@/lib/logger';
 
 // Chave para marcar migração como concluída
 const MIGRATION_COMPLETED_KEY = 'auction-usher.migration-completed';

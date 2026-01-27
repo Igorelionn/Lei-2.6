@@ -1,5 +1,6 @@
-﻿import { useQuery } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase-client";
+import { logger } from "@/lib/logger";
 
 interface DashboardStats {
   leiloes_agendados: number;
@@ -55,20 +56,23 @@ export function useDashboardStats() {
         };
       }
       
+      // Type assertion para acessar propriedades que sabemos que existem na view
+      const statsData = data as Record<string, unknown>;
+      
       return {
-        leiloes_agendados: data.leiloes_agendados || 0,
-        leiloes_em_andamento: data.leiloes_em_andamento || 0,
-        leiloes_finalizados: data.leiloes_finalizados || 0,
-        total_leiloes: data.total_leiloes || 0,
-        total_custos: Number(data.total_custos) || 0,
-        total_arrematantes: data.total_arrematantes || 0,
-        arrematantes_atrasados: data.arrematantes_atrasados || 0,
-        arrematantes_pendentes: data.arrematantes_pendentes || 0,
-        faturas_em_aberto: data.faturas_em_aberto || 0,
-        faturas_atrasadas: data.faturas_atrasadas || 0,
-        valor_faturas_pendentes: Number(data.valor_faturas_pendentes) || 0,
-        total_a_receber: Number(data.total_a_receber) || 0,
-        total_recebido: Number(data.total_recebido) || 0,
+        leiloes_agendados: Number(statsData.leiloes_agendados) || 0,
+        leiloes_em_andamento: Number(statsData.leiloes_em_andamento) || 0,
+        leiloes_finalizados: Number(statsData.leiloes_finalizados) || 0,
+        total_leiloes: Number(statsData.total_leiloes) || 0,
+        total_custos: Number(statsData.total_custos) || 0,
+        total_arrematantes: Number(statsData.total_arrematantes) || 0,
+        arrematantes_atrasados: Number(statsData.arrematantes_atrasados) || 0,
+        arrematantes_pendentes: Number(statsData.arrematantes_pendentes) || 0,
+        faturas_em_aberto: Number(statsData.faturas_em_aberto) || 0,
+        faturas_atrasadas: Number(statsData.faturas_atrasadas) || 0,
+        valor_faturas_pendentes: Number(statsData.valor_faturas_pendentes) || 0,
+        total_a_receber: Number(statsData.total_a_receber) || 0,
+        total_recebido: Number(statsData.total_recebido) || 0,
       };
     },
     refetchInterval: 30000, // Recarregar a cada 30 segundos

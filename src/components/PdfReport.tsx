@@ -1,7 +1,8 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Auction } from '@/lib/types';
 import { supabaseClient } from '@/lib/supabase-client';
 import { calcularEstruturaParcelas } from '@/lib/parcelamento-calculator';
+import { logger } from '@/lib/logger';
 
 interface PdfReportProps {
   auction: Auction;
