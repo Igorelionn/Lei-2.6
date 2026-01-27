@@ -3,9 +3,10 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { ChevronRight, Check, X, Upload, FileText, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { logger } from "@/lib/logger";
 
 // Componente de bandeira (SVG)
 const FlagIcon = ({ countryCode, countryName }: { countryCode: string; countryName?: string }) => {
@@ -476,7 +477,7 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
     }));
   };
 
-  const openDocumento = (doc: DocumentoProprietario, index: number) => {
+  const openDocumento = (doc: DocumentoProprietario, _index: number) => {
     logger.debug('📄 Tentando abrir documento:', doc.nome);
     
     const isBase64 = doc.base64.startsWith('data:');
@@ -514,10 +515,10 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
           }
           const byteArray = new Uint8Array(byteNumbers);
           const blob = new Blob([byteArray], { type: mimeType });
-          logger.debug('✅ Blob criado:', blob.size, 'bytes');
+          logger.debug(`✅ Blob criado: ${blob.size} bytes`);
           
           const blobUrl = URL.createObjectURL(blob);
-          logger.debug('✅ Blob URL criado:', blobUrl);
+          logger.debug(`✅ Blob URL criado: ${blobUrl}`);
           
           // Para PDFs, criar página HTML com iframe
           if (mimeType === 'application/pdf') {
@@ -853,8 +854,8 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
                 <div className="space-y-2">
                   {values.documentos.map((doc, index) => {
                     const fileType = doc.base64.split(';')[0].split(':')[1];
-                    const isImage = fileType?.startsWith('image/');
-                    const isPDF = fileType === 'application/pdf';
+                    const _isImage = fileType?.startsWith('image/');
+                    const _isPDF = fileType === 'application/pdf';
 
                     return (
                       <div
