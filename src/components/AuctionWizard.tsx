@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AuctionFormValues } from "@/components/AuctionForm";
 import { LoteInfo, MercadoriaInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
@@ -11,9 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { StringDatePicker } from "@/components/ui/date-picker";
 import { ProprietarioWizard } from "@/components/ProprietarioWizard";
 import { ChevronLeft, ChevronRight, Check, Plus, X as XIcon, Trash2, Image as ImageIcon, AlertCircle } from "lucide-react";
-import { calcularValorTotal, obterQuantidadeTotalParcelas } from "@/lib/parcelamento-calculator";
-import { ParcelamentoPreview } from "@/components/ParcelamentoPreview";
+import { calcularValorTotal } from "@/lib/parcelamento-calculator";
 import { parseCurrencyToNumber } from "@/lib/utils";
+import { logger } from "@/lib/logger";
 
 // Helper para converter números brasileiros (1.000,50) para número
 const parseBrazilianNumber = (value: string): number | undefined => {
@@ -265,7 +265,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     updateField("lotes", [...(values.lotes || []), newLote]);
   };
 
-  const addMercadoria = (loteIndex: number) => {
+  const _addMercadoria = (loteIndex: number) => {
     const newMercadoria: MercadoriaInfo = {
       id: Date.now().toString(),
       tipo: "",
@@ -667,9 +667,11 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                         type="button"
                         onClick={() => {
                           // Sempre abrir o wizard ao clicar em Convidado
-                          const currentLote = values.lotes[selectedLoteIndex];
-                          setLoteParaProprietario(currentLote);
-                          setProprietarioWizardOpen(true);
+                          const currentLote = values.lotes?.[selectedLoteIndex];
+                          if (currentLote) {
+                            setLoteParaProprietario(currentLote);
+                            setProprietarioWizardOpen(true);
+                          }
                         }}
                         className={`px-3 py-1.5 text-xs font-medium rounded transition-all ${
                           values.lotes[selectedLoteIndex].isConvidado
@@ -707,7 +709,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                           onChange={async (e) => {
                             const files = Array.from(e.target.files || []);
                             if (files.length > 0) {
-                              const currentImages = values.lotes[selectedLoteIndex].imagens || [];
+                              const currentImages = values.lotes?.[selectedLoteIndex]?.imagens || [];
                               
                               // Converter arquivos para base64
                               const newImagesPromises = files.map(file => {
@@ -744,7 +746,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                               <button
                                 type="button"
                                 onClick={() => {
-                                  const updatedImages = values.lotes[selectedLoteIndex].imagens.filter((_, i) => i !== imgIndex);
+                                  const updatedImages = values.lotes?.[selectedLoteIndex]?.imagens?.filter((_, i) => i !== imgIndex) || [];
                                   updateLote(selectedLoteIndex, "imagens", updatedImages);
                         }}
                                 className="absolute top-2 right-2 w-7 h-7 bg-white text-gray-700 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-lg hover:bg-red-50 hover:text-red-600"
