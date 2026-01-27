@@ -1,4 +1,4 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+﻿import React, { Component, ErrorInfo, ReactNode } from 'react';
 import { AlertCircle, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
@@ -48,8 +48,8 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     // Log do erro
-    console.error('🚨 Error Boundary capturou erro:', error);
-    console.error('📍 Component Stack:', errorInfo.componentStack);
+    logger.error('🚨 Error Boundary capturou erro:', error);
+    logger.error('📍 Component Stack:', errorInfo.componentStack);
 
     this.setState({
       errorInfo,

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -328,8 +328,8 @@ export default function LoteConvidadoWizard({
     if (open) {
       if (initialData) {
         // Modo de edição: carregar dados existentes
-        console.log('🔍 [LoteConvidadoWizard] Carregando initialData:', initialData);
-        console.log('📦 [LoteConvidadoWizard] Mercadorias recebidas:', initialData.mercadorias);
+        logger.debug('🔍 [LoteConvidadoWizard] Carregando initialData:', initialData);
+        logger.debug('📦 [LoteConvidadoWizard] Mercadorias recebidas:', initialData.mercadorias);
         const newValues = {
           numero: "",
           descricao: "",
@@ -344,12 +344,12 @@ export default function LoteConvidadoWizard({
           observacoes: "",
           ...initialData
         };
-        console.log('✅ [LoteConvidadoWizard] newValues calculados:', newValues);
-        console.log('✅ [LoteConvidadoWizard] newValues.mercadorias:', newValues.mercadorias);
+        logger.debug('✅ [LoteConvidadoWizard] newValues calculados:', newValues);
+        logger.debug('✅ [LoteConvidadoWizard] newValues.mercadorias:', newValues.mercadorias);
         setValues(newValues);
       } else {
         // Modo de criação: resetar valores
-        console.log('➕ [LoteConvidadoWizard] Modo criação - resetando valores');
+        logger.debug('➕ [LoteConvidadoWizard] Modo criação - resetando valores');
         setValues({
           numero: "",
           descricao: "",
@@ -374,8 +374,8 @@ export default function LoteConvidadoWizard({
 
   // Log para debug quando values mudar
   useEffect(() => {
-    console.log('📊 [LoteConvidadoWizard] values atualizados:', values);
-    console.log('📊 [LoteConvidadoWizard] values.mercadorias:', values.mercadorias);
+    logger.debug('📊 [LoteConvidadoWizard] values atualizados:', values);
+    logger.debug('📊 [LoteConvidadoWizard] values.mercadorias:', values.mercadorias);
   }, [values]);
 
 
@@ -925,7 +925,7 @@ export default function LoteConvidadoWizard({
                                   }
                                 }
                               } catch (error) {
-                                console.error('Erro ao abrir documento:', error);
+                                logger.error('Erro ao abrir documento:', error);
                               }
                             } else {
                               window.open(doc, '_blank');
@@ -1150,7 +1150,7 @@ export default function LoteConvidadoWizard({
                               }
                             }
                           } catch (error) {
-                            console.error('Erro ao abrir documento:', error);
+                            logger.error('Erro ao abrir documento:', error);
                           }
                         } else {
                           window.open(doc, '_blank');
@@ -1300,7 +1300,7 @@ export default function LoteConvidadoWizard({
 
         handleClose();
       } catch (error) {
-        console.error('Erro ao salvar lote:', error);
+        logger.error('Erro ao salvar lote:', error);
         toast({
           title: isEditMode ? "Erro ao atualizar lote" : "Erro ao cadastrar lote",
           description: "Ocorreu um erro ao salvar o lote. Tente novamente.",

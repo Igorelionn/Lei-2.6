@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Auction } from '@/lib/types';
 import { supabaseClient } from '@/lib/supabase-client';
 import { calcularEstruturaParcelas } from '@/lib/parcelamento-calculator';
@@ -103,7 +103,7 @@ export const PdfReport: React.FC<PdfReportProps> = ({ auction }) => {
             imagesMap[lote.id] = data as LoteImage[];
         }
       } catch (error) {
-          console.error(`Erro ao buscar imagens do lote ${lote.numero}:`, error);
+          logger.error(`Erro ao buscar imagens do lote ${lote.numero}:`, error);
       }
     }
     

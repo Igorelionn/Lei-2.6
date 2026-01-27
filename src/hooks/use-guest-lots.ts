@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+﻿import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase-client";
 
@@ -112,7 +112,7 @@ export function useGuestLots() {
             .order('created_at', { ascending: true });
 
           if (merchandiseError) {
-            console.error('Erro ao buscar mercadorias:', merchandiseError);
+            logger.error('Erro ao buscar mercadorias:', merchandiseError);
           }
 
           // Buscar arrematantes vinculados ao lote
@@ -122,7 +122,7 @@ export function useGuestLots() {
             .eq('guest_lot_id', lot.id);
 
           if (arrematantesError) {
-            console.error('Erro ao buscar arrematantes:', arrematantesError);
+            logger.error('Erro ao buscar arrematantes:', arrematantesError);
           }
 
           return {
@@ -204,7 +204,7 @@ export function useGuestLots() {
           .single();
 
         if (auctionFetchError) {
-          console.error('Erro ao buscar leilão:', auctionFetchError);
+          logger.error('Erro ao buscar leilão:', auctionFetchError);
         } else {
           const lotesExistentes = auctionData.lotes || [];
           
@@ -212,7 +212,7 @@ export function useGuestLots() {
           const loteJaExiste = lotesExistentes.some((l: any) => l.guestLotId === createdLot.id);
           
           if (!loteJaExiste) {
-            console.log('➕ Adicionando lote convidado ao array do leilão (não existe ainda)');
+            logger.debug('➕ Adicionando lote convidado ao array do leilão (não existe ainda)');
             
             // Adicionar o lote convidado ao array de lotes
             const lotesAtualizados = [...lotesExistentes, {
@@ -246,10 +246,10 @@ export function useGuestLots() {
               .eq('id', data.leilao_id);
 
             if (auctionUpdateError) {
-              console.error('Erro ao atualizar leilão com lote convidado:', auctionUpdateError);
+              logger.error('Erro ao atualizar leilão com lote convidado:', auctionUpdateError);
             }
           } else {
-            console.log('ℹ️ Lote convidado já existe no array do leilão, pulando adição para evitar duplicação');
+            logger.debug('ℹ️ Lote convidado já existe no array do leilão, pulando adição para evitar duplicação');
           }
         }
       }
@@ -385,11 +385,11 @@ export function useGuestLots() {
 
           if (loteExistente >= 0) {
             // ✅ Atualizar lote existente (previne duplicação)
-            console.log('🔄 Atualizando lote convidado existente no array');
+            logger.debug('🔄 Atualizando lote convidado existente no array');
             lotesAtualizados[loteExistente] = loteAtualizado;
           } else {
             // ✅ Adicionar novo lote apenas se não existir
-            console.log('➕ Adicionando novo lote convidado ao array');
+            logger.debug('➕ Adicionando novo lote convidado ao array');
             lotesAtualizados.push(loteAtualizado);
           }
 
@@ -425,7 +425,7 @@ export function useGuestLots() {
         .eq('guest_lot_id', id);
 
       if (biddersError) {
-        console.error('Erro ao deletar arrematantes do lote:', biddersError);
+        logger.error('Erro ao deletar arrematantes do lote:', biddersError);
         // Continuar com a exclusão do lote mesmo se houver erro
       }
 
@@ -454,7 +454,7 @@ export function useGuestLots() {
               .eq('lote_id', loteIdInterno);
 
             if (auctionBiddersError) {
-              console.error('Erro ao deletar arrematantes do leilão:', auctionBiddersError);
+              logger.error('Erro ao deletar arrematantes do leilão:', auctionBiddersError);
             }
 
             // Remover arrematantes do array de arrematantes do leilão

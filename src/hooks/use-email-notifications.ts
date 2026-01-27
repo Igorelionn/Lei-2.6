@@ -110,7 +110,7 @@ export function useEmailNotifications() {
     }
 
     if (diasAtraso > 1825) {
-      console.warn(`⚠️ Dias de atraso muito alto (${diasAtraso}), limitando a 1825 dias (5 anos)`);
+      logger.warn('Dias de atraso muito alto, limitando a 1825 dias', { diasAtraso });
       diasAtraso = 1825;
     }
 

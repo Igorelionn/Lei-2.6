@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { AuctionFormValues } from "@/components/AuctionForm";
 import { LoteInfo, MercadoriaInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
@@ -37,7 +37,7 @@ interface AuctionWizardProps {
 }
 
 export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initialLoteIndex }: AuctionWizardProps) {
-  console.log('🎬 [AuctionWizard] Componente montado/atualizado:', {
+  logger.debug('🎬 [AuctionWizard] Componente montado/atualizado:', {
     initialStep,
     initialLoteIndex,
     initialValues: {
@@ -55,7 +55,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   const [selectedMercadoriaIndex, setSelectedMercadoriaIndex] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
 
-  console.log('📊 [AuctionWizard] Estado inicial definido:', {
+  logger.debug('📊 [AuctionWizard] Estado inicial definido:', {
     currentStep,
     selectedLoteIndex,
     valuesNome: values.nome,
@@ -78,7 +78,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
 
   // 🔍 LOG: Monitorar mudanças no currentStep
   useEffect(() => {
-    console.log('🔄 [AuctionWizard] currentStep mudou:', {
+    logger.debug('🔄 [AuctionWizard] currentStep mudou:', {
       newStep: currentStep,
       stepName: steps[currentStep]?.title,
       valuesNome: values.nome,
@@ -90,7 +90,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
 
   // 🔍 LOG: Monitorar mudanças nos values (nome e identificacao especificamente)
   useEffect(() => {
-    console.log('📝 [AuctionWizard] values mudaram:', {
+    logger.debug('📝 [AuctionWizard] values mudaram:', {
       currentStep,
       stepName: steps[currentStep]?.title,
       nome: values.nome,
@@ -102,7 +102,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
 
   // 🔍 LOG: Monitorar re-renderizações gerais do componente
   useEffect(() => {
-    console.log('🔁 [AuctionWizard] Componente re-renderizou:', {
+    logger.debug('🔁 [AuctionWizard] Componente re-renderizou:', {
       currentStep,
       stepName: steps[currentStep]?.title,
       valuesCompletos: {
@@ -190,7 +190,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   }, [values.dataInicio, values.dataEncerramento, values.status]);
 
   const updateField = (field: keyof AuctionFormValues, value: AuctionFormValues[keyof AuctionFormValues]) => {
-    console.log('🔧 [AuctionWizard] updateField chamado:', {
+    logger.debug('🔧 [AuctionWizard] updateField chamado:', {
       field,
       value: field === 'lotes' ? `Array com ${(value as LoteInfo[])?.length || 0} lotes` : value,
       currentStep,
@@ -201,7 +201,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     
     setValues(prev => {
       const newValues = { ...prev, [field]: value };
-      console.log('✨ [AuctionWizard] values atualizados:', {
+      logger.debug('✨ [AuctionWizard] values atualizados:', {
         field,
         afterNome: newValues.nome,
         afterIdentificacao: newValues.identificacao,
@@ -312,7 +312,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   };
 
   const handleNext = () => {
-    console.log('➡️ [AuctionWizard] handleNext chamado:', {
+    logger.debug('➡️ [AuctionWizard] handleNext chamado:', {
       currentStep,
       stepName: steps[currentStep]?.title,
       valuesNome: values.nome,
@@ -331,7 +331,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     }
     
     if (nextStep < steps.length) {
-      console.log('✅ [AuctionWizard] Avançando para step:', {
+      logger.debug('✅ [AuctionWizard] Avançando para step:', {
         from: currentStep,
         to: nextStep,
         stepName: steps[nextStep]?.title
@@ -341,7 +341,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   };
 
   const goToStep = (stepIndex: number) => {
-    console.log('🎯 [AuctionWizard] goToStep chamado:', {
+    logger.debug('🎯 [AuctionWizard] goToStep chamado:', {
       from: currentStep,
       to: stepIndex,
       stepName: steps[stepIndex]?.title,
@@ -352,7 +352,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   };
 
   const handleBack = () => {
-    console.log('⬅️ [AuctionWizard] handleBack chamado:', {
+    logger.debug('⬅️ [AuctionWizard] handleBack chamado:', {
       currentStep,
       stepName: steps[currentStep]?.title,
       valuesNome: values.nome,
@@ -366,7 +366,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     }
     
     if (prevStep >= 0) {
-      console.log('✅ [AuctionWizard] Voltando para step:', {
+      logger.debug('✅ [AuctionWizard] Voltando para step:', {
         from: currentStep,
         to: prevStep,
         stepName: steps[prevStep]?.title
@@ -400,7 +400,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
       id: "basico",
       title: "Informações Básicas do Leilão",
       content: (() => {
-        console.log('🎨 [AuctionWizard] Renderizando Step 0 (Informações Básicas):', {
+        logger.debug('🎨 [AuctionWizard] Renderizando Step 0 (Informações Básicas):', {
           currentStep,
           valuesNome: values.nome,
           valuesIdentificacao: values.identificacao,
@@ -723,7 +723,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                                 const newImages = await Promise.all(newImagesPromises);
                                 updateLote(selectedLoteIndex, "imagens", [...currentImages, ...newImages]);
                               } catch (error) {
-                                console.error('Erro ao converter imagens:', error);
+                                logger.error('Erro ao converter imagens:', error);
                               }
                             }
                           }}

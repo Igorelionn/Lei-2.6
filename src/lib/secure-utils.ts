@@ -1,4 +1,4 @@
-// 🔒 SEGURANÇA: Utilitários seguros para operações comuns
+﻿// 🔒 SEGURANÇA: Utilitários seguros para operações comuns
 
 /**
  * 🔒 Gera ID único criptograficamente seguro
@@ -19,7 +19,7 @@ export function safeJsonParse<T>(jsonString: string, fallback: T): T {
     const parsed = JSON.parse(jsonString);
     return parsed as T;
   } catch (error) {
-    console.error('Erro ao fazer parse de JSON:', error);
+    logger.error('Erro ao fazer parse de JSON:', error);
     return fallback;
   }
 }
@@ -155,7 +155,7 @@ export async function fetchWithTimeout(
 export function safeWindowOpen(url: string, target: string = '_blank'): Window | null {
   // Validar URL
   if (!isSecureUrl(url)) {
-    console.error('URL não segura bloqueada:', url);
+    logger.error('URL não segura bloqueada:', url);
     throw new Error('URL não é segura e foi bloqueada');
   }
   

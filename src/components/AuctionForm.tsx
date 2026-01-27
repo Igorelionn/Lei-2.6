@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+﻿import { useState, useEffect, useRef, useCallback } from "react";
 import { Auction, AuctionStatus, DocumentoInfo, MercadoriaInfo, LoteInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
@@ -225,7 +225,7 @@ export function AuctionForm({
       // Resetar flag após salvamento bem-sucedido para permitir sincronizações futuras
       setHasUserChanges(false);
     } catch (error) {
-      console.error("Erro ao salvar leilão:", error);
+      logger.error("Erro ao salvar leilão:", error);
     } finally {
       setIsSubmitting(false);
     }
@@ -302,7 +302,7 @@ export function AuctionForm({
         
       } catch (error) {
         erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
-        console.error("❌ Erro ao processar arquivo:", file.name, error);
+        logger.error("❌ Erro ao processar arquivo:", file.name, error);
       }
     }
 
@@ -373,7 +373,7 @@ export function AuctionForm({
           update("documentos", [...(values.documentos || []), novoDocumento]);
         }
       } catch (error) {
-        console.error("Erro ao processar arquivo:", error);
+        logger.error("Erro ao processar arquivo:", error);
       }
     }
   };

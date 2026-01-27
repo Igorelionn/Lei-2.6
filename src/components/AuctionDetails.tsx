@@ -1,4 +1,4 @@
-import { Auction, ArrematanteInfo } from "@/lib/types";
+﻿import { Auction, ArrematanteInfo } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
@@ -43,9 +43,9 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
 
   // Log quando o componente é montado
   useEffect(() => {
-    console.log('🏗️ LoteImages montado:', { loteId, loteNumero, auctionId });
+    logger.debug('🏗️ LoteImages montado:', { loteId, loteNumero, auctionId });
     return () => {
-      console.log('🔥 LoteImages desmontado:', { loteId, loteNumero, auctionId });
+      logger.debug('🔥 LoteImages desmontado:', { loteId, loteNumero, auctionId });
     };
   }, [loteId, loteNumero, auctionId]);
 
@@ -55,7 +55,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
     setImages([]);
 
     const fetchImages = async () => {
-      console.log('🔍 Buscando imagens do lote:', {
+      logger.debug('🔍 Buscando imagens do lote:', {
         auctionId,
         loteId,
         loteNumero,
@@ -72,7 +72,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
           `%Lote ${loteNumero}%`
         ];
 
-        console.log('🔍 Tentando múltiplos padrões de busca:', searchPatterns);
+        logger.debug('🔍 Tentando múltiplos padrões de busca:', searchPatterns);
 
         let allData: LoteDocument[] = [];
 
@@ -87,7 +87,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
             .order('data_upload', { ascending: false });
 
           if (!error && data && data.length > 0) {
-            console.log(`✅ Padrão "${pattern}" encontrou ${data.length} imagens:`, 
+            logger.debug(`✅ Padrão "${pattern}" encontrou ${data.length} imagens:`, 
               data.map(d => ({ nome: d.nome, descricao: d.descricao })));
             
             // Adicionar apenas se não existir ainda (evitar duplicatas)
@@ -97,15 +97,15 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
               }
             });
           } else if (error) {
-            console.warn(`⚠️ Erro com padrão "${pattern}":`, error);
+            logger.warn(`⚠️ Erro com padrão "${pattern}":`, error);
           } else {
-            console.log(`📭 Padrão "${pattern}" não retornou resultados`);
+            logger.debug(`📭 Padrão "${pattern}" não retornou resultados`);
           }
         }
 
         // Se não encontrou nada com padrões específicos, buscar todas as imagens do leilão desta categoria
         if (allData.length === 0) {
-          console.log('🔍 Buscando todas as imagens lote_fotos do leilão para debug...');
+          logger.debug('🔍 Buscando todas as imagens lote_fotos do leilão para debug...');
           const { data: allLoteImages, error: allError } = await supabaseClient
             .from('documents')
             .select('id, nome, tipo, tamanho, data_upload, url, descricao')
@@ -114,7 +114,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
             .order('data_upload', { ascending: false });
 
           if (!allError && allLoteImages) {
-            console.log('📊 Todas as imagens lote_fotos encontradas:', 
+            logger.debug('📊 Todas as imagens lote_fotos encontradas:', 
               allLoteImages.map(img => ({ 
                 nome: img.nome, 
                 descricao: img.descricao, 
@@ -131,7 +131,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
           }
         }
 
-        console.log('📋 Resultado final da busca:', { 
+        logger.debug('📋 Resultado final da busca:', { 
           totalFound: allData.length,
           images: allData.map(d => ({ nome: d.nome, descricao: d.descricao })),
           timestamp: new Date().toISOString()
@@ -139,7 +139,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
 
         setImages(allData);
       } catch (error) {
-        console.error('❌ Erro ao buscar imagens do lote:', error);
+        logger.error('❌ Erro ao buscar imagens do lote:', error);
         setImages([]);
       } finally {
         setLoading(false);
@@ -167,11 +167,11 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
   }
 
   if (images.length === 0) {
-    console.log('🚫 Nenhuma imagem encontrada, ocultando componente');
+    logger.debug('🚫 Nenhuma imagem encontrada, ocultando componente');
     return null; // Não mostrar nada se não há imagens
   }
   
-  console.log('✅ Renderizando componente com imagens:', images);
+  logger.debug('✅ Renderizando componente com imagens:', images);
 
   const formatFileSize = (bytes: number) => {
     if (bytes === 0) return '0 Bytes';

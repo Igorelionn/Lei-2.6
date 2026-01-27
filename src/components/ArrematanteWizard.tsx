@@ -905,7 +905,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
           };
         }
       } catch (error) {
-        console.warn("BrasilAPI falhou, tentando ViaCEP...");
+        logger.warn('BrasilAPI falhou, tentando ViaCEP');
       }
       
       // Fallback: ViaCEP

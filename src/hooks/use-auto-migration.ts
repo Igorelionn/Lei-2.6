@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { checkSupabaseConnection, migrateLocalStorageToSupabase } from '@/lib/migrate-to-supabase';
 import { db } from '@/lib/storage';
 
@@ -57,7 +57,7 @@ export function useAutoMigration() {
         setMigrationStatus('completed');
       }
     } catch (error) {
-      console.error('Erro ao verificar migração:', error);
+      logger.error('Erro ao verificar migração:', error);
       setMigrationStatus('error');
     }
   };
@@ -84,7 +84,7 @@ export function useAutoMigration() {
         setMigrationStatus('error');
       }
     } catch (error) {
-      console.error('Erro na migração automática:', error);
+      logger.error('Erro na migração automática:', error);
       setMigrationStatus('error');
     }
   };

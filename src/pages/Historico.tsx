@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -185,7 +185,7 @@ export default function Historico() {
 
       await html2pdf().set(opt).from(element).save();
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
+      logger.error('Erro ao gerar PDF:', error);
       toast({
         title: "Erro ao gerar PDF",
         description: "Não foi possível gerar o relatório. Tente novamente.",

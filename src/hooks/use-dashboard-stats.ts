@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+﻿import { useQuery } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase-client";
 
 interface DashboardStats {
@@ -31,13 +31,13 @@ export function useDashboardStats() {
 
       // Se erro que não seja "sem resultados", lançar
       if (error) {
-        console.error('Erro ao buscar estatísticas do dashboard:', error);
+        logger.error('Erro ao buscar estatísticas do dashboard:', error);
         throw error;
       }
       
       // Se não houver dados (view vazia), retornar valores padrão
       if (!data) {
-        console.warn('⚠️ Dashboard stats vazia, retornando valores padrão');
+        logger.warn('⚠️ Dashboard stats vazia, retornando valores padrão');
         return {
           leiloes_agendados: 0,
           leiloes_em_andamento: 0,

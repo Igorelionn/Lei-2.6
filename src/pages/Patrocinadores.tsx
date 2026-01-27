@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+﻿import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { Handshake, Plus, Search, Eye, Edit, Archive, DollarSign, TrendingUp, Building2, Check, X, ChevronRight, AlertCircle, Gavel } from "lucide-react";
@@ -352,7 +352,7 @@ export default function Patrocinadores() {
       setSelectedPatrocinadorForPayment(null);
       setPaymentStatus([]);
     } catch (error) {
-      console.error('Erro ao salvar pagamentos:', error);
+      logger.error('Erro ao salvar pagamentos:', error);
       toast({
         title: "Erro ao salvar",
         description: "Não foi possível atualizar os pagamentos. Tente novamente.",
@@ -458,7 +458,7 @@ export default function Patrocinadores() {
                 dataVencimentoDate = new Date(`${ano}-${mes}-${dia}T00:00:00`);
               }
             } catch (error) {
-              console.warn('Erro ao parsear data de vencimento:', dataVencimentoString, error);
+              logger.warn('Erro ao parsear data de vencimento:', dataVencimentoString, error);
             }
           }
           

@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -459,7 +459,7 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
         };
         reader.readAsDataURL(file);
       } catch (error) {
-        console.error("Erro ao processar arquivo:", error);
+        logger.error("Erro ao processar arquivo:", error);
         toast({
           title: "Erro",
           description: "Não foi possível processar o arquivo.",
@@ -477,16 +477,16 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
   };
 
   const openDocumento = (doc: DocumentoProprietario, index: number) => {
-    console.log('📄 Tentando abrir documento:', doc.nome);
+    logger.debug('📄 Tentando abrir documento:', doc.nome);
     
     const isBase64 = doc.base64.startsWith('data:');
     const isUrl = doc.base64.startsWith('http://') || doc.base64.startsWith('https://');
     const canOpen = isBase64 || isUrl;
     
-    console.log('Clicou no documento:', doc.nome);
-    console.log('É base64?', isBase64);
-    console.log('É URL?', isUrl);
-    console.log('Pode abrir?', canOpen);
+    logger.debug('Clicou no documento:', doc.nome);
+    logger.debug('É base64?', isBase64);
+    logger.debug('É URL?', isUrl);
+    logger.debug('Pode abrir?', canOpen);
     
     if (!canOpen) {
       toast({
@@ -498,14 +498,14 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
 
     if (isBase64) {
       try {
-        console.log('🔄 Convertendo base64 para blob...');
+        logger.debug('🔄 Convertendo base64 para blob...');
         const base64Match = doc.base64.match(/^data:(.+);base64,(.+)$/);
         if (base64Match) {
           const mimeType = base64Match[1];
           const base64Data = base64Match[2];
           
-          console.log('✅ MIME type:', mimeType);
-          console.log('✅ Base64 length:', base64Data.length);
+          logger.debug('✅ MIME type:', mimeType);
+          logger.debug('✅ Base64 length:', base64Data.length);
           
           const byteCharacters = atob(base64Data);
           const byteNumbers = new Array(byteCharacters.length);
@@ -514,14 +514,14 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
           }
           const byteArray = new Uint8Array(byteNumbers);
           const blob = new Blob([byteArray], { type: mimeType });
-          console.log('✅ Blob criado:', blob.size, 'bytes');
+          logger.debug('✅ Blob criado:', blob.size, 'bytes');
           
           const blobUrl = URL.createObjectURL(blob);
-          console.log('✅ Blob URL criado:', blobUrl);
+          logger.debug('✅ Blob URL criado:', blobUrl);
           
           // Para PDFs, criar página HTML com iframe
           if (mimeType === 'application/pdf') {
-            console.log('📄 Abrindo PDF em iframe...');
+            logger.debug('📄 Abrindo PDF em iframe...');
             const newWindow = window.open('', '_blank');
             if (newWindow) {
               newWindow.document.write(`
@@ -572,7 +572,7 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
             }
           }
         } else {
-          console.error('❌ Formato base64 inválido');
+          logger.error('❌ Formato base64 inválido');
           toast({
             title: "Erro",
             description: "Formato de documento inválido.",
@@ -580,7 +580,7 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
           });
         }
       } catch (error) {
-        console.error('❌ Erro ao abrir base64:', error);
+        logger.error('❌ Erro ao abrir base64:', error);
         toast({
           title: "Erro",
           description: `Não foi possível abrir o documento.`,
