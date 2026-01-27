@@ -227,7 +227,7 @@ function Faturas() {
                 year,
                 month,
                 day,
-                loteId: loteArrematado.id
+                loteId: loteArrematado?.id
               });
               break; // Sair do case
             }
@@ -325,7 +325,7 @@ function Faturas() {
               if (isNaN(dueDateObjEntrada.getTime())) {
                 logger.error('Data de entrada inválida', {
                   dataEntrada,
-                  loteId: loteArrematado.id
+                  loteId: loteArrematado?.id
                 });
                 break; // Sair do case
               }
@@ -621,7 +621,7 @@ function Faturas() {
       }); // fim do arrematantes.forEach
     }); // fim do auctions.forEach
     
-    return faturas.sort((a, b) => new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime());
+    return faturas.sort((a, b) => new Date(a.dataVencimento || 0).getTime() - new Date(b.dataVencimento || 0).getTime());
   };
 
   // Gerar faturas automaticamente a partir dos dados dos leilões
@@ -666,7 +666,7 @@ function Faturas() {
       }
       
       // Se ambas têm o mesmo status, ordenar por data de vencimento
-      return new Date(a.dataVencimento).getTime() - new Date(b.dataVencimento).getTime();
+      return new Date(a.dataVencimento || 0).getTime() - new Date(b.dataVencimento || 0).getTime();
     });
 
   // Função para calcular valor da parcela específica baseado na estrutura real
@@ -864,6 +864,8 @@ function Faturas() {
       .filter(auction => auction.arrematante && !auction.arrematante.pago && !auction.arquivado)
       .reduce((total, auction) => {
         const arrematante = auction.arrematante;
+        if (!arrematante) return total; // 🔒 Type guard
+        
         const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
         const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
         let valorAReceber = 0;
@@ -1062,7 +1064,7 @@ function Faturas() {
       comissao: "0",
       custosAdicionais: "0",
       valorLiquido: fatura.valorLiquido.toString(),
-      vencimento: fatura.dataVencimento,
+      vencimento: fatura.dataVencimento || '',
       status: fatura.status
     });
     setSelectedFatura(fatura);
@@ -1243,12 +1245,12 @@ function Faturas() {
         if (fatura.parcela === 1) {
           return 'Entrada + Parcelamento';
         } else {
-          return `Entrada + Parcelamento (Parcela ${fatura.parcela - 1}/${fatura.totalParcelas - 1})`;
+          return `Entrada + Parcelamento (Parcela ${(fatura.parcela || 1) - 1}/${(fatura.totalParcelas || 1) - 1})`;
         }
       
       case 'parcelamento':
       default:
-        return `Parcela ${fatura.parcela}/${fatura.totalParcelas}`;
+        return `Parcela ${fatura.parcela || 1}/${fatura.totalParcelas || 1}`;
     }
   };
 
@@ -1497,12 +1499,12 @@ function Faturas() {
                                 return ' • Entrada';
                               } else {
                                 // Para entrada_parcelamento: parcela 2 = 1ª Parcela, parcela 3 = 2ª Parcela, etc.
-                                const parcelaMensal = fatura.parcela - 1;
+                                const parcelaMensal = (fatura.parcela || 1) - 1;
                                 return ` • ${parcelaMensal}ª Parcela`;
                               }
                             } else {
                               // Para parcelamento simples: parcela 1 = 1ª Parcela, parcela 2 = 2ª Parcela, etc.
-                              return ` • ${fatura.parcela}ª Parcela`;
+                              return ` • ${fatura.parcela || 1}ª Parcela`;
                             }
                           })()}
                         </span>
@@ -1747,10 +1749,10 @@ function Faturas() {
                             <Label className="text-xs font-medium text-gray-500">Vencimento</Label>
                             <p className="text-sm font-medium text-gray-900">
                               {selectedFatura.parcela === 1 ? 
-                                new Date(selectedFatura.dataVencimento).toLocaleDateString('pt-BR') :
+                                new Date(selectedFatura.dataVencimento || 0).toLocaleDateString('pt-BR') :
                                 // PRIORIZAR dataEntrada do arrematante sobre o do lote
                                 ((arrematante?.dataEntrada || loteArrematado?.dataEntrada) ? 
-                                  new Date(arrematante?.dataEntrada || loteArrematado?.dataEntrada).toLocaleDateString('pt-BR') : 
+                                  new Date(arrematante?.dataEntrada || loteArrematado?.dataEntrada || 0).toLocaleDateString('pt-BR') : 
                                   'Não definida')
                               }
                             </p>
@@ -1971,10 +1973,10 @@ function Faturas() {
                       <p className="mt-1 text-sm font-medium text-gray-900">
                         {selectedFatura.tipoPagamento === 'entrada_parcelamento' && selectedFatura.parcela === 1 ? 
                           'Entrada' :
-                          selectedFatura.tipoPagamento === 'entrada_parcelamento' && selectedFatura.parcela > 1 ?
-                          `Parcela ${selectedFatura.parcela - 1}/${(selectedFatura.totalParcelas || 1) - 1}` :
+                          selectedFatura.tipoPagamento === 'entrada_parcelamento' && (selectedFatura.parcela || 1) > 1 ?
+                          `Parcela ${(selectedFatura.parcela || 1) - 1}/${(selectedFatura.totalParcelas || 1) - 1}` :
                           selectedFatura.tipoPagamento === 'a_vista' ? 'À Vista' :
-                          `Parcela ${selectedFatura.parcela}/${selectedFatura.totalParcelas}`
+                          `Parcela ${selectedFatura.parcela || 1}/${selectedFatura.totalParcelas || 1}`
                         }
                       </p>
                     </div>
@@ -1987,7 +1989,7 @@ function Faturas() {
               <div>
                 <Label className="text-xs font-medium text-gray-500">Vencimento</Label>
                       <p className="mt-1 text-sm font-medium text-gray-900">
-                  {new Date(selectedFatura.dataVencimento).toLocaleDateString('pt-BR')}
+                  {new Date(selectedFatura.dataVencimento || 0).toLocaleDateString('pt-BR')}
                 </p>
               </div>
               <div>
@@ -2594,12 +2596,12 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
         if (fatura.parcela === 1) {
           return 'Entrada + Parcelamento';
         } else {
-          return `Entrada + Parcelamento (Parcela ${fatura.parcela - 1}/${fatura.totalParcelas - 1})`;
+          return `Entrada + Parcelamento (Parcela ${(fatura.parcela || 1) - 1}/${(fatura.totalParcelas || 1) - 1})`;
         }
       
       case 'parcelamento':
       default:
-        return `Parcela ${fatura.parcela}/${fatura.totalParcelas}`;
+        return `Parcela ${fatura.parcela || 1}/${fatura.totalParcelas || 1}`;
     }
   };
 
@@ -2757,7 +2759,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             </div>
             <div className="flex justify-between py-2">
               <span className="text-sm text-slate-500">Vencimento</span>
-              <span className="text-sm font-medium text-slate-900">{new Date(fatura.dataVencimento).toLocaleDateString('pt-BR')}</span>
+              <span className="text-sm font-medium text-slate-900">{new Date(fatura.dataVencimento || 0).toLocaleDateString('pt-BR')}</span>
             </div>
           </div>
         </div>
@@ -2967,7 +2969,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             </div>
             <div className="flex justify-between py-2" style={{ borderBottom: '1px solid #f1f5f9' }}>
               <span className="text-slate-500">Vencimento</span>
-              <span className="font-medium text-slate-900">{new Date(fatura.dataVencimento).toLocaleDateString('pt-BR')}</span>
+              <span className="font-medium text-slate-900">{new Date(fatura.dataVencimento || 0).toLocaleDateString('pt-BR')}</span>
             </div>
             <div className="flex justify-between py-2">
               <span className="text-slate-500">Valor</span>
