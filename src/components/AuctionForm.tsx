@@ -4,8 +4,6 @@ import { parseCurrencyToNumber } from "@/lib/utils";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
-import { calcularValorTotal } from "@/lib/parcelamento-calculator";
-import { ParcelamentoPreview } from "@/components/ParcelamentoPreview";
 import { ProprietarioWizard } from "@/components/ProprietarioWizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -53,9 +51,7 @@ import {
   FileSpreadsheet,
   Plus,
   Pencil,
-  CreditCard,
-  List,
-  Calculator
+  List
 } from "lucide-react";
 
 export interface AuctionFormValues extends Omit<Auction, "id"> {
@@ -75,7 +71,7 @@ export function AuctionForm({
 }) {
   const [values, setValues] = useState<AuctionFormValues>(initial);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { logDocumentAction } = useActivityLogger();
+  const { logDocumentAction: _logDocumentAction } = useActivityLogger();
   const { toast } = useToast();
   const [newNote, setNewNote] = useState("");
   const [editingMercadoria, setEditingMercadoria] = useState<string | null>(null);
@@ -101,7 +97,7 @@ export function AuctionForm({
   // 🔄 SINCRONIZAÇÃO: Escutar mudanças de lotes vindas da página de Lotes
   useEffect(() => {
     const handleLoteChanged = (event: CustomEvent) => {
-      const { auctionId, loteId, lote, action, allLotes } = event.detail;
+      const { auctionId, loteId: _loteId, lote: _lote, action: _action, allLotes } = event.detail;
       
       
       // Verificar se o lote pertence ao leilão atual
@@ -184,7 +180,7 @@ export function AuctionForm({
     } else {
       // Validar lotes
       values.lotes.forEach((lote, index) => {
-        const lotePrefix = `Lote ${lote.numero || index + 1}`;
+        const _lotePrefix = `Lote ${lote.numero || index + 1}`;
         
         if (!lote.numero?.trim()) missing.push(`Número do Lote ${index + 1}`);
         if (!lote.descricao?.trim()) missing.push(`Descrição do Lote ${index + 1}`);
@@ -387,7 +383,7 @@ export function AuctionForm({
     update("historicoNotas", updatedNotes);
   };
 
-  const getLocalIcon = (local: string) => {
+  const _getLocalIcon = (local: string) => {
     switch (local) {
       case "presencial": return <Building className="h-4 w-4" />;
       case "online": return <Globe className="h-4 w-4" />;
@@ -428,7 +424,7 @@ export function AuctionForm({
   }, [isCostDetailDialogOpen, values.detalheCustos]);
 
   // Função para atualizar os itens de custo e recalcular o total
-  const updateCostItems = (items: ItemCustoInfo[]) => {
+  const _updateCostItems = (items: ItemCustoInfo[]) => {
     setCostItems(items);
     
     // Atualizar values de forma síncrona
@@ -462,7 +458,7 @@ export function AuctionForm({
   }, [isSponsorDetailDialogOpen, values.detalhePatrocinios]);
   
   // Função para calcular e atualizar o total baseado nos itens
-  const calcularEAtualizarTotal = (items: ItemCustoInfo[]) => {
+  const _calcularEAtualizarTotal = (items: ItemCustoInfo[]) => {
     const total = items.reduce((sum, item) => sum + item.valorNumerico, 0);
     
     const totalFormatado = total.toLocaleString('pt-BR', { 
@@ -1379,7 +1375,7 @@ export function AuctionForm({
                   </div>
                 )}
 
-                {(values.lotes || []).map((lote, loteIndex) => (
+                {(values.lotes || []).map((lote, _loteIndex) => (
                   <div 
                     key={lote.id} 
                     className="p-4 border border-gray-200 rounded-lg bg-white space-y-4"
