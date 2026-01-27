@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -75,7 +76,7 @@ export default function LotesConvidados() {
           .order('data_inicio', { ascending: false });
 
         if (error) {
-          console.error('Erro ao buscar leilões:', error);
+          logger.error('Erro ao buscar leilões:', error);
           throw error;
         }
 
@@ -84,10 +85,10 @@ export default function LotesConvidados() {
             id: leilao.id,
             nome: leilao.nome
           })));
-          console.log('Leilões carregados:', data.length);
+          logger.debug('Leilões carregados:', data.length);
         }
       } catch (error) {
-        console.error('Erro ao buscar leilões:', error);
+        logger.error('Erro ao buscar leilões:', error);
         toast({
           title: "Erro ao carregar leilões",
           description: "Não foi possível carregar a lista de leilões.",
@@ -124,8 +125,8 @@ export default function LotesConvidados() {
   };
 
   const handleEdit = (lote: GuestLot) => {
-    console.log('🔧 [LotesConvidados] handleEdit chamado para lote:', lote.numero);
-    console.log('📦 [LotesConvidados] Mercadorias do lote:', lote.mercadorias);
+    logger.debug('🔧 [LotesConvidados] handleEdit chamado para lote:', lote.numero);
+    logger.debug('📦 [LotesConvidados] Mercadorias do lote:', lote.mercadorias);
     
     // Preparar dados do lote para o formato do wizard
     const dadosParaWizard = {
@@ -150,20 +151,20 @@ export default function LotesConvidados() {
       observacoes: lote.observacoes || "",
     };
     
-    console.log('✅ [LotesConvidados] Dados preparados para o wizard:', dadosParaWizard);
-    console.log('✅ [LotesConvidados] Mercadorias mapeadas:', dadosParaWizard.mercadorias);
+    logger.debug('✅ [LotesConvidados] Dados preparados para o wizard:', dadosParaWizard);
+    logger.debug('✅ [LotesConvidados] Mercadorias mapeadas:', dadosParaWizard.mercadorias);
     
     setEditingLote(dadosParaWizard);
     setWizardOpen(true);
     
-    console.log('🚀 [LotesConvidados] Wizard aberto!');
+    logger.debug('🚀 [LotesConvidados] Wizard aberto!');
   };
 
   const handleAddArrematante = async (lote: GuestLot) => {
     // Se o lote tem leilão vinculado, buscar os arrematantes desse leilão
     if (lote.leilao_id) {
       try {
-        console.log('🔍 Buscando arrematantes do leilão:', lote.leilao_id);
+        logger.debug('🔍 Buscando arrematantes do leilão:', lote.leilao_id);
         
         const { data: leilaoData, error } = await supabase
           .from('auctions')
@@ -190,9 +191,9 @@ export default function LotesConvidados() {
           .single();
         
         if (error) {
-          console.error('❌ Erro ao buscar leilão:', error);
+          logger.error('❌ Erro ao buscar leilão:', error);
         } else if (leilaoData) {
-          console.log('✅ Leilão encontrado com', leilaoData.bidders?.length || 0, 'arrematantes');
+          logger.debug('✅ Leilão encontrado com', leilaoData.bidders?.length || 0, 'arrematantes');
           
           // Adicionar os arrematantes do leilão ao lote temporariamente
           const loteComArrematantes = {
@@ -205,7 +206,7 @@ export default function LotesConvidados() {
           return;
         }
       } catch (error) {
-        console.error('❌ Erro ao buscar arrematantes do leilão:', error);
+        logger.error('❌ Erro ao buscar arrematantes do leilão:', error);
       }
     }
     
@@ -224,7 +225,7 @@ export default function LotesConvidados() {
         .order('nome', { ascending: true });
       
       if (error) {
-        console.error('❌ Erro ao buscar arrematantes:', error);
+        logger.error('❌ Erro ao buscar arrematantes:', error);
         toast({
           title: "Erro",
           description: "Não foi possível carregar os arrematantes.",
@@ -262,7 +263,7 @@ export default function LotesConvidados() {
       setEditingArrematanteId(null); // ✅ null para mostrar tela de seleção
       
     } catch (error) {
-      console.error('❌ Erro:', error);
+      logger.error('❌ Erro:', error);
       toast({
         title: "Erro",
         description: "Não foi possível carregar os arrematantes.",
@@ -696,7 +697,7 @@ export default function LotesConvidados() {
                                         description: `O lote #${lote.numero} foi deletado permanentemente.`,
                                       });
                                     } catch (error) {
-                                      console.error('Erro ao deletar lote:', error);
+                                      logger.error('Erro ao deletar lote:', error);
                                       toast({
                                         title: "Erro",
                                         description: "Não foi possível deletar o lote.",
@@ -849,7 +850,7 @@ export default function LotesConvidados() {
                                 setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
                               }
                             } catch (error) {
-                              console.error('Erro ao abrir imagem:', error);
+                              logger.error('Erro ao abrir imagem:', error);
                             }
                           } else {
                             window.open(img, '_blank');
@@ -904,18 +905,18 @@ export default function LotesConvidados() {
                                 key={index}
                                 className="group relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-gray-400 transition-all cursor-pointer"
                                 onClick={() => {
-                                  console.log('🖼️ Clicou na imagem:', `Documento ${index + 1}`);
+                                  logger.debug('🖼️ Clicou na imagem:', `Documento ${index + 1}`);
                                   const isBase64 = doc.startsWith('data:');
-                                  console.log('📄 É base64:', isBase64);
+                                  logger.debug('📄 É base64:', isBase64);
                                   
                                   if (isBase64) {
                                     try {
-                                      console.log('🔄 Processando imagem base64...');
+                                      logger.debug('🔄 Processando imagem base64...');
                                       const matches = doc.match(/^data:([^;]+);base64,(.+)$/);
                                       if (matches) {
                                         const mimeType = matches[1];
                                         const base64Data = matches[2];
-                                        console.log('✅ MIME:', mimeType, 'Size:', base64Data.length);
+                                        logger.debug('✅ MIME:', mimeType, 'Size:', base64Data.length);
                                         
                                         const byteCharacters = atob(base64Data);
                                         const byteNumbers = new Array(byteCharacters.length);
@@ -925,10 +926,10 @@ export default function LotesConvidados() {
                                         const byteArray = new Uint8Array(byteNumbers);
                                         const blob = new Blob([byteArray], { type: mimeType });
                                         const blobUrl = URL.createObjectURL(blob);
-                                        console.log('✅ Blob URL criado:', blobUrl);
+                                        logger.debug('✅ Blob URL criado:', blobUrl);
                                         
                                         const newWindow = window.open(blobUrl, '_blank');
-                                        console.log('🚀 Janela aberta:', newWindow !== null);
+                                        logger.debug('🚀 Janela aberta:', newWindow !== null);
                                         
                                         if (newWindow) {
                                           toast({
@@ -938,10 +939,10 @@ export default function LotesConvidados() {
                                           // Limpar URL após 2 minutos (consistente com docs)
                                           setTimeout(() => {
                                             URL.revokeObjectURL(blobUrl);
-                                            console.log('🧹 Blob URL da imagem limpo');
+                                            logger.debug('🧹 Blob URL da imagem limpo');
                                           }, 120000);
                                         } else {
-                                          console.error('❌ Popup bloqueado');
+                                          logger.error('❌ Popup bloqueado');
                                           URL.revokeObjectURL(blobUrl);
                                           toast({
                                             title: "Pop-up bloqueado",
@@ -951,7 +952,7 @@ export default function LotesConvidados() {
                                         }
                                       }
                                     } catch (error) {
-                                      console.error('❌ Erro ao abrir imagem:', error);
+                                      logger.error('❌ Erro ao abrir imagem:', error);
                                       toast({
                                         title: "Erro",
                                         description: "Não foi possível abrir a imagem.",
@@ -959,7 +960,7 @@ export default function LotesConvidados() {
                                       });
                                     }
                                   } else {
-                                    console.log('🌐 Abrindo URL da imagem:', doc.substring(0, 100));
+                                    logger.debug('🌐 Abrindo URL da imagem:', doc.substring(0, 100));
                                     const newWindow = window.open(doc, '_blank');
                                     if (!newWindow) {
                                       toast({
@@ -1037,22 +1038,22 @@ export default function LotesConvidados() {
                                   key={index}
                                   type="button"
                                   onClick={() => {
-                                    console.log('🔍 Clicou no documento:', fileName);
-                                    console.log('📄 Tipo:', { isBase64, isURL, canOpen });
-                                    console.log('📝 Preview do doc:', doc.substring(0, 100));
+                                    logger.debug('🔍 Clicou no documento:', fileName);
+                                    logger.debug('📄 Tipo:', { isBase64, isURL, canOpen });
+                                    logger.debug('📝 Preview do doc:', doc.substring(0, 100));
                                     
                                     if (canOpen) {
                                       // Para base64, criar um blob e abrir
                                       if (isBase64) {
                                         try {
-                                          console.log('🔄 Processando base64...');
+                                          logger.debug('🔄 Processando base64...');
                                           // Extrair o tipo MIME e os dados
                                           const matches = doc.match(/^data:([^;]+);base64,(.+)$/);
                                           if (matches) {
                                             const mimeType = matches[1];
                                             const base64Data = matches[2];
-                                            console.log('✅ MIME Type:', mimeType);
-                                            console.log('✅ Base64 length:', base64Data.length);
+                                            logger.debug('✅ MIME Type:', mimeType);
+                                            logger.debug('✅ Base64 length:', base64Data.length);
                                             
                                             // Converter base64 para blob
                                             const byteCharacters = atob(base64Data);
@@ -1062,17 +1063,17 @@ export default function LotesConvidados() {
                                             }
                                             const byteArray = new Uint8Array(byteNumbers);
                                             const blob = new Blob([byteArray], { type: mimeType });
-                                            console.log('✅ Blob criado:', blob.size, 'bytes');
+                                            logger.debug('✅ Blob criado:', blob.size, 'bytes');
                                             
                                             // Criar Blob URL (funciona para todos os tipos)
                                             const blobUrl = URL.createObjectURL(blob);
-                                            console.log('✅ Blob URL criado:', blobUrl);
-                                            console.log('✅ Blob type:', blob.type);
-                                            console.log('✅ Blob size:', blob.size, 'bytes');
+                                            logger.debug('✅ Blob URL criado:', blobUrl);
+                                            logger.debug('✅ Blob type:', blob.type);
+                                            logger.debug('✅ Blob size:', blob.size, 'bytes');
                                             
                                             // Para PDFs, criar página HTML com iframe
                                             if (mimeType === 'application/pdf') {
-                                              console.log('📄 Abrindo PDF em iframe...');
+                                              logger.debug('📄 Abrindo PDF em iframe...');
                                               const newWindow = window.open('', '_blank');
                                               if (newWindow) {
                                                 newWindow.document.write(`
@@ -1093,7 +1094,7 @@ export default function LotesConvidados() {
                                                   </html>
                                                 `);
                                                 newWindow.document.close();
-                                                console.log('✅ PDF aberto com sucesso');
+                                                logger.debug('✅ PDF aberto com sucesso');
                                                 
                                                 toast({
                                                   title: "Sucesso",
@@ -1103,10 +1104,10 @@ export default function LotesConvidados() {
                                                 // Limpar blob URL após 2 minutos
                                                 setTimeout(() => {
                                                   URL.revokeObjectURL(blobUrl);
-                                                  console.log('🧹 Blob URL limpo');
+                                                  logger.debug('🧹 Blob URL limpo');
                                                 }, 120000);
                                               } else {
-                                                console.error('❌ Popup bloqueado');
+                                                logger.error('❌ Popup bloqueado');
                                                 URL.revokeObjectURL(blobUrl);
                                                 toast({
                                                   title: "Pop-up bloqueado",
@@ -1116,11 +1117,11 @@ export default function LotesConvidados() {
                                               }
                                             } else {
                                               // Para outros tipos (imagens, DOC, etc), abrir diretamente
-                                              console.log('📄 Abrindo arquivo diretamente...');
+                                              logger.debug('📄 Abrindo arquivo diretamente...');
                                               const newWindow = window.open(blobUrl, '_blank');
                                               
                                               if (newWindow) {
-                                                console.log('✅ Arquivo aberto com sucesso');
+                                                logger.debug('✅ Arquivo aberto com sucesso');
                                                 toast({
                                                   title: "Sucesso",
                                                   description: "Documento aberto em nova aba!",
@@ -1128,10 +1129,10 @@ export default function LotesConvidados() {
                                                 // Limpar URL após 2 minutos
                                                 setTimeout(() => {
                                                   URL.revokeObjectURL(blobUrl);
-                                                  console.log('🧹 Blob URL limpo');
+                                                  logger.debug('🧹 Blob URL limpo');
                                                 }, 120000);
                                               } else {
-                                                console.error('❌ Popup bloqueado');
+                                                logger.error('❌ Popup bloqueado');
                                                 URL.revokeObjectURL(blobUrl);
                                                 toast({
                                                   title: "Pop-up bloqueado",
@@ -1141,8 +1142,8 @@ export default function LotesConvidados() {
                                               }
                                             }
                                           } else {
-                                            console.error('❌ Formato base64 inválido');
-                                            console.error('Doc string:', doc.substring(0, 200));
+                                            logger.error('❌ Formato base64 inválido');
+                                            logger.error('Doc string:', doc.substring(0, 200));
                                             toast({
                                               title: "Erro",
                                               description: "Formato de documento inválido.",
@@ -1150,7 +1151,7 @@ export default function LotesConvidados() {
                                             });
                                           }
                                         } catch (error) {
-                                          console.error('❌ Erro ao abrir base64:', error);
+                                          logger.error('❌ Erro ao abrir base64:', error);
                                           toast({
                                             title: "Erro",
                                             description: `Não foi possível abrir: ${error instanceof Error ? error.message : 'Erro desconhecido'}`,
@@ -1159,7 +1160,7 @@ export default function LotesConvidados() {
                                         }
                                       } else {
                                         // Para URLs normais
-                                        console.log('🌐 Abrindo URL:', doc);
+                                        logger.debug('🌐 Abrindo URL:', doc);
                                         const newWindow = window.open(doc, '_blank');
                                         if (!newWindow) {
                                           toast({
@@ -1170,7 +1171,7 @@ export default function LotesConvidados() {
                                         }
                                       }
                                     } else {
-                                      console.warn('⚠️ Documento não pode ser aberto:', doc);
+                                      logger.warn('⚠️ Documento não pode ser aberto:', doc);
                                       toast({
                                         title: "Documento",
                                         description: `Arquivo: ${doc}`,
@@ -1312,7 +1313,7 @@ export default function LotesConvidados() {
           } as ArrematanteInfo;
         });
 
-        console.log('📋 Arrematantes do lote disponíveis:', arrematantesDoLote.length);
+        logger.debug('📋 Arrematantes do lote disponíveis:', arrematantesDoLote.length);
 
         return (
           <ArrematanteWizard
@@ -1418,7 +1419,7 @@ export default function LotesConvidados() {
                     .update({ status: 'arrematado' })
                     .eq('id', addingArrematanteFor.id);
 
-                  if (statusError) console.error('Erro ao atualizar status:', statusError);
+                  if (statusError) logger.error('Erro ao atualizar status:', statusError);
                 }
 
                 // ✅ Invalidar cache para atualizar a lista de lotes
@@ -1429,7 +1430,7 @@ export default function LotesConvidados() {
                 setEditingArrematanteId(null);
                 
               } catch (error) {
-                console.error("Erro ao salvar arrematante:", error);
+                logger.error("Erro ao salvar arrematante:", error);
                 toast({
                   title: "Erro",
                   description: "Não foi possível salvar o arrematante.",
