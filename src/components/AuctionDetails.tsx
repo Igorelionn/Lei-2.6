@@ -1,8 +1,7 @@
-﻿import { Auction, ArrematanteInfo } from "@/lib/types";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Auction, ArrematanteInfo } from "@/lib/types";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { supabaseClient } from "@/lib/supabase-client";
+import { logger } from "@/lib/logger";
 import { useEffect, useState } from "react";
 import { ImageWithFallback } from "@/components/ImageWithFallback"; // 🔒 SEGURANÇA: Componente seguro sem innerHTML
 import { 
@@ -10,7 +9,6 @@ import {
   MapPin, 
   DollarSign, 
   FileText, 
-  Clock,
   Building,
   Globe,
   Users,
@@ -93,7 +91,13 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
             // Adicionar apenas se não existir ainda (evitar duplicatas)
             data.forEach(item => {
               if (!allData.find(existing => existing.id === item.id)) {
-                allData.push(item);
+                allData.push({
+                  ...item,
+                  tamanho: item.tamanho || 0,
+                  data_upload: item.data_upload || '',
+                  url: item.url || '',
+                  descricao: item.descricao || ''
+                });
               }
             });
           } else if (error) {
@@ -122,12 +126,20 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
               })));
             
             // Filtrar manualmente por loteNumero na descrição
-            allData = allLoteImages.filter(img => 
-              img.descricao && (
-                img.descricao.includes(`Lote ${loteNumero}`) || 
-                img.descricao.includes(loteId)
-              )
-            );
+            allData = allLoteImages
+              .map(img => ({
+                ...img,
+                tamanho: img.tamanho || 0,
+                data_upload: img.data_upload || '',
+                url: img.url || '',
+                descricao: img.descricao || ''
+              }))
+              .filter(img => 
+                img.descricao && (
+                  img.descricao.includes(`Lote ${loteNumero}`) || 
+                  img.descricao.includes(loteId)
+                )
+              );
           }
         }
 
@@ -310,7 +322,7 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
     });
   };
 
-  const formatDateTime = (dateString: string) => {
+  const _formatDateTime = (dateString: string) => {
     return new Date(dateString).toLocaleString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -360,7 +372,7 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
     return colors[status as keyof typeof colors] || "text-gray-700 bg-gray-100 hover:bg-gray-100";
   };
 
-  const formatMonthYear = (monthString: string) => {
+  const _formatMonthYear = (monthString: string) => {
     if (!monthString || monthString.length < 2) return "Não definido";
     
     const monthNames = [
@@ -813,7 +825,7 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
                           setIsSelectOpen(false);
                         }}
                         onClick={(e) => {
-                          const target = e.target as HTMLSelectElement;
+                          const _target = e.target as HTMLSelectElement;
                           // Toggle apenas se clicar no select fechado ou clicar na mesma opção
                           setIsSelectOpen(!isSelectOpen);
                         }}
