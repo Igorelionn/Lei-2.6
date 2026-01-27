@@ -4,6 +4,7 @@ import { supabaseClient } from "@/lib/supabase-client";
 import { Auction, AuctionStatus, ItemCustoInfo, ItemPatrocinioInfo, LoteInfo } from "@/lib/types";
 import { Database } from "@/lib/database.types";
 import { sanitizeString, limitString } from "@/lib/secure-utils"; // 🔒 SEGURANÇA: Validação e sanitização
+import { logger } from '@/lib/logger';
 
 type AuctionRow = Database['public']['Tables']['auctions']['Row'];
 type AuctionInsert = Database['public']['Tables']['auctions']['Insert'];
@@ -505,7 +506,7 @@ export function useSupabaseAuctions() {
               .insert(imagensLoteParaInserir);
             
             if (loteImgError) {
-              console.error(`❌ Erro ao salvar imagens do lote ${lote.numero}:`, loteImgError);
+              logger.error('Erro ao salvar imagens do lote', { loteNumero: lote.numero, error: loteImgError });
             }
           }
         }
@@ -534,16 +535,16 @@ export function useSupabaseAuctions() {
                   
                   // Verificar se o base64 não é muito grande (limite de ~5MB em base64)
                   if (base64Data && base64Data.length > 7000000) {
-                    console.warn(`⚠️ Foto ${foto.nome} muito grande (${base64Data.length} chars)`);
+                    logger.warn('Foto muito grande', { nome: foto.nome, tamanho: base64Data.length });
                   }
                 } catch (error) {
-                  console.error(`❌ Erro ao converter ${foto.nome} para base64:`, error);
+                  logger.error('Erro ao converter foto para base64', { nome: foto.nome, error });
                 }
               } else if (foto.url.startsWith('data:')) {
                 // Já está em base64: manter
                 base64Data = foto.url;
               } else {
-                console.warn(`⚠️ Foto ${foto.nome} tem URL não reconhecida: ${foto.url.substring(0, 30)}`);
+                logger.warn('Foto tem URL não reconhecida', { nome: foto.nome, url: foto.url.substring(0, 30) });
               }
             }
 
@@ -573,7 +574,7 @@ export function useSupabaseAuctions() {
             .insert(documentosValidos);
             
           if (docsError) {
-            console.error('❌ Erro ao salvar fotos:', {
+            logger.error('Erro ao salvar fotos', {
               error: docsError,
               message: docsError.message,
               details: docsError.details,
@@ -583,7 +584,7 @@ export function useSupabaseAuctions() {
             throw docsError;
           }
         } else {
-          console.warn(`⚠️ Nenhuma foto com URL válida para salvar (total: ${fotosMercadoria.length})`);
+          logger.warn('Nenhuma foto com URL válida para salvar', { total: fotosMercadoria.length });
         }
       }
 
@@ -609,16 +610,16 @@ export function useSupabaseAuctions() {
                   
                   // Verificar se o base64 não é muito grande (limite de ~10MB em base64 para documentos)
                   if (base64Data && base64Data.length > 10000000) {
-                    console.warn(`⚠️ Documento ${doc.nome} muito grande (${base64Data.length} chars), mas será salvo assim mesmo`);
+                    logger.warn('Documento muito grande, mas será salvo', { nome: doc.nome, tamanho: base64Data.length });
                   }
                 } catch (error) {
-                  console.error(`❌ Erro ao converter ${doc.nome} para base64:`, error);
+                  logger.error('Erro ao converter documento para base64', { nome: doc.nome, error });
                 }
               } else if (doc.url.startsWith('data:')) {
                 // Já está em base64: manter
                 base64Data = doc.url;
               } else {
-                console.warn(`⚠️ Documento ${doc.nome} tem URL não reconhecida: ${doc.url.substring(0, 30)}`);
+                logger.warn('Documento tem URL não reconhecida', { nome: doc.nome, url: doc.url.substring(0, 30) });
               }
             }
 
@@ -648,7 +649,7 @@ export function useSupabaseAuctions() {
             .insert(documentosValidos);
             
           if (docsError) {
-            console.error('❌ Erro ao salvar documentos:', {
+            logger.error('Erro ao salvar documentos', {
               error: docsError,
               message: docsError.message,
               details: docsError.details,
@@ -658,7 +659,7 @@ export function useSupabaseAuctions() {
             throw docsError;
           }
         } else {
-          console.warn(`⚠️ Nenhum documento com URL válida para salvar (total: ${documentos.length})`);
+          logger.warn('Nenhum documento com URL válida para salvar', { total: documentos.length });
         }
       }
 
@@ -784,7 +785,7 @@ export function useSupabaseAuctions() {
               tipo_pagamento: arrematante.tipoPagamento || null,
             };
 
-            console.log('🗄️ CONDIÇÕES DE PAGAMENTO - bidderData:', {
+            logger.debug('Condições de pagamento - bidderData', {
               valor_lance: bidderData.valor_lance,
               fator_multiplicador: bidderData.fator_multiplicador,
               usa_fator_multiplicador: bidderData.usa_fator_multiplicador,
@@ -798,7 +799,7 @@ export function useSupabaseAuctions() {
             // ✅ CORREÇÃO: Verificar se é INSERT (novo) ou UPDATE (edição)
             if (arrematante.id) {
               // MODO EDIÇÃO: Atualizar arrematante existente
-              console.log('🔄 MODO EDIÇÃO: Atualizando arrematante ID:', arrematante.id);
+              logger.info('Modo edição: atualizando arrematante', { id: arrematante.id });
               
               // ✅ DELETAR DOCUMENTOS ANTIGOS DESTE ARREMATANTE ANTES DE ATUALIZAR
               // Estratégia dupla: primeiro por ID, depois por nome (para documentos antigos)
@@ -812,9 +813,9 @@ export function useSupabaseAuctions() {
                 .ilike('descricao', `%bidder_id:${arrematante.id}%`);
 
               if (deleteDocsError) {
-                console.warn('⚠️ Aviso ao deletar documentos por ID:', deleteDocsError);
+                logger.warn('Aviso ao deletar documentos por ID', { error: deleteDocsError });
               } else {
-                console.log(`🗑️ Documentos deletados por ID: ${deletedByIdCount || 0}`);
+                logger.debug('Documentos deletados por ID', { count: deletedByIdCount || 0 });
               }
               
               // 2. Deletar por nome (para documentos antigos sem ID na descrição)
@@ -827,13 +828,13 @@ export function useSupabaseAuctions() {
                 .not('descricao', 'ilike', '%bidder_id:%'); // Apenas docs sem ID
 
               if (deleteByNameError) {
-                console.warn('⚠️ Aviso ao deletar documentos por nome:', deleteByNameError);
+                logger.warn('Aviso ao deletar documentos por nome', { error: deleteByNameError });
               } else {
-                console.log(`🗑️ Documentos antigos deletados por nome: ${deletedByNameCount || 0}`);
+                logger.debug('Documentos antigos deletados por nome', { count: deletedByNameCount || 0 });
               }
               
               const totalDeleted = (deletedByIdCount || 0) + (deletedByNameCount || 0);
-              console.log(`✅ Total de documentos deletados: ${totalDeleted}`);
+              logger.info('Total de documentos deletados', { total: totalDeleted });
               
               const { error: bidderError } = await supabaseClient
                 .from('bidders')
@@ -841,12 +842,12 @@ export function useSupabaseAuctions() {
                 .eq('id', arrematante.id);
 
               if (bidderError) {
-                console.error('❌ Erro ao atualizar arrematante:', bidderError);
+                logger.error('Erro ao atualizar arrematante', { error: bidderError });
                 throw bidderError;
               }
             } else {
               // MODO CRIAÇÃO: Inserir novo arrematante
-              console.log('➕ MODO CRIAÇÃO: Inserindo novo arrematante');
+              logger.info('Modo criação: inserindo novo arrematante');
               
               // ✅ VALIDAÇÃO REMOVIDA: Agora permitimos múltiplos arrematantes por mercadoria
               // Isso é necessário para o recurso de "Divisão de Mercadoria"
@@ -860,14 +861,14 @@ export function useSupabaseAuctions() {
                 .maybeSingle();
 
               if (bidderError) {
-                console.error('❌ Erro ao inserir arrematante:', bidderError);
+                logger.error('Erro ao inserir arrematante', { error: bidderError });
                 throw bidderError;
               }
               
               // ✅ Atribuir o ID retornado para usar nos documentos
               if (insertedBidder?.id) {
                 arrematante.id = insertedBidder.id;
-                console.log('✅ Novo arrematante criado com ID:', insertedBidder.id);
+                logger.info('Novo arrematante criado com ID', { id: insertedBidder.id });
               }
             }
 
@@ -877,11 +878,11 @@ export function useSupabaseAuctions() {
             const bidderId = arrematante.id;
             
             if (!bidderId) {
-              console.error('❌ ERRO: Tentando salvar documentos sem ID de arrematante!');
+              logger.error('Tentando salvar documentos sem ID de arrematante');
               throw new Error('ID do arrematante não disponível para salvar documentos');
             }
             
-            console.log('📄 DOCUMENTOS - Salvando documentos do arrematante:', {
+            logger.debug('Salvando documentos do arrematante', {
               bidderId: bidderId,
               nome: arrematante.nome,
               quantidadeDocumentos: arrematante.documentos.length,
@@ -904,7 +905,7 @@ export function useSupabaseAuctions() {
                         reader.readAsDataURL(blob);
                       });
                     } catch (error) {
-                      console.error(`❌ Erro ao converter ${doc.nome} para base64:`, error);
+                      logger.error('Erro ao converter documento para base64', { nome: doc.nome, error });
                     }
                   } else if (doc.url.startsWith('data:')) {
                     base64Data = doc.url;
@@ -937,7 +938,7 @@ export function useSupabaseAuctions() {
               .insert(documentosParaInserir);
               
             if (docsError) {
-              console.error('❌ Erro ao salvar documentos do arrematante:', {
+              logger.error('Erro ao salvar documentos do arrematante', {
                 error: docsError,
                 message: docsError.message,
                 details: docsError.details,
@@ -946,7 +947,7 @@ export function useSupabaseAuctions() {
               });
               throw docsError;
             } else {
-              console.log('✅ DOCUMENTOS - Documentos salvos com sucesso!', {
+              logger.info('Documentos salvos com sucesso', {
                 quantidade: documentosParaInserir.length,
                 documentos: documentosParaInserir.map(d => ({ nome: d.nome, categoria: d.categoria, descricao: d.descricao }))
               });
@@ -981,13 +982,13 @@ export function useSupabaseAuctions() {
           .eq('categoria', 'lote_fotos');
         
         if (deleteOldImagesError) {
-          console.error('❌ Erro ao remover imagens antigas dos lotes:', deleteOldImagesError);
+          logger.error('Erro ao remover imagens antigas dos lotes', { error: deleteOldImagesError });
         }
 
         // Agora, salvar as novas imagens de cada lote
         for (const lote of sanitizedData.lotes) {
           if (lote.imagens && lote.imagens.length > 0) {
-            console.log(`🖼️ Processando ${lote.imagens.length} imagens do lote ${lote.numero}`);
+            logger.debug('Processando imagens do lote', { quantidade: lote.imagens.length, loteNumero: lote.numero });
             
             const imagensLoteParaInserir = lote.imagens.map((imagemUrl: string, index: number) => ({
               auction_id: id,
@@ -1006,7 +1007,7 @@ export function useSupabaseAuctions() {
               .insert(imagensLoteParaInserir);
             
             if (loteImgError) {
-              console.error(`❌ Erro ao salvar imagens do lote ${lote.numero}:`, loteImgError);
+              logger.error('Erro ao salvar imagens do lote', { loteNumero: lote.numero, error: loteImgError });
             }
           }
         }
@@ -1040,10 +1041,10 @@ export function useSupabaseAuctions() {
                   base64Data = base64;
                   
                   if (base64Data && base64Data.length > 7000000) {
-                    console.warn(`⚠️ Foto ${foto.nome} muito grande (${base64Data.length} chars)`);
+                    logger.warn('Foto muito grande', { nome: foto.nome, tamanho: base64Data.length });
                   }
                 } catch (error) {
-                  console.error(`❌ Erro ao converter ${foto.nome} para base64:`, error);
+                  logger.error('Erro ao converter foto para base64', { nome: foto.nome, error });
                 }
               } else if (foto.url && foto.url.startsWith('data:')) {
                 // Se já é base64, manter
@@ -1072,7 +1073,7 @@ export function useSupabaseAuctions() {
             .insert(documentosParaInserir);
 
           if (docsError) {
-            console.error('❌ Erro ao salvar fotos na atualização:', docsError);
+            logger.error('Erro ao salvar fotos na atualização', { error: docsError });
             throw docsError;
           }
         }
@@ -1106,10 +1107,10 @@ export function useSupabaseAuctions() {
                   base64Data = base64;
                   
                   if (base64Data && base64Data.length > 10000000) {
-                    console.warn(`⚠️ Documento ${doc.nome} muito grande (${base64Data.length} chars)`);
+                    logger.warn('Documento muito grande', { nome: doc.nome, tamanho: base64Data.length });
                   }
                 } catch (error) {
-                  console.error(`❌ Erro ao converter ${doc.nome} para base64:`, error);
+                  logger.error('Erro ao converter documento para base64', { nome: doc.nome, error });
                 }
               } else if (doc.url && doc.url.startsWith('data:')) {
                 // Se já é base64, manter
@@ -1138,7 +1139,7 @@ export function useSupabaseAuctions() {
             .insert(documentosParaInserir);
 
           if (docsError) {
-            console.error('❌ Erro ao salvar documentos na atualização:', docsError);
+            logger.error('Erro ao salvar documentos na atualização', { error: docsError });
             throw docsError;
           }
         }
@@ -1362,7 +1363,7 @@ export function useSupabaseAuctions() {
         .select('id, arquivado');
 
       if (error) {
-        console.error('❌ Erro ao arquivar leilão:', error);
+        logger.error('Erro ao arquivar leilão', { error });
         throw error;
       }
       
@@ -1385,7 +1386,7 @@ export function useSupabaseAuctions() {
         .maybeSingle();
       
       if (fetchError) {
-        console.error('❌ Erro ao buscar leilão atual:', fetchError);
+        logger.error('Erro ao buscar leilão atual', { error: fetchError });
         throw fetchError;
       }
       
@@ -1404,7 +1405,7 @@ export function useSupabaseAuctions() {
         .select('id, arquivado, updated_at');
 
       if (error) {
-        console.error('❌ Erro ao desarquivar leilão:', error);
+        logger.error('Erro ao desarquivar leilão', { error });
         throw error;
       }
       
@@ -1420,11 +1421,11 @@ export function useSupabaseAuctions() {
         .maybeSingle();
         
       if (verifyError) {
-        console.error('❌ Erro na verificação:', verifyError);
+        logger.error('Erro na verificação', { error: verifyError });
       }
       
       if (!verification) {
-        console.warn('⚠️ Não foi possível verificar o desarquivamento');
+        logger.warn('Não foi possível verificar o desarquivamento');
       }
       
       return data;
