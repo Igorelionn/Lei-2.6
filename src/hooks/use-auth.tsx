@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
 import { toast, dismiss } from "@/hooks/use-toast";
+import { logger } from '@/lib/logger';
 
 type UserRole = "admin";
 
@@ -100,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const cleanEmail = email.trim();
     const cleanPassword = password.trim();
     
-    console.log('Iniciando processo de login...', { 
+    logger.info('Iniciando processo de login', { 
       originalEmail: email, 
       cleanEmail, 
       hasSpaces: email !== cleanEmail 
@@ -108,7 +109,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Garantir que não há estado residual de autenticação
     if (user) {
-      console.log('Limpando estado de usuário anterior...');
+      logger.debug('Limpando estado de usuário anterior');
       setUser(null);
       persist(null);
     }
@@ -121,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // Primeiro buscar o usuário por email
-      console.log('🔍 Buscando usuário com email:', cleanEmail);
+      logger.debug('Buscando usuário com email', { email: cleanEmail });
       let { data: users, error: userError } = await supabase
         .from('users')
         .select('id, name, email, role, full_name, can_edit, can_create, can_delete, can_manage_users, is_active')
@@ -129,7 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Se não encontrar por email, buscar por nome
       if (!users || users.length === 0) {
-        console.log('👤 Não encontrado por email, buscando por nome:', cleanEmail);
+        logger.debug('Não encontrado por email, buscando por nome', { nome: cleanEmail });
         const { data: usersByName, error: nameError} = await supabase
           .from('users')
           .select('id, name, email, role, full_name, can_edit, can_create, can_delete, can_manage_users, is_active')
@@ -140,26 +141,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (userError) {
-        console.error('❌ Erro ao buscar usuário:', userError);
+        logger.error('Erro ao buscar usuário', { error: userError });
         throw new Error("Usuário ou senha incorretos");
       }
 
       if (!users || users.length === 0) {
-        console.log('❌ Usuário não encontrado:', cleanEmail);
+        logger.warn('Usuário não encontrado', { email: cleanEmail });
         throw new Error("Usuário ou senha incorretos");
       }
 
       const user = users[0] as unknown as DatabaseUser;
-      console.log('✅ Usuário encontrado:', { 
+      logger.info('Usuário encontrado', { 
         id: user.id, 
-        name: user.name, 
+        name: user.name,
         email: user.email,
-        isActive: user.is_active 
+        isActive: user.is_active
       });
 
       // Verificar se o usuário está ativo
       if (!user.is_active) {
-        console.log('Usuário está desativado');
+        logger.warn('Usuário está desativado', { userId: user.id });
         throw new Error("Usuário desativado. Entre em contato com o administrador.");
       }
 
@@ -174,18 +175,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (verifyError) {
         // 🔒 SEGURANÇA: Não logar detalhes de erro de autenticação em produção
-        if (import.meta.env.DEV) {
-          console.error('❌ Erro na verificação de senha:', verifyError);
-        }
+        logger.error('Erro na verificação de senha', { error: verifyError });
         throw new Error("Usuário ou senha incorretos");
       }
 
       if (!passwordMatch) {
-        console.log('❌ Senha não confere');
+        logger.warn('Senha não confere');
         throw new Error("Usuário ou senha incorretos");
       }
 
-      console.log('✅ Senha verificada com sucesso!');
+      logger.info('Senha verificada com sucesso');
 
       const permissions = {
         can_edit: user.can_edit || false,
@@ -216,7 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .eq('id', user.id);
 
         if (updateError) {
-          console.error('Erro ao atualizar dados de login:', updateError);
+          logger.error('Erro ao atualizar dados de login', { error: updateError });
         }
 
         // Registrar ação de login
@@ -228,14 +227,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           metadata: { login_method: 'credentials' }
         });
       } catch (error) {
-        console.error('Erro na sincronização de login:', error);
+        logger.error('Erro na sincronização de login', { error });
       }
       
-      console.log('Autenticação concluída com sucesso:', { userId: user.id, userName: user.name });
+      logger.info('Autenticação concluída com sucesso', { userId: user.id, userName: user.name });
       setUser(authenticatedUser);
       persist(authenticatedUser);
     } catch (error: unknown) {
-      console.error('Erro durante o login:', error);
+      logger.error('Erro durante o login', { error });
       const errorMessage = error instanceof Error ? error.message : "Usuário ou senha incorretos";
       throw new Error(errorMessage);
     }
@@ -243,7 +242,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [persist]); // 'user' não é incluído intencionalmente: login busca usuário do banco, não depende do state
 
   const logout = useCallback(async () => {
-    console.log('Iniciando logout...', { userId: user?.id });
+    logger.info('Iniciando logout', { userId: user?.id });
     
     if (user && heartbeatIntervalRef.current) {
       // Marcar usuário como offline no banco antes de fazer logout
@@ -255,7 +254,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           })
           .eq('id', user.id);
       } catch (error) {
-        console.error('Erro ao marcar usuário como offline:', error);
+        logger.error('Erro ao marcar usuário como offline', { error });
       }
       
       // Limpar heartbeat
@@ -279,7 +278,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Ignorar erros de signOut pois não usamos auth nativo do Supabase
     }
     
-    console.log('Logout concluído com sucesso');
+    logger.info('Logout concluído com sucesso');
   }, [user, persist]);
 
   const updateFullName = useCallback((fullName: string) => {
@@ -312,7 +311,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     metadata?: Record<string, unknown>
   ) => {
     if (!user) {
-      console.warn('Tentativa de registrar ação sem usuário logado');
+      logger.warn('Tentativa de registrar ação sem usuário logado');
       return;
     }
 
@@ -326,7 +325,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         metadata: metadata
       });
     } catch (error) {
-      console.error('Erro ao registrar ação do usuário:', error);
+      logger.error('Erro ao registrar ação do usuário', { error });
     }
   }, [user]);
 
@@ -346,7 +345,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (updateError) {
         // Se erro 406 (PGRST116), provavelmente usuário foi excluído
         if (updateError.code === 'PGRST116' || updateError.message?.includes('No rows found')) {
-          console.log('🗑️ Usuário foi excluído - fazendo logout automático');
+          logger.warn('Usuário foi excluído - fazendo logout automático');
           
           // Salvar mensagem de exclusão no localStorage
           localStorage.setItem('deletion-message', 'Sua conta foi excluída por um administrador.');
@@ -356,7 +355,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           return;
         }
         
-        console.error('Erro ao atualizar heartbeat:', updateError);
+        logger.error('Erro ao atualizar heartbeat', { error: updateError });
         
         // ✅ Detectar erros de conexão e mostrar toast (evitar spam)
         const now = Date.now();
@@ -401,7 +400,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Se o usuário foi desativado, fazer logout automático
       const dbUserData = userData as DatabaseUser;
       if (userData && !dbUserData.is_active) {
-        console.log('🔴 Usuário foi desativado - fazendo logout automático');
+        logger.warn('Usuário foi desativado - fazendo logout automático');
         
         // Salvar mensagem de desativação no localStorage
         localStorage.setItem('deactivation-message', 'Sua conta foi desativada por um administrador.');
@@ -435,9 +434,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           currentPermissions.can_manage_users !== newPermissions.can_manage_users;
 
         if (permissionsChanged) {
-          console.log('🔄 Permissões alteradas - sincronizando automaticamente');
-          console.log('🔐 Permissões antigas:', currentPermissions);
-          console.log('✨ Novas permissões:', newPermissions);
+          logger.info('Permissões alteradas - sincronizando automaticamente', {
+            old: currentPermissions,
+            new: newPermissions
+          });
           
           // Atualizar contexto com novas permissões
           updatePermissions(newPermissions);
@@ -452,7 +452,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error: unknown) {
-      console.error('Erro ao atualizar heartbeat:', error);
+      logger.error('Erro ao atualizar heartbeat', { error });
       
       // Verificar se é erro de usuário não encontrado (excluído)
       const isSupabaseError = error && typeof error === 'object' && 'code' in error;
@@ -460,7 +460,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const errorMessage = isSupabaseError ? (error as { message?: string }).message : undefined;
       
       if (errorCode === 'PGRST116' || errorMessage?.includes('No rows found')) {
-        console.log('🗑️ Usuário foi excluído - fazendo logout automático');
+        logger.warn('Usuário foi excluído - fazendo logout automático');
         
         // Salvar mensagem de exclusão no localStorage
         localStorage.setItem('deletion-message', 'Sua conta foi excluída por um administrador.');
@@ -530,7 +530,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     // ✅ Detectar mudanças no status de conexão do navegador
     const handleOnline = () => {
-      console.log('🌐 Navegador detectou conexão online');
+      logger.info('Navegador detectou conexão online');
       if (!isOnlineRef.current) {
         isOnlineRef.current = true;
         
@@ -552,7 +552,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const handleOffline = () => {
-      console.log('🔴 Navegador detectou perda de conexão');
+      logger.warn('Navegador detectou perda de conexão');
       if (isOnlineRef.current) {
         isOnlineRef.current = false;
         lastToastTimeRef.current = Date.now();
