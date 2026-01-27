@@ -20,7 +20,7 @@ import {
 import { Invoice, ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
 import { useNavigate } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { obterValorTotalArrematante, calcularEstruturaParcelas, calcularValorTotal, obterQuantidadeTotalParcelas, descreverEstruturaParcelas } from "@/lib/parcelamento-calculator";
@@ -48,6 +48,7 @@ export default function Dashboard() {
   const [currentSlide, setCurrentSlide] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
+  const isTransitioningRef = useRef(false); // 🔒 Previne race condition
   
   const slides = [
     { id: 'leiloes', title: 'Próximos Leilões', icon: Calendar },
@@ -55,33 +56,44 @@ export default function Dashboard() {
     { id: 'arrematantes', title: 'Arrematantes', icon: Users },
   ];
 
+  // 🔒 Helper seguro para transições
+  const performTransition = useCallback((direction: 'next' | 'prev') => {
+    if (isTransitioningRef.current) return; // ✅ Skip se já em transição
+    
+    isTransitioningRef.current = true;
+    setIsTransitioning(true);
+    
+    setTimeout(() => {
+      setCurrentSlide((prev) => {
+        if (direction === 'next') {
+          return (prev + 1) % slides.length;
+        } else {
+          return (prev - 1 + slides.length) % slides.length;
+        }
+      });
+      
+      setTimeout(() => {
+        setIsTransitioning(false);
+        isTransitioningRef.current = false;
+      }, 50);
+    }, 300);
+  }, [slides.length]);
+
   // Rotação automática
   useEffect(() => {
     if (isPaused) return;
     const interval = setInterval(() => {
-      setIsTransitioning(true);
-      setTimeout(() => {
-        setCurrentSlide((prev) => (prev + 1) % slides.length);
-        setTimeout(() => setIsTransitioning(false), 50);
-      }, 300);
+      performTransition('next');
     }, 8000);
     return () => clearInterval(interval);
-  }, [isPaused, slides.length]);
+  }, [isPaused, performTransition]);
 
   const nextSlide = () => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentSlide((prev) => (prev + 1) % slides.length);
-      setTimeout(() => setIsTransitioning(false), 50);
-    }, 300);
+    performTransition('next');
   };
   
   const prevSlide = () => {
-    setIsTransitioning(true);
-    setTimeout(() => {
-      setCurrentSlide((prev) => (prev - 1 + slides.length) % slides.length);
-      setTimeout(() => setIsTransitioning(false), 50);
-    }, 300);
+    performTransition('prev');
   };
 
   // Filtrar apenas leilões não arquivados
