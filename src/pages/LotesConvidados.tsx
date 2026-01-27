@@ -243,8 +243,7 @@ export default function LotesConvidados() {
       }
       
       // ✅ Mapear arrematantes para o formato GuestLotArrematante
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const arrematantesMapeados: GuestLotArrematante[] = arrematantes.map((arr: any) => ({
+      const arrematantesMapeados: GuestLotArrematante[] = arrematantes.map((arr: Partial<GuestLotArrematante> & { id: string }) => ({
         id: arr.id,
         nome: arr.nome || '',
         email: arr.email,

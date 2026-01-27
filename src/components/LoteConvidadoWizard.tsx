@@ -400,7 +400,7 @@ export default function LoteConvidadoWizard({
     };
   }, [documentFiles]);
 
-  const updateField = (field: keyof LoteConvidadoFormData, value: any) => {
+  const updateField = <K extends keyof LoteConvidadoFormData>(field: K, value: LoteConvidadoFormData[K]) => {
     setValues(prev => ({ ...prev, [field]: value }));
   };
 

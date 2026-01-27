@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,7 +21,20 @@ import {
   ArrowLeft,
   Download
 } from "lucide-react";
-import { Arrematante } from "@/lib/types";
+import { Arrematante, AuctionStatus } from "@/lib/types";
+
+// 🔒 Tipo para histórico de leilões do arrematante
+interface LeilaoHistorico extends Arrematante {
+  leilaoId: string;
+  leilaoNome: string;
+  leilaoIdentificacao: string;
+  leilaoData: string;
+  leilaoStatus: AuctionStatus;
+}
+
+interface ArrematanteComHistorico extends Arrematante {
+  leiloes: LeilaoHistorico[];
+}
 import { calcularEstruturaParcelas, calcularJurosProgressivos, descreverEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import html2pdf from 'html2pdf.js';
 import { useToast } from "@/hooks/use-toast";
@@ -72,7 +85,7 @@ export default function Historico() {
   const todosArrematantes = useMemo(() => {
     if (!auctions) return [];
     
-    const arrematantesMap = new Map<string, Arrematante & { leiloes: any[] }>();
+    const arrematantesMap = new Map<string, ArrematanteComHistorico>();
     
     auctions.forEach(auction => {
       if (auction.arrematante && auction.arrematante.documento) {
@@ -197,7 +210,7 @@ export default function Historico() {
   };
 
   // Calcular estatísticas do arrematante
-  const calcularEstatisticas = (arrematante: Arrematante & { leiloes: any[] }) => {
+  const calcularEstatisticas = (arrematante: ArrematanteComHistorico) => {
     const totalLeiloes = arrematante.leiloes.length;
     let totalArrematado = 0;
     let totalPago = 0;
@@ -245,7 +258,7 @@ export default function Historico() {
   };
 
   // Analisar histórico de atrasos
-  const analisarAtrasos = (arrematante: Arrematante & { leiloes: any[] }) => {
+  const analisarAtrasos = (arrematante: ArrematanteComHistorico) => {
     const atrasos: Array<{
       leilaoNome: string;
       leilaoData: string;

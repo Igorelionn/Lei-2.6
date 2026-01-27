@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -437,7 +437,7 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
     })) || [],
   });
 
-  const updateField = (field: keyof ProprietarioDataInternal, value: any) => {
+  const updateField = <K extends keyof ProprietarioDataInternal>(field: K, value: ProprietarioDataInternal[K]) => {
     setValues(prev => ({ ...prev, [field]: value }));
   };
 
