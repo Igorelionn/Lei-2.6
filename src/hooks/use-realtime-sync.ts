@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabaseClient } from '@/lib/supabase-client';
 import { Database } from '@/lib/database.types';
@@ -7,6 +7,13 @@ type Tables = Database['public']['Tables'];
 
 export function useRealtimeSync() {
   const queryClient = useQueryClient();
+  
+  // 🔒 FIX MEMORY LEAK: Usar ref para evitar recriação de channels
+  const queryClientRef = useRef(queryClient);
+  
+  useEffect(() => {
+    queryClientRef.current = queryClient;
+  }, [queryClient]);
 
   useEffect(() => {
     // Configurar sincronização para leilões
@@ -21,8 +28,8 @@ export function useRealtimeSync() {
         },
         (payload) => {
           // Invalidar queries relacionadas a leilões
-          queryClient.invalidateQueries({ queryKey: ['supabase-auctions'] });
-          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-auctions'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
         }
       )
       .subscribe();
@@ -39,9 +46,9 @@ export function useRealtimeSync() {
         },
         (payload) => {
           // Invalidar queries relacionadas a arrematantes
-          queryClient.invalidateQueries({ queryKey: ['supabase-bidders'] });
-          queryClient.invalidateQueries({ queryKey: ['supabase-auctions'] }); // Pode afetar arrematantes dos leilões
-          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-bidders'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-auctions'] }); // Pode afetar arrematantes dos leilões
+          queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
         }
       )
       .subscribe();
@@ -58,8 +65,8 @@ export function useRealtimeSync() {
         },
         (payload) => {
           console.log('Lot change received:', payload);
-          queryClient.invalidateQueries({ queryKey: ['supabase-lots'] });
-          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-lots'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
         }
       )
       .subscribe();
@@ -76,7 +83,7 @@ export function useRealtimeSync() {
         },
         (payload) => {
           console.log('Merchandise change received:', payload);
-          queryClient.invalidateQueries({ queryKey: ['supabase-merchandise'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-merchandise'] });
         }
       )
       .subscribe();
@@ -93,8 +100,8 @@ export function useRealtimeSync() {
         },
         (payload) => {
           console.log('Invoice change received:', payload);
-          queryClient.invalidateQueries({ queryKey: ['supabase-invoices'] });
-          queryClient.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-invoices'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
         }
       )
       .subscribe();
@@ -111,7 +118,7 @@ export function useRealtimeSync() {
         },
         (payload) => {
           console.log('Document change received:', payload);
-          queryClient.invalidateQueries({ queryKey: ['supabase-documents'] });
+          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-documents'] });
         }
       )
       .subscribe();
@@ -125,7 +132,7 @@ export function useRealtimeSync() {
       supabaseClient.removeChannel(invoicesChannel);
       supabaseClient.removeChannel(documentsChannel);
     };
-  }, [queryClient]);
+  }, []); // 🔒 FIX MEMORY LEAK: Array vazio - channels criados apenas uma vez
 
   return {
     // Função para forçar sincronização manual

@@ -19,11 +19,40 @@ export function useAutoEmailNotifications() {
   const { config, enviarLembrete, enviarCobranca, jaEnviouEmail } = useEmailNotifications();
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const ultimaVerificacaoRef = useRef<string>('');
+  
+  // 🔒 FIX MEMORY LEAK: Usar refs para evitar recriação do interval
+  const auctionsRef = useRef(auctions);
+  const configRef = useRef(config);
+  const enviarLembreteRef = useRef(enviarLembrete);
+  const enviarCobrancaRef = useRef(enviarCobranca);
+  const jaEnviouEmailRef = useRef(jaEnviouEmail);
+  
+  // Atualizar refs quando valores mudarem
+  useEffect(() => {
+    auctionsRef.current = auctions;
+  }, [auctions]);
+  
+  useEffect(() => {
+    configRef.current = config;
+  }, [config]);
+  
+  useEffect(() => {
+    enviarLembreteRef.current = enviarLembrete;
+    enviarCobrancaRef.current = enviarCobranca;
+    jaEnviouEmailRef.current = jaEnviouEmail;
+  }, [enviarLembrete, enviarCobranca, jaEnviouEmail]);
 
   // Função para verificar e enviar emails automáticos
   const verificarEEnviarEmails = async () => {
+    // 🔒 Usar valores das refs (sempre atualizados)
+    const currentConfig = configRef.current;
+    const currentAuctions = auctionsRef.current;
+    const currentEnviarLembrete = enviarLembreteRef.current;
+    const currentEnviarCobranca = enviarCobrancaRef.current;
+    const currentJaEnviouEmail = jaEnviouEmailRef.current;
+    
     // Só executa se o envio automático estiver ativado
-    if (!config.enviarAutomatico) {
+    if (!currentConfig.enviarAutomatico) {
       return;
     }
 
@@ -40,7 +69,7 @@ export function useAutoEmailNotifications() {
     let lembretesEnviados = 0;
     let cobrancasEnviadas = 0;
 
-    for (const auction of auctions) {
+    for (const auction of currentAuctions) {
       // Pular se já está arquivado
       if (auction.arquivado) {
         continue;
@@ -111,10 +140,10 @@ export function useAutoEmailNotifications() {
         };
 
         // LEMBRETE: Enviar X dias antes do vencimento
-        if (diasDiferenca > 0 && diasDiferenca <= config.diasAntesLembrete) {
+        if (diasDiferenca > 0 && diasDiferenca <= currentConfig.diasAntesLembrete) {
           // Verificar se já enviou lembrete hoje (usar ID do arrematante se disponível)
           const emailId = arrematante.id ? `${auction.id}_${arrematante.id}` : auction.id;
-          const jaEnviou = await jaEnviouEmail(emailId, 'lembrete');
+          const jaEnviou = await currentJaEnviouEmail(emailId, 'lembrete');
           
           if (jaEnviou) {
             console.log(`⏭️ Lembrete já foi enviado hoje para ${arrematante.nome}, pulando...`);
@@ -123,7 +152,7 @@ export function useAutoEmailNotifications() {
           
           console.log(`📧 Enviando lembrete para ${arrematante.nome} (${diasDiferenca} dias para vencer)`);
           
-          const resultado = await enviarLembrete(auctionComArrematante);
+          const resultado = await currentEnviarLembrete(auctionComArrematante);
           if (resultado.success) {
             lembretesEnviados++;
             console.log(`✅ Lembrete enviado: ${arrematante.nome}`);
@@ -133,10 +162,10 @@ export function useAutoEmailNotifications() {
         }
 
         // COBRANÇA: Enviar X dias após o vencimento
-        if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= config.diasDepoisCobranca) {
+        if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= currentConfig.diasDepoisCobranca) {
           // Verificar se já enviou cobrança hoje (usar ID do arrematante se disponível)
           const emailId = arrematante.id ? `${auction.id}_${arrematante.id}` : auction.id;
-          const jaEnviou = await jaEnviouEmail(emailId, 'cobranca');
+          const jaEnviou = await currentJaEnviouEmail(emailId, 'cobranca');
           
           if (jaEnviou) {
             console.log(`⏭️ Cobrança já foi enviada hoje para ${arrematante.nome}, pulando...`);
@@ -145,7 +174,7 @@ export function useAutoEmailNotifications() {
           
           console.log(`⚠️ Enviando cobrança para ${arrematante.nome} (${Math.abs(diasDiferenca)} dias atrasado)`);
           
-          const resultado = await enviarCobranca(auctionComArrematante);
+          const resultado = await currentEnviarCobranca(auctionComArrematante);
           if (resultado.success) {
             cobrancasEnviadas++;
             console.log(`✅ Cobrança enviada: ${arrematante.nome}`);
@@ -165,6 +194,12 @@ export function useAutoEmailNotifications() {
 
   // Executar verificação ao montar o componente e a cada 5 minutos
   useEffect(() => {
+    // 🔒 FIX MEMORY LEAK: Limpar interval ANTES de criar novo
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+    
     // Só inicia se o envio automático estiver ativado
     if (!config.enviarAutomatico) {
       console.log('ℹ️ Envio automático de emails está desativado');
@@ -186,13 +221,12 @@ export function useAutoEmailNotifications() {
     return () => {
       if (intervalRef.current) {
         clearInterval(intervalRef.current);
+        intervalRef.current = null;
         console.log('🛑 Sistema de envio automático desativado');
       }
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [auctions, config.enviarAutomatico, config.diasAntesLembrete, config.diasDepoisCobranca]);
-  // Nota: verificarEEnviarEmails não é incluída intencionalmente para evitar recriação do intervalo
-  // A função captura as dependências via closure e o intervalo é recriado quando as deps mudam
+  }, [config.enviarAutomatico, config.diasAntesLembrete, config.diasDepoisCobranca]);
+  // 🔒 FIX MEMORY LEAK: Remover 'auctions' das dependências (usar ref)
 
   return {
     verificando: config.enviarAutomatico,
