@@ -1230,7 +1230,7 @@ export default function Dashboard() {
                     if (temPatrociniosPendentes && temComissao) {
                       return (
                         <p className="text-xs text-gray-500 mt-2">
-                          Inclui {currency.format(totalPatrociniosPendentes)} de patrocínios e {currency.format(totalComissaoAReceber)} de comissão do leiloeiro
+                          Inclui {currency.format(totalPatrociniosPendentes)} de patrocínios e {currency.format(totalComissaoAReceber)} de comissão de compra
                         </p>
                       );
                     }
@@ -1239,7 +1239,7 @@ export default function Dashboard() {
                     if (temComissao) {
                       return (
                         <p className="text-xs text-gray-500 mt-2">
-                          Inclui {currency.format(totalComissaoAReceber)} de comissão do leiloeiro
+                          Inclui {currency.format(totalComissaoAReceber)} de comissão de compra
                         </p>
                       );
                     }
@@ -1296,7 +1296,7 @@ export default function Dashboard() {
                     if (temPatrocinios && temComissao) {
                       return (
                         <p className="text-xs text-gray-500 mt-2">
-                          Inclui {currency.format(totalPatrocinios)} de patrocínios e {currency.format(totalComissaoRecebida)} de comissão do leiloeiro
+                          Inclui {currency.format(totalPatrocinios)} de patrocínios e {currency.format(totalComissaoRecebida)} de comissão de compra
                         </p>
                       );
                     }
@@ -1305,7 +1305,7 @@ export default function Dashboard() {
                     if (temComissao) {
                       return (
                         <p className="text-xs text-gray-500 mt-2">
-                          Inclui {currency.format(totalComissaoRecebida)} de comissão do leiloeiro
+                          Inclui {currency.format(totalComissaoRecebida)} de comissão de compra
                         </p>
                       );
                     }

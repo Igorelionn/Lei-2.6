@@ -38,3 +38,5 @@ credentials/
 *.sln
 *.sw?
 .vercel
+
+.vercel
