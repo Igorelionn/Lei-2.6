@@ -297,7 +297,7 @@ export default function LoteConvidadoWizard({
   const [documentMetadata, setDocumentMetadata] = useState<{ name: string; type: string }[]>([]);
   
   // Detectar se está em modo de edição
-  const isEditMode = !!(initialData && (initialData as any).id);
+  const isEditMode = !!(initialData && initialData.id);
   
   const [values, setValues] = useState<LoteConvidadoFormData>({
     numero: "",
@@ -427,7 +427,7 @@ export default function LoteConvidadoWizard({
   };
 
   const addMercadoria = () => {
-    if (!currentMercadoria.nome.trim() || !currentMercadoria.descricao?.trim() || !currentMercadoria.quantidade || currentMercadoria.quantidade < 1) return;
+    if (!currentMercadoria.nome?.trim() || !currentMercadoria.descricao?.trim() || !currentMercadoria.quantidade || currentMercadoria.quantidade < 1) return;
     
     if (editingMercadoriaId) {
       // Modo de edição: atualizar mercadoria existente
@@ -635,7 +635,7 @@ export default function LoteConvidadoWizard({
              <button
                type="button"
                onClick={addMercadoria}
-               disabled={!currentMercadoria.nome.trim() || !currentMercadoria.descricao?.trim() || !currentMercadoria.quantidade || currentMercadoria.quantidade < 1}
+               disabled={!currentMercadoria.nome?.trim() || !currentMercadoria.descricao?.trim() || !currentMercadoria.quantidade || currentMercadoria.quantidade < 1}
                className="w-8 h-8 flex items-center justify-center text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                title={editingMercadoriaId ? "Salvar alterações" : "Adicionar mercadoria"}
              >
@@ -1277,9 +1277,9 @@ export default function LoteConvidadoWizard({
         };
 
         // Salvar no banco de dados (criar ou atualizar)
-        if (isEditMode) {
+        if (isEditMode && initialData?.id) {
           await updateGuestLot({ 
-            id: (initialData as any).id, 
+            id: initialData.id, 
             data: dataToSave 
           });
           
