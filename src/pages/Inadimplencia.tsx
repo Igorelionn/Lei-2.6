@@ -1956,7 +1956,7 @@ Arthur Lira Leilões`;
       
       return <Badge variant="destructive">
         {daysText}
-      </Badge>;
+        </Badge>;
   };
 
   // Componente para transição na coluna Atraso

@@ -499,6 +499,7 @@ interface ArrematanteWizardProps {
   };
   onSubmit: (values: Partial<ArrematanteInfo>) => Promise<void> | void;
   onCancel?: () => void;
+  onDeleteArrematante?: (arrematanteId: string) => Promise<void> | void;
   isNewArrematante?: boolean; // Indica se está criando novo (não editando)
 }
 
@@ -562,7 +563,7 @@ interface FormValues {
   parcelasSimples?: number;
 }
 
-export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematante = false }: ArrematanteWizardProps) {
+export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArrematante, isNewArrematante = false }: ArrematanteWizardProps) {
   const { toast } = useToast();
   
   // Verificar se deve mostrar seleção de arrematante
@@ -964,11 +965,11 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
         return !!(values.telefone && values.email && isValidEmail(values.email));
       case 2: // Endereço
         return !!(values.cep && values.rua && values.numero && values.bairro && values.cidade && values.estado);
-      case 3: { // Mercadoria
-        if (!values.loteId || !values.mercadoriaId) return false;
-        // Verificar se o lote tem mercadorias cadastradas
+      case 3: { // Lote
+        if (!values.loteId) return false;
+        // Verificar se o lote existe
         const lote = initial.lotes.find(l => l.id === values.loteId);
-        if (!lote || !lote.mercadorias || lote.mercadorias.length === 0) return false;
+        if (!lote) return false;
         return true;
       }
       case 4: // Condições de Pagamento
@@ -1143,6 +1144,9 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
   };
 
   const handleSubmit = async () => {
+    // Prevenir múltiplos cliques
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     try {
       // Calcular valorPagar baseado no tipo de pagamento
@@ -1224,7 +1228,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
         cidade: values.cidade || undefined,
         estado: values.estado || undefined,
         loteId: values.loteId || undefined,
-        mercadoriaId: values.mercadoriaId || undefined,
+        mercadoriaId: undefined, // Arrematante arremata o lote completo
         tipoPagamento: values.tipoPagamento,
         valorPagar: valorPagarFinal,
         valorPagarNumerico: parseCurrencyToNumber(valorPagarFinal),
@@ -1425,7 +1429,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
         cidade: values.cidade || undefined,
         estado: values.estado || undefined,
         loteId: values.loteId || undefined,
-        mercadoriaId: values.mercadoriaId || undefined,
+        mercadoriaId: undefined, // Arrematante arremata o lote completo
         tipoPagamento: values.tipoPagamento,
         valorPagar: valorPagarPrincipal,
         valorPagarNumerico: parseCurrencyToNumber(valorPagarPrincipal),
@@ -1497,7 +1501,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
           cidade: arrDivisao.cidade || undefined,
           estado: arrDivisao.estado || undefined,
           loteId: values.loteId || undefined, // Mesmo lote/mercadoria que o principal
-          mercadoriaId: values.mercadoriaId || undefined,
+          mercadoriaId: undefined, // Arrematante arremata o lote completo
           tipoPagamento: (arrDivisao.tipoPagamento as "a_vista" | "parcelamento" | "entrada_parcelamento") || "parcelamento",
           valorPagar: valorPagarDivisao,
           valorPagarNumerico: parseCurrencyToNumber(valorPagarDivisao),
@@ -1808,8 +1812,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
       )
     },
     {
-      id: "mercadoria",
-      title: "Mercadoria Arrematada",
+      id: "lote",
+      title: "Lote Arrematado",
       content: (
         <div className="space-y-8">
           <div className="space-y-3">
@@ -1818,7 +1822,6 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
               value={values.loteId}
               onValueChange={(v) => {
                 updateField("loteId", v);
-                updateField("mercadoriaId", ""); // Limpar mercadoria ao mudar lote
               }}
             >
               <SelectTrigger className="h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus:border-gray-800 focus-visible:ring-0 focus-visible:outline-none focus:outline-none active:outline-none outline-none ring-0 px-0 bg-transparent [&:focus]:ring-0 [&:active]:ring-0">
@@ -1834,181 +1837,57 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
             </Select>
           </div>
 
-          {values.loteId && infoLoteSelecionado && (
-            <>
-              {(!infoLoteSelecionado.lote.mercadorias || infoLoteSelecionado.lote.mercadorias.length === 0) ? (
-                <Alert className="border-amber-500 bg-amber-50">
-                  <AlertCircle className="h-4 w-4 text-amber-600" />
-                  <AlertDescription className="text-amber-800">
-                    <p className="text-sm">
-                      <span className="font-semibold">Este lote não possui mercadorias cadastradas.</span>
-                      <br />
-                      Por favor, adicione mercadorias ao lote no formulário do leilão antes de criar um arrematante.
-                    </p>
-                  </AlertDescription>
-                </Alert>
-              ) : (() => {
-                // Verificar se todas as mercadorias já foram arrematadas
-                const arrematantesExistentes = initial.auction?.arrematantes || [];
-                
-                // ID do arrematante atual sendo editado (pode vir de várias fontes)
-                const arrematanteAtualId = values.id || initial.arrematante?.id || selectedArrematanteId;
-                
-                // Obter IDs das mercadorias já arrematadas (exceto a do arrematante atual se estiver editando)
-                const mercadoriasArrematadas = arrematantesExistentes
-                  .filter(arr => {
-                    // Se estiver editando, permitir a mercadoria atual deste arrematante
-                    if (arrematanteAtualId) {
-                      return arr.id !== arrematanteAtualId;
-                    }
-                    return true;
-                  })
-                  .map(arr => arr.mercadoriaId)
-                  .filter(Boolean);
-                
-                // Filtrar mercadorias disponíveis do lote
-                const mercadoriasDisponiveis = infoLoteSelecionado.lote.mercadorias?.filter(
-                  m => !mercadoriasArrematadas.includes(m.id)
-                ) || [];
-                
-                const totalMercadorias = infoLoteSelecionado.lote.mercadorias?.length || 0;
-                
-                // Se todas as mercadorias já foram arrematadas
-                if (totalMercadorias > 0 && mercadoriasDisponiveis.length === 0) {
-                  return (
-                    <p className="text-sm text-red-600 mt-2 flex items-start gap-1.5">
-                      <AlertCircle className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                      <span>
-                        Todas as mercadorias deste lote já foram arrematadas. Por favor, selecione outro lote ou edite um arrematante existente deste lote.
-                      </span>
-                    </p>
-                  );
+          {values.loteId && infoLoteSelecionado && (() => {
+            // Verificar se o LOTE já foi arrematado (não mercadorias individuais)
+            const arrematantesExistentes = initial.auction?.arrematantes || [];
+            const arrematanteAtualId = values.id || initial.arrematante?.id || selectedArrematanteId;
+            
+            // Verificar se outro arrematante já arrematou este lote
+            const loteJaArrematado = arrematantesExistentes
+              .filter(arr => {
+                // Se estiver editando, permitir o próprio arrematante
+                if (arrematanteAtualId) {
+                  return arr.id !== arrematanteAtualId;
                 }
-                
-                // Caso contrário, mostrar a seleção de mercadorias normalmente
-                return (
-                <div className="space-y-3">
-                  <Label className="text-lg font-normal text-gray-600">Selecione a mercadoria</Label>
-                  <Select
-                    value={values.mercadoriaId}
-                    onValueChange={(v) => updateField("mercadoriaId", v)}
-                  >
-                    <SelectTrigger className="h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus:border-gray-800 focus-visible:ring-0 focus-visible:outline-none focus:outline-none active:outline-none outline-none ring-0 px-0 bg-transparent [&:focus]:ring-0 [&:active]:ring-0">
-                      <SelectValue placeholder="Selecione a mercadoria" />
-                    </SelectTrigger>
-                    <SelectContent position="popper" sideOffset={5} className="z-[100000] max-h-[300px] overflow-auto">
-                      {(() => {
-                        // Obter todos os arrematantes existentes do leilão
-                        const arrematantesExistentes = initial.auction?.arrematantes || [];
-                        
-                        // ID do arrematante atual sendo editado (pode vir de várias fontes)
-                        const arrematanteAtualId = values.id || initial.arrematante?.id || selectedArrematanteId;
-                        
-                        // Obter IDs das mercadorias já arrematadas (exceto a do arrematante atual se estiver editando)
-                        const mercadoriasArrematadas = arrematantesExistentes
-                          .filter(arr => {
-                            // Se estiver editando, permitir a mercadoria atual deste arrematante
-                            if (arrematanteAtualId) {
-                              return arr.id !== arrematanteAtualId;
-                            }
-                            return true;
-                          })
-                          .map(arr => arr.mercadoriaId)
-                          .filter(Boolean);
-                        
-                        // Filtrar mercadorias disponíveis
-                        const mercadoriasDisponiveis = infoLoteSelecionado.lote.mercadorias?.filter(
-                          m => !mercadoriasArrematadas.includes(m.id)
-                        ) || [];
-                        
-                        const mercadoriasIndisponiveis = infoLoteSelecionado.lote.mercadorias?.filter(
-                          m => mercadoriasArrematadas.includes(m.id)
-                        ) || [];
-                        
-                        return (
-                          <>
-                            {mercadoriasDisponiveis.map((mercadoria) => (
-                              <SelectItem key={mercadoria.id} value={mercadoria.id}>
-                                {mercadoria.titulo || mercadoria.descricao}
-                              </SelectItem>
-                            ))}
-                            {mercadoriasIndisponiveis.length > 0 && mercadoriasDisponiveis.length > 0 && (
-                              <div className="px-2 py-1.5">
-                                <div className="border-t border-gray-200 my-1"></div>
-                              </div>
-                            )}
-                            {mercadoriasIndisponiveis.map((mercadoria) => (
-                              <SelectItem 
-                                key={mercadoria.id} 
-                                value={mercadoria.id}
-                                disabled
-                                className="opacity-50"
-                              >
-                                {mercadoria.titulo || mercadoria.descricao} (Já arrematada)
-                              </SelectItem>
-                            ))}
-                          </>
-                        );
-                      })()}
-                    </SelectContent>
-                  </Select>
-                  {(() => {
-                    // Mostrar aviso se houver mercadorias já arrematadas
-                    const arrematantesExistentes = initial.auction?.arrematantes || [];
-                    
-                    // ID do arrematante atual sendo editado (pode vir de várias fontes)
-                    const arrematanteAtualId = values.id || initial.arrematante?.id || selectedArrematanteId;
-                    
-                    const mercadoriasArrematadas = arrematantesExistentes
-                      .filter(arr => {
-                        // Se estiver editando, permitir a mercadoria atual deste arrematante
-                        if (arrematanteAtualId) {
-                          return arr.id !== arrematanteAtualId;
-                        }
-                        return true;
-                      })
-                      .map(arr => arr.mercadoriaId)
-                      .filter(Boolean);
-                    
-                    const mercadoriasIndisponiveis = infoLoteSelecionado.lote.mercadorias?.filter(
-                      m => mercadoriasArrematadas.includes(m.id)
-                    ) || [];
-                    
-                    if (mercadoriasIndisponiveis.length > 0) {
-                      const quantidade = mercadoriasIndisponiveis.length;
-                      const textoAviso = quantidade === 1
-                        ? `${quantidade} mercadoria já foi arrematada e não está disponível para seleção.`
-                        : `${quantidade} mercadorias já foram arrematadas e não estão disponíveis para seleção.`;
-                      
-                      return (
-                        <p className="text-sm text-gray-700 mt-2 flex items-center gap-1.5">
-                          <AlertCircle className="h-4 w-4 flex-shrink-0 text-amber-600" />
-                          {textoAviso}
-                        </p>
-                      );
-                    }
-                    return null;
-                  })()}
-                </div>
-                );
-              })()}
-            </>
-          )}
+                return true;
+              })
+              .some(arr => arr.loteId === values.loteId);
+            
+            // Se lote já foi arrematado
+            if (loteJaArrematado) {
+              return (
+                <p className="text-sm text-red-600">
+                  Este lote já foi arrematado por outro participante. Por favor, selecione outro lote ou edite o arrematante existente.
+                </p>
+              );
+            }
+            
+            // Lote disponível - não mostrar nada aqui (informações aparecem no card de resumo abaixo)
+            return null;
+          })()}
 
-          {values.loteId && infoLoteSelecionado && values.mercadoriaId && (
+          {values.loteId && infoLoteSelecionado && (
             <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-              <div className="space-y-2 text-sm text-gray-600">
+              <div className="space-y-3 text-sm text-gray-600">
                 <p>
-                <span className="font-medium">Leilão:</span> {initial.auctionName}
-              </p>
+                  <span className="font-medium">Leilão:</span> {initial.auctionName}
+                </p>
                 <p>
                   <span className="font-medium">Lote:</span> {infoLoteSelecionado.lote.numero} - {infoLoteSelecionado.lote.descricao}
                 </p>
-                <p>
-                  <span className="font-medium">Mercadoria:</span>{" "}
-                  {infoLoteSelecionado.lote.mercadorias?.find(m => m.id === values.mercadoriaId)?.titulo || 
-                   infoLoteSelecionado.lote.mercadorias?.find(m => m.id === values.mercadoriaId)?.descricao}
-                </p>
+                {infoLoteSelecionado.lote.mercadorias && infoLoteSelecionado.lote.mercadorias.length > 0 && (
+                  <div>
+                    <span className="font-medium">Mercadorias incluídas ({infoLoteSelecionado.lote.mercadorias.length}):</span>
+                    <ul className="mt-2 space-y-1 list-disc list-inside ml-2">
+                      {infoLoteSelecionado.lote.mercadorias.map((merc, idx) => (
+                        <li key={idx}>
+                          {merc.titulo || merc.descricao}
+                          {merc.quantidade && ` (${merc.quantidade} unidades)`}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -2077,7 +1956,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                     </div>
                     {percentualComissao > 0 && (
                       <div className="flex justify-between">
-                        <span>Comissão ({percentualComissao}%)</span>
+                        <span>Comissão de Compra ({percentualComissao}%)</span>
                         <span>+{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorComComissao - valorPagarParsed)}</span>
                       </div>
                     )}
@@ -2202,7 +2081,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                     <>
                       {percentualComissao > 0 && (
                         <p className="text-sm text-gray-600 italic">
-                          Comissão do leiloeiro de {percentualComissao}% aplicada sobre o valor total
+                          Comissão de compra de {percentualComissao}% aplicada sobre o valor total
                         </p>
                       )}
                       
@@ -2226,7 +2105,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                         
                         {percentualComissao > 0 && (
                           <div className="flex justify-between">
-                            <span>Comissão ({percentualComissao}%)</span>
+                            <span>Comissão de Compra ({percentualComissao}%)</span>
                             <span>+{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorComissao)}</span>
                           </div>
                         )}
@@ -2972,15 +2851,28 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
           <div className="space-y-3">
             {arrematantesFiltradosSelection.map((arrematante, index) => {
               const lote = initial.lotes?.find(l => l.id === arrematante.loteId);
-              const mercadoria = lote?.mercadorias?.find(m => m.id === arrematante.mercadoriaId);
               
               return (
                 <div
                   key={arrematante.id || index}
-                  onClick={() => handleSelectArrematante(arrematante.id || '')}
-                  className="group p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
+                  className="group relative p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
                 >
-                  <div className="flex items-center justify-between">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      if (window.confirm(`Tem certeza que deseja excluir o arrematante "${arrematante.nome}"?\n\nEsta ação não pode ser desfeita.`)) {
+                        onDeleteArrematante?.(arrematante.id || '');
+                      }
+                    }}
+                    className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors z-10"
+                    title="Excluir arrematante"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                  <div 
+                    onClick={() => handleSelectArrematante(arrematante.id || '')}
+                    className="flex items-center justify-between pr-8"
+                  >
                     <div className="flex-1 min-w-0">
                       <h3 className="text-lg font-medium text-gray-900 truncate group-hover:text-gray-950">{arrematante.nome}</h3>
                       <div className="mt-2 space-y-1">
@@ -2991,15 +2883,15 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                           <p className="text-sm text-gray-500 truncate">{arrematante.email}</p>
                         )}
                       </div>
-                      {mercadoria && (
+                      {lote && (
                         <div className="mt-3 pt-3 border-t border-gray-100">
-                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Mercadoria Atual</p>
+                          <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Lote Arrematado</p>
                           <p className="text-sm text-gray-700 font-medium">
-                            {mercadoria.titulo || mercadoria.descricao}
+                            Lote {lote.numero} - {lote.descricao}
                           </p>
-                          {lote && (
+                          {lote.mercadorias && lote.mercadorias.length > 0 && (
                             <p className="text-xs text-gray-500 mt-1">
-                              Lote {lote.numero} - {lote.descricao}
+                              {lote.mercadorias.length} mercadorias incluídas
                             </p>
                           )}
                         </div>
@@ -3235,15 +3127,28 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                   <div className="space-y-3">
                     {arrematantesFiltrados.map((arrematante, index) => {
                     const lote = initial.auction?.lotes?.find(l => l.id === arrematante.loteId);
-                    const mercadoria = lote?.mercadorias?.find(m => m.id === arrematante.mercadoriaId);
                     
                     return (
                       <div 
                         key={arrematante.id || index}
-                        onClick={() => handleImportArrematante(arrematante.id || '')}
-                        className="group p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
+                        className="group relative p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
                       >
-                        <div className="flex items-center justify-between">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (window.confirm(`Tem certeza que deseja excluir o arrematante "${arrematante.nome}"?\n\nEsta ação não pode ser desfeita.`)) {
+                              onDeleteArrematante?.(arrematante.id || '');
+                            }
+                          }}
+                          className="absolute top-4 right-4 p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors z-10"
+                          title="Excluir arrematante"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                        <div 
+                          onClick={() => handleImportArrematante(arrematante.id || '')}
+                          className="flex items-center justify-between pr-8"
+                        >
                           <div className="flex-1 min-w-0">
                             <h3 className="text-lg font-medium text-gray-900 truncate group-hover:text-gray-950">{arrematante.nome}</h3>
                             <div className="mt-2 space-y-1">
@@ -3254,10 +3159,13 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                                 <p className="text-sm text-gray-500 truncate">{arrematante.email}</p>
                               )}
                             </div>
-                            {mercadoria && (
+                            {lote && (
                               <div className="mt-3 pt-3 border-t border-gray-100">
-                                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Mercadoria Atual</p>
-                                <p className="text-sm text-gray-600 truncate">{mercadoria.titulo || mercadoria.descricao}</p>
+                                <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Lote Arrematado</p>
+                                <p className="text-sm text-gray-600 truncate">Lote {lote.numero} - {lote.descricao}</p>
+                                {arrematante.mercadorias && arrematante.mercadorias.length > 0 && (
+                                  <p className="text-xs text-gray-500 mt-1">{arrematante.mercadorias.length} {arrematante.mercadorias.length === 1 ? 'mercadoria incluída' : 'mercadorias incluídas'}</p>
+                                )}
                               </div>
                             )}
                           </div>
@@ -4220,7 +4128,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                                         
                                         {percentualComissao > 0 && (
                                           <div className="flex justify-between">
-                                            <span>Comissão ({percentualComissao}%)</span>
+                                            <span>Comissão de Compra ({percentualComissao}%)</span>
                                             <span>+{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorComComissao - valorTotalParcelas)}</span>
                                           </div>
                                         )}
@@ -4841,7 +4749,6 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                   <div className="space-y-3">
                     {filtered.map((arr, index) => {
                       const lote = initial.auction?.lotes?.find(l => l.id === arr.loteId);
-                      const mercadoria = lote?.mercadorias?.find(m => m.id === arr.mercadoriaId);
                       
                       return (
                         <div
@@ -4885,10 +4792,10 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, isNewArrematant
                                   <p className="text-sm text-gray-500 truncate">{arr.email}</p>
                                 )}
                               </div>
-                              {mercadoria && (
+                              {lote && (
                                 <div className="mt-3 pt-3 border-t border-gray-100">
-                                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Mercadoria Atual</p>
-                                  <p className="text-sm text-gray-600 truncate">{mercadoria.titulo || mercadoria.descricao}</p>
+                                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Lote Arrematado</p>
+                                  <p className="text-sm text-gray-600 truncate">Lote {lote.numero} - {lote.descricao}</p>
                                 </div>
                               )}
                             </div>

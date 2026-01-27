@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase-client";
 import { Auction, AuctionStatus, ItemCustoInfo, ItemPatrocinioInfo, LoteInfo } from "@/lib/types";
 import { Database } from "@/lib/database.types";
+import { sanitizeString, limitString } from "@/lib/secure-utils"; // 🔒 SEGURANÇA: Validação e sanitização
 
 type AuctionRow = Database['public']['Tables']['auctions']['Row'];
 type AuctionInsert = Database['public']['Tables']['auctions']['Insert'];
@@ -64,28 +65,32 @@ interface BidderRow {
   percentual_juros_atraso?: number;
 }
 
+// 🔧 CORREÇÃO DE TIPOS: Usar Omit para evitar conflitos de tipo com Json
 // Tipos estendidos para incluir campos que não estão no schema gerado
-interface ExtendedAuctionRow extends AuctionRow {
-  detalhe_custos?: ItemCustoInfo[] | null;
-  detalhe_patrocinios?: ItemPatrocinioInfo[] | null;
-  patrocinios_total?: number | null;
-  percentual_comissao_leiloeiro?: number | null;
+interface ExtendedAuctionRow extends Omit<AuctionRow, 'detalhe_custos' | 'detalhe_patrocinios' | 'patrocinios_total' | 'percentual_comissao_leiloeiro' | 'percentual_comissao_venda'> {
+  detalhe_custos: ItemCustoInfo[] | null;
+  detalhe_patrocinios: ItemPatrocinioInfo[] | null;
+  patrocinios_total: number | null;
+  percentual_comissao_leiloeiro: number | null;
+  percentual_comissao_venda: number | null;
   documents?: DocumentRow[];
   bidders?: BidderRow[];
 }
 
-interface ExtendedAuctionInsert extends AuctionInsert {
+interface ExtendedAuctionInsert extends Omit<AuctionInsert, 'detalhe_custos' | 'detalhe_patrocinios'> {
   detalhe_custos?: ItemCustoInfo[] | null;
   detalhe_patrocinios?: ItemPatrocinioInfo[] | null;
   patrocinios_total?: number | null;
   percentual_comissao_leiloeiro?: number | null;
+  percentual_comissao_venda?: number | null;
 }
 
-interface ExtendedAuctionUpdate extends AuctionUpdate {
+interface ExtendedAuctionUpdate extends Omit<AuctionUpdate, 'detalhe_custos' | 'detalhe_patrocinios'> {
   detalhe_custos?: ItemCustoInfo[] | null;
   detalhe_patrocinios?: ItemPatrocinioInfo[] | null;
   patrocinios_total?: number | null;
   percentual_comissao_leiloeiro?: number | null;
+  percentual_comissao_venda?: number | null;
 }
 
 interface BidderInsert {
@@ -186,6 +191,7 @@ function mapSupabaseAuctionToApp(auction: ExtendedAuctionRow): Auction {
     detalhePatrocinios: auction.detalhe_patrocinios || undefined,
     patrociniosTotal: auction.patrocinios_total ? Number(auction.patrocinios_total) : undefined,
     percentualComissaoLeiloeiro: auction.percentual_comissao_leiloeiro ? Number(auction.percentual_comissao_leiloeiro) : undefined,
+    percentualComissaoVenda: auction.percentual_comissao_venda ? Number(auction.percentual_comissao_venda) : undefined,
     lotes: (auction.lotes as unknown as LoteInfo[]) || [],
     fotosMercadoria: auction.documents?.filter((doc) => doc.categoria === 'leilao_fotos_mercadoria').map((doc) => ({
       id: doc.id.toString(),
@@ -230,6 +236,7 @@ function mapAppAuctionToSupabase(auction: Omit<Auction, "id">): ExtendedAuctionI
     detalhe_patrocinios: auction.detalhePatrocinios || undefined,
     patrocinios_total: auction.patrociniosTotal,
     percentual_comissao_leiloeiro: auction.percentualComissaoLeiloeiro,
+    percentual_comissao_venda: auction.percentualComissaoVenda,
     lotes: (auction.lotes as unknown as Database['public']['Tables']['auctions']['Insert']['lotes']) || undefined,
     historico_notas: auction.historicoNotas,
     arquivado: auction.arquivado,
@@ -271,6 +278,7 @@ export function useSupabaseAuctions() {
           detalhe_patrocinios,
           patrocinios_total,
           percentual_comissao_leiloeiro,
+          percentual_comissao_venda,
           lotes,
           historico_notas,
           arquivado,
@@ -415,20 +423,66 @@ export function useSupabaseAuctions() {
     },
   });
 
+  // 🔒 SEGURANÇA: Função para sanitizar dados de texto de leilões antes de salvar
+  const sanitizeAuctionData = (data: Partial<Auction>): Partial<Auction> => {
+    const sanitized = { ...data };
+    
+    // Sanitizar campos de texto que podem conter input do usuário
+    if (sanitized.nome) sanitized.nome = limitString(sanitizeString(sanitized.nome), 200);
+    if (sanitized.identificacao) sanitized.identificacao = limitString(sanitizeString(sanitized.identificacao), 100);
+    if (sanitized.endereco) sanitized.endereco = limitString(sanitizeString(sanitized.endereco), 500);
+    if (sanitized.local) sanitized.local = limitString(sanitizeString(sanitized.local), 200);
+    
+    // Sanitizar arrays de notas históricas
+    if (sanitized.historicoNotas && Array.isArray(sanitized.historicoNotas)) {
+      sanitized.historicoNotas = sanitized.historicoNotas.map(nota => 
+        limitString(sanitizeString(nota), 1000)
+      );
+    }
+    
+    // Sanitizar lotes (se houver)
+    if (sanitized.lotes && Array.isArray(sanitized.lotes)) {
+      sanitized.lotes = sanitized.lotes.map(lote => ({
+        ...lote,
+        descricao: lote.descricao ? limitString(sanitizeString(lote.descricao), 500) : lote.descricao,
+        // Sanitizar mercadorias dentro dos lotes
+        mercadorias: lote.mercadorias ? lote.mercadorias.map(merc => ({
+          ...merc,
+          titulo: merc.titulo ? limitString(sanitizeString(merc.titulo), 200) : merc.titulo,
+          tipo: merc.tipo ? limitString(sanitizeString(merc.tipo), 100) : merc.tipo,
+          descricao: merc.descricao ? limitString(sanitizeString(merc.descricao), 1000) : merc.descricao,
+        })) : lote.mercadorias,
+      }));
+    }
+    
+    return sanitized;
+  };
+
   // Mutation para criar leilão
   const createMutation = useMutation({
     mutationFn: async (data: Omit<Auction, "id">) => {
       // Separar campos de documentos dos demais dados
-      const { fotosMercadoria, documentos, ...sanitizedData } = data;
+      const { fotosMercadoria, documentos, ...rawData } = data;
+      
+      // 🔒 SEGURANÇA: Sanitizar dados antes de salvar
+      const sanitizedData = sanitizeAuctionData(rawData);
       
       
+      const mappedData = mapAppAuctionToSupabase(sanitizedData as Omit<Auction, "id">);
+      
+      // 🔧 CORREÇÃO DE TIPO: Cast para tipo base do Supabase
       const { data: created, error } = await supabaseClient
         .from('auctions')
-        .insert(mapAppAuctionToSupabase(sanitizedData as Omit<Auction, "id">))
+        .insert(mappedData as unknown as AuctionInsert)
         .select()
         .single();
 
       if (error) throw error;
+      
+      // 🔧 Garantir que created existe antes de prosseguir
+      if (!created) {
+        throw new Error('Falha ao criar leilão: nenhum dado retornado');
+      }
 
       // Salvar imagens dos lotes (se houver)
       if (data.lotes && data.lotes.length > 0) {
@@ -608,7 +662,8 @@ export function useSupabaseAuctions() {
         }
       }
 
-      return mapSupabaseAuctionToApp(created);
+      // 🔧 CORREÇÃO DE TIPO: Cast para ExtendedAuctionRow
+      return mapSupabaseAuctionToApp(created as unknown as ExtendedAuctionRow);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: AUCTIONS_KEY }),
   });
@@ -619,7 +674,10 @@ export function useSupabaseAuctions() {
     // Agora usamos fluxo síncrono: salvar no banco -> invalidar cache -> refetch
     mutationFn: async ({ id, data }: { id: string; data: Partial<Auction> }) => {
       // Separar campos de documentos dos demais dados
-      const { fotosMercadoria, documentos, ...sanitizedData } = data;
+      const { fotosMercadoria, documentos, ...rawData } = data;
+      
+      // 🔒 SEGURANÇA: Sanitizar dados antes de atualizar
+      const sanitizedData = sanitizeAuctionData(rawData);
       
       const updateData: AuctionUpdate = {};
       
@@ -640,11 +698,12 @@ export function useSupabaseAuctions() {
       if (sanitizedData.custosNumerico !== undefined) updateData.custos_numerico = sanitizedData.custosNumerico;
       
       // Campos estendidos (não presentes no tipo base, mas suportados pelo banco)
-      const extendedUpdateData = updateData as ExtendedAuctionUpdate;
+      const extendedUpdateData = updateData as unknown as ExtendedAuctionUpdate;
       if (sanitizedData.detalheCustos !== undefined) extendedUpdateData.detalhe_custos = sanitizedData.detalheCustos;
       if (sanitizedData.detalhePatrocinios !== undefined) extendedUpdateData.detalhe_patrocinios = sanitizedData.detalhePatrocinios;
       if (sanitizedData.patrociniosTotal !== undefined) extendedUpdateData.patrocinios_total = sanitizedData.patrociniosTotal;
       if (sanitizedData.percentualComissaoLeiloeiro !== undefined) extendedUpdateData.percentual_comissao_leiloeiro = sanitizedData.percentualComissaoLeiloeiro;
+      if (sanitizedData.percentualComissaoVenda !== undefined) extendedUpdateData.percentual_comissao_venda = sanitizedData.percentualComissaoVenda;
       
       if (sanitizedData.lotes !== undefined) updateData.lotes = sanitizedData.lotes as unknown as Database['public']['Tables']['auctions']['Update']['lotes'];
       if (sanitizedData.historicoNotas !== undefined) updateData.historico_notas = sanitizedData.historicoNotas;
@@ -685,21 +744,22 @@ export function useSupabaseAuctions() {
 
           // Processar cada arrematante (INSERT ou UPDATE)
           for (const arrematante of arrematantesArray) {
+            // 🔒 SEGURANÇA: Sanitizar campos de texto do arrematante
             const bidderData: BidderInsert = {
               auction_id: id,
-              nome: arrematante.nome,
-              documento: arrematante.documento || null,
-              endereco: arrematante.endereco || null,
+              nome: limitString(sanitizeString(arrematante.nome), 200),
+              documento: arrematante.documento ? limitString(sanitizeString(arrematante.documento), 20) : null,
+              endereco: arrematante.endereco ? limitString(sanitizeString(arrematante.endereco), 500) : null,
               // ✅ Campos de endereço detalhados
-              cep: arrematante.cep || null,
-              rua: arrematante.rua || null,
-              numero: arrematante.numero || null,
-              complemento: arrematante.complemento || null,
-              bairro: arrematante.bairro || null,
-              cidade: arrematante.cidade || null,
-              estado: arrematante.estado || null,
-              telefone: arrematante.telefone,
-              email: arrematante.email,
+              cep: arrematante.cep ? limitString(sanitizeString(arrematante.cep), 10) : null,
+              rua: arrematante.rua ? limitString(sanitizeString(arrematante.rua), 200) : null,
+              numero: arrematante.numero ? limitString(sanitizeString(arrematante.numero), 20) : null,
+              complemento: arrematante.complemento ? limitString(sanitizeString(arrematante.complemento), 100) : null,
+              bairro: arrematante.bairro ? limitString(sanitizeString(arrematante.bairro), 100) : null,
+              cidade: arrematante.cidade ? limitString(sanitizeString(arrematante.cidade), 100) : null,
+              estado: arrematante.estado ? limitString(sanitizeString(arrematante.estado), 2) : null,
+              telefone: arrematante.telefone ? limitString(sanitizeString(arrematante.telefone), 20) : null,
+              email: arrematante.email ? limitString(sanitizeString(arrematante.email), 100) : null,
               lote_id: arrematante.loteId,
               mercadoria_id: arrematante.mercadoriaId || null,
               valor_pagar_texto: arrematante.valorPagar,
@@ -1103,6 +1163,7 @@ export function useSupabaseAuctions() {
             mes_inicio_pagamento,
             dia_vencimento_padrao,
             data_entrada,
+            dia_entrada,
             data_vencimento_vista,
             parcelas_padrao,
             status,
@@ -1112,6 +1173,7 @@ export function useSupabaseAuctions() {
             detalhe_patrocinios,
             patrocinios_total,
             percentual_comissao_leiloeiro,
+            percentual_comissao_venda,
             lotes,
             historico_notas,
             arquivado,
@@ -1127,7 +1189,8 @@ export function useSupabaseAuctions() {
           throw new Error('Leilão não encontrado após atualização. Pode ter sido excluído.');
         }
         
-        return mapSupabaseAuctionToApp(updated);
+        // 🔧 CORREÇÃO DE TIPO: Cast para ExtendedAuctionRow
+        return mapSupabaseAuctionToApp(updated as unknown as ExtendedAuctionRow);
       } else {
         // Se só atualizamos o arrematante, buscar os dados atualizados do leilão
         // ✅ CORREÇÃO: Usar .maybeSingle() para evitar erro 406
@@ -1154,6 +1217,7 @@ export function useSupabaseAuctions() {
             detalhe_patrocinios,
             patrocinios_total,
             percentual_comissao_leiloeiro,
+            percentual_comissao_venda,
             lotes,
             historico_notas,
             arquivado,
@@ -1386,14 +1450,18 @@ export function useSupabaseAuctions() {
         arquivado: false
       };
 
+      const mappedDuplicatedData = mapAppAuctionToSupabase(duplicatedAuction);
+      
+      // 🔧 CORREÇÃO DE TIPO: Cast para tipo base do Supabase
       const { data: created, error } = await supabaseClient
         .from('auctions')
-        .insert(mapAppAuctionToSupabase(duplicatedAuction))
+        .insert(mappedDuplicatedData as unknown as AuctionInsert)
         .select()
         .single();
 
       if (error) throw error;
-      return mapSupabaseAuctionToApp(created);
+      // 🔧 CORREÇÃO DE TIPO: Cast para ExtendedAuctionRow
+      return mapSupabaseAuctionToApp(created as unknown as ExtendedAuctionRow);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: AUCTIONS_KEY }),
   });

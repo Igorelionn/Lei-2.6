@@ -65,6 +65,7 @@ export function getLembreteEmailTemplate(data: EmailTemplateData): { subject: st
           <!-- Logo Arthur Lira -->
           <tr>
             <td align="center" style="padding: 30px 40px 0 40px;">
+              <!-- 🔒 NOTA: URL do storage público (intencional para emails externos) -->
               <img src="https://moojuqphvhrhasxhaahd.supabase.co/storage/v1/object/public/documents/arthur-lira-logo.png" alt="Arthur Lira Leilões" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>
@@ -239,6 +240,7 @@ export function getCobrancaEmailTemplate(data: EmailTemplateData): { subject: st
           <!-- Logo Arthur Lira -->
           <tr>
             <td align="center" style="padding: 30px 40px 0 40px;">
+              <!-- 🔒 NOTA: URL do storage público (intencional para emails externos) -->
               <img src="https://moojuqphvhrhasxhaahd.supabase.co/storage/v1/object/public/documents/arthur-lira-logo.png" alt="Arthur Lira Leilões" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>
@@ -464,6 +466,7 @@ export function getConfirmacaoPagamentoEmailTemplate(data: EmailTemplateData): {
           <!-- Logo Arthur Lira -->
           <tr>
             <td align="center" style="padding: 30px 40px 0 40px;">
+              <!-- 🔒 NOTA: URL do storage público (intencional para emails externos) -->
               <img src="https://moojuqphvhrhasxhaahd.supabase.co/storage/v1/object/public/documents/arthur-lira-logo.png" alt="Arthur Lira Leilões" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>
@@ -635,6 +638,7 @@ export function getQuitacaoCompletaEmailTemplate(data: EmailTemplateData): { sub
           <!-- Logo Arthur Lira -->
           <tr>
             <td align="center" style="padding: 30px 40px 0 40px;">
+              <!-- 🔒 NOTA: URL do storage público (intencional para emails externos) -->
               <img src="https://moojuqphvhrhasxhaahd.supabase.co/storage/v1/object/public/documents/arthur-lira-logo.png" alt="Arthur Lira Leilões" style="height: 60px; width: auto; display: block; margin: 0 auto;" />
             </td>
           </tr>

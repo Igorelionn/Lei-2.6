@@ -163,31 +163,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Usuário desativado. Entre em contato com o administrador.");
       }
 
-      // Depois buscar as credenciais do usuário
-      console.log('🔑 Buscando credenciais do usuário...');
-      const { data: credentials, error: credError } = await untypedSupabase
-        .from('user_credentials')
-        .select('password_hash')
-        .eq('user_id', user.id)
-        .single();
-
-      if (credError) {
-        console.error('❌ Erro ao buscar credenciais:', credError);
-        throw new Error("Usuário não possui credenciais válidas");
-      }
-
-      const credentialsData = credentials as { password_hash?: string };
-      if (!credentials || !credentialsData.password_hash) {
-        console.log('❌ Credenciais não encontradas ou hash vazio');
-        throw new Error("Usuário não possui credenciais válidas");
-      }
-
-      console.log('✅ Credenciais encontradas, hash existe');
-
-      // Verificar se a senha corresponde usando RPC function
-      console.log('🔐 Verificando senha com verify_password...');
-      console.log('📧 Email para verificação:', user.email);
-      console.log('🔑 Senha recebida (tamanho):', cleanPassword.length, 'caracteres');
+      // 🔒 SEGURANÇA: Não buscar credenciais diretamente (bloqueado por RLS)
+      // Usar função verify_password que é SECURITY DEFINER e ignora RLS
       
       const { data: passwordMatch, error: verifyError } = await untypedSupabase
         .rpc('verify_password', {
@@ -196,12 +173,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
       if (verifyError) {
-        console.error('❌ Erro na verificação de senha:', verifyError);
-        console.error('❌ Detalhes do erro:', JSON.stringify(verifyError, null, 2));
+        // 🔒 SEGURANÇA: Não logar detalhes de erro de autenticação em produção
+        if (import.meta.env.DEV) {
+          console.error('❌ Erro na verificação de senha:', verifyError);
+        }
         throw new Error("Usuário ou senha incorretos");
       }
-
-      console.log('📊 Resultado da verificação:', passwordMatch);
 
       if (!passwordMatch) {
         console.log('❌ Senha não confere');

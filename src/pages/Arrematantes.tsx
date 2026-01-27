@@ -2,6 +2,8 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { useGuestLots } from "@/hooks/use-guest-lots"; // ✅ NOVO: Import para lotes convidados
+import { useClientPagination } from "@/hooks/use-pagination"; // ⚡ PERFORMANCE: Paginação
+import { Pagination } from "@/components/Pagination"; // ⚡ PERFORMANCE: Componente de paginação
 import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
@@ -759,6 +761,14 @@ function Arrematantes() {
     return matchesSearch && matchesStatus;
   });
 
+  // ⚡ PERFORMANCE: Paginação client-side (50 arrematantes por página)
+  const {
+    items: paginatedArrematantes,
+    currentPage,
+    totalPages,
+    setPage,
+  } = useClientPagination(filteredArrematantes, 50);
+
   // Contar por status
   const getStatusCount = (status: string) => {
     if (status === "todos") return processedArrematantes().length;
@@ -1023,7 +1033,7 @@ function Arrematantes() {
     Array.from(files).forEach((file) => {
       const blobUrl = URL.createObjectURL(file);
       const novoDocumento: DocumentoInfo = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
         nome: file.name,
         tipo: file.type,
         tamanho: file.size,
@@ -1087,7 +1097,7 @@ function Arrematantes() {
     files.forEach((file) => {
       const blobUrl = URL.createObjectURL(file);
       const novoDocumento: DocumentoInfo = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
         nome: file.name,
         tipo: file.type,
         tamanho: file.size,
@@ -1120,7 +1130,7 @@ function Arrematantes() {
     Array.from(files).forEach((file) => {
       const blobUrl = URL.createObjectURL(file);
       const novoDocumento: DocumentoInfo = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
         nome: file.name,
         tipo: file.type,
         tamanho: file.size,
@@ -1179,7 +1189,7 @@ function Arrematantes() {
     files.forEach((file) => {
       const blobUrl = URL.createObjectURL(file);
       const novoDocumento: DocumentoInfo = {
-        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
         nome: file.name,
         tipo: file.type,
         tamanho: file.size,
@@ -2940,7 +2950,10 @@ function Arrematantes() {
                   className="h-11 px-4 border-gray-300 text-gray-700 hover:text-black hover:bg-gray-50"
                 >
                   <Archive className="h-4 w-4 mr-2" />
-                  {showArchived ? "Ver Ativos" : "Ver Arquivados"}
+                  {showArchived ? "Ver Ativos" : `Ver Arquivados (${
+                    auctions.filter(a => a.arquivado && (a.arrematantes?.length || 0) > 0).length +
+                    (guestLots || []).filter(g => g.arquivado && (g.arrematantes?.length || 0) > 0).length
+                  })`}
                 </Button>
                 
                 <Select 
@@ -3046,7 +3059,7 @@ function Arrematantes() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredArrematantes.map((arrematante) => (
+                  {paginatedArrematantes.map((arrematante) => (
                     <TableRow key={arrematante.id} className="border-gray-100 hover:bg-gray-50/50">
                       <TableCell>
                         <div className="flex items-center gap-3">
@@ -3725,6 +3738,16 @@ function Arrematantes() {
                   ))}
                 </TableBody>
               </Table>
+
+              {/* ⚡ PERFORMANCE: Paginação */}
+              {filteredArrematantes.length > 0 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setPage}
+                  showFirstLast={true}
+                />
+              )}
             </div>
           )}
         </CardContent>
@@ -5036,7 +5059,7 @@ function Arrematantes() {
                                 </div>
                                 {percentualComissao > 0 && (
                                   <div className="flex justify-between">
-                                    <span>Comissão ({percentualComissao}%)</span>
+                                    <span>Comissão de Compra ({percentualComissao}%)</span>
                                     <span>+{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorComComissao - valorPagarParsed)}</span>
                                   </div>
                                 )}

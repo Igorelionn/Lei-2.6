@@ -87,7 +87,8 @@ export interface LoteInfo {
   parcelasPadrao?: number; // quantidade padrão de parcelas para este lote
   quantidadeParcelas?: number; // quantidade de parcelas (compatibilidade)
   fatorMultiplicador?: number; // fator multiplicador para cálculo de valores
-  percentualComissaoLeiloeiro?: number; // percentual de comissão do leiloeiro (ex: 10 para 10%)
+  percentualComissaoLeiloeiro?: number; // percentual de comissão de compra (ex: 10 para 10%)
+  percentualComissaoVenda?: number; // percentual de comissão de venda (ex: 5 para 5%)
 }
 
 export interface ArrematanteInfo {
@@ -106,7 +107,7 @@ export interface ArrematanteInfo {
   email?: string; // email do arrematante
   telefone?: string; // telefone do arrematante
   loteId?: string; // ID do lote arrematado
-  mercadoriaId?: string; // ID da mercadoria específica arrematada
+  mercadoriaId?: string; // DEPRECATED: ID da mercadoria específica (não usado - arrematante arremata lote completo)
   created_at?: string; // Data de criação do registro no banco
   tipoPagamento?: "a_vista" | "parcelamento" | "entrada_parcelamento"; // tipo de pagamento escolhido pelo arrematante
   valorPagar: string; // valor como string para preservar formatação
@@ -133,8 +134,9 @@ export interface ArrematanteInfo {
   parcelasDuplas?: number;      // Quantidade de parcelas duplas (valor × 2)
   parcelasSimples?: number;     // Quantidade de parcelas simples (valor × 1)
   
-  // Comissão do leiloeiro
-  percentualComissaoLeiloeiro?: number; // percentual de comissão do leiloeiro (ex: 10 para 10%)
+  // Comissões
+  percentualComissaoLeiloeiro?: number; // percentual de comissão de compra (ex: 10 para 10%)
+  percentualComissaoVenda?: number; // percentual de comissão de venda (ex: 5 para 5%)
 }
 
 export interface Auction {
@@ -157,7 +159,8 @@ export interface Auction {
   detalheCustos?: ItemCustoInfo[]; // detalhamento dos custos
   detalhePatrocinios?: ItemPatrocinioInfo[]; // detalhamento dos patrocínios
   patrociniosTotal?: number; // total de patrocínios recebidos
-  percentualComissaoLeiloeiro?: number; // percentual de comissão do leiloeiro (ex: 5 para 5%)
+  percentualComissaoLeiloeiro?: number; // percentual de comissão de compra (ex: 5 para 5%)
+  percentualComissaoVenda?: number; // percentual de comissão de venda (ex: 5 para 5%)
   lotes?: LoteInfo[]; // informações dos lotes do leilão
   fotosMercadoria?: DocumentoInfo[]; // fotos da mercadoria
   historicoNotas?: string[];

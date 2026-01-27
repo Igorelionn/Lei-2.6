@@ -167,7 +167,7 @@ export default function Historico() {
       if (!element) return;
 
       const opt = {
-        margin: [0.5, 0.5, 0.5, 0.5],
+        margin: [0.5, 0.5, 0.8, 0.5],
         filename: `historico-${selectedArrematante.nome.replace(/\s+/g, '-')}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
         html2canvas: { 
@@ -176,7 +176,8 @@ export default function Historico() {
           letterRendering: true,
           windowWidth: 1200,
           scrollY: 0,
-          scrollX: 0
+          scrollX: 0,
+          height: element.scrollHeight + 50
         },
         jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
@@ -250,29 +251,95 @@ export default function Historico() {
       leilaoData: string;
       diasAtraso: number;
       dataVencimento: string;
+      tipo: 'atrasado' | 'pago_com_atraso';
     }> = [];
 
     const hoje = new Date();
 
     arrematante.leiloes.forEach(leilao => {
-      if (!leilao.pago && leilao.mesInicioPagamento && leilao.diaVencimentoMensal) {
-        const [ano, mes] = leilao.mesInicioPagamento.split('-').map(Number);
-        const parcelasPagas = leilao.parcelasPagas || 0;
-        const quantidadeParcelas = leilao.quantidadeParcelas || 1;
+      const tipoPagamento = leilao.tipoPagamento;
+      
+      // Se o leilão está quitado, verificar se foi pago com atraso
+      if (leilao.pago) {
+        let dataVencimento: Date;
+        
+        if (tipoPagamento === "a_vista") {
+          // À vista - verificar data de vencimento
+          const dataVencimentoStr = leilao.dataVencimentoVista;
+          if (dataVencimentoStr) {
+            dataVencimento = new Date(dataVencimentoStr + 'T23:59:59');
+            // Se hoje é posterior ao vencimento, foi pago com atraso
+            if (hoje > dataVencimento) {
+              const diasAtraso = Math.floor((hoje.getTime() - dataVencimento.getTime()) / (1000 * 60 * 60 * 24));
+              atrasos.push({
+                leilaoNome: leilao.leilaoNome,
+                leilaoData: leilao.leilaoData,
+                diasAtraso,
+                dataVencimento: dataVencimento.toLocaleDateString('pt-BR'),
+                tipo: 'pago_com_atraso'
+              });
+            }
+          }
+        } else {
+          // Parcelamento - verificar se última parcela foi paga após o vencimento
+          if (leilao.mesInicioPagamento && leilao.diaVencimentoMensal) {
+            const [ano, mes] = leilao.mesInicioPagamento.split('-').map(Number);
+            const ultimaParcelaIndex = (leilao.quantidadeParcelas || 1) - 1;
+            dataVencimento = new Date(ano, mes - 1 + ultimaParcelaIndex, leilao.diaVencimentoMensal, 23, 59, 59);
+            
+            // Se hoje é posterior ao vencimento da última parcela, foi quitado com atraso
+            if (hoje > dataVencimento) {
+              const diasAtraso = Math.floor((hoje.getTime() - dataVencimento.getTime()) / (1000 * 60 * 60 * 24));
+              atrasos.push({
+                leilaoNome: leilao.leilaoNome,
+                leilaoData: leilao.leilaoData,
+                diasAtraso,
+                dataVencimento: dataVencimento.toLocaleDateString('pt-BR'),
+                tipo: 'pago_com_atraso'
+              });
+            }
+          }
+        }
+      } else {
+        // Se não está quitado, verificar parcelas atrasadas atuais
+        if (leilao.mesInicioPagamento && leilao.diaVencimentoMensal) {
+          const [ano, mes] = leilao.mesInicioPagamento.split('-').map(Number);
+          const parcelasPagas = leilao.parcelasPagas || 0;
+          const quantidadeParcelas = leilao.quantidadeParcelas || 1;
 
-        // Verificar se há parcelas atrasadas
-        for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
-          const dataVencimento = new Date(ano, mes - 1 + i, leilao.diaVencimentoMensal, 23, 59, 59);
-          
-          if (hoje > dataVencimento) {
-            const diasAtraso = Math.floor((hoje.getTime() - dataVencimento.getTime()) / (1000 * 60 * 60 * 24));
-            atrasos.push({
-              leilaoNome: leilao.leilaoNome,
-              leilaoData: leilao.leilaoData,
-              diasAtraso,
-              dataVencimento: dataVencimento.toLocaleDateString('pt-BR')
-            });
-            break; // Considerar apenas a primeira parcela atrasada por leilão
+          // Verificar cada parcela paga se foi paga com atraso
+          for (let i = 0; i < parcelasPagas; i++) {
+            const dataVencimento = new Date(ano, mes - 1 + i, leilao.diaVencimentoMensal, 23, 59, 59);
+            
+            // Se hoje é posterior ao vencimento, esta parcela foi paga com atraso
+            if (hoje > dataVencimento) {
+              const diasAtraso = Math.floor((hoje.getTime() - dataVencimento.getTime()) / (1000 * 60 * 60 * 24));
+              atrasos.push({
+                leilaoNome: leilao.leilaoNome,
+                leilaoData: leilao.leilaoData,
+                diasAtraso,
+                dataVencimento: dataVencimento.toLocaleDateString('pt-BR'),
+                tipo: 'pago_com_atraso'
+              });
+              break; // Considerar apenas a primeira parcela paga com atraso
+            }
+          }
+
+          // Verificar se há parcelas atrasadas (não pagas e vencidas)
+          for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
+            const dataVencimento = new Date(ano, mes - 1 + i, leilao.diaVencimentoMensal, 23, 59, 59);
+            
+            if (hoje > dataVencimento) {
+              const diasAtraso = Math.floor((hoje.getTime() - dataVencimento.getTime()) / (1000 * 60 * 60 * 24));
+              atrasos.push({
+                leilaoNome: leilao.leilaoNome,
+                leilaoData: leilao.leilaoData,
+                diasAtraso,
+                dataVencimento: dataVencimento.toLocaleDateString('pt-BR'),
+                tipo: 'atrasado'
+              });
+              break; // Considerar apenas a primeira parcela atrasada por leilão
+            }
           }
         }
       }
@@ -297,7 +364,7 @@ export default function Historico() {
             <Button
               variant="ghost"
               onClick={() => setSelectedArrematante(null)}
-              className="hover:bg-gray-50 -ml-3"
+              className="hover:bg-gray-100 hover:text-gray-900 -ml-3"
             >
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar
@@ -441,23 +508,20 @@ export default function Historico() {
               <p>
                 {stats.leiloesQuitados > 0 ? (
                   <>
-                    O histórico de pagamentos do arrematante demonstra um perfil {stats.taxaQuitacao >= 70 ? 'positivo' : 'regular'} de adimplência,{' '}
+                    O histórico de pagamentos demonstra um perfil {stats.taxaQuitacao >= 70 ? 'positivo' : 'regular'} de adimplência,{' '}
                     {stats.taxaQuitacao >= 90 ? 'com excelente' : stats.taxaQuitacao >= 70 ? 'com bom' : 'com'} comprometimento{' '}
-                    com as obrigações financeiras assumidas. O arrematante já concluiu integralmente o pagamento{' '}
-                    {stats.leiloesQuitados === 1 ? 'de um leilão' : `de ${stats.leiloesQuitados} leilões`}, demonstrando capacidade de honrar{' '}
-                    seus compromissos até a quitação final.
+                    com as obrigações financeiras assumidas. {stats.leiloesQuitados === 1 ? 'O leilão foi' : `Os ${stats.leiloesQuitados} leilões foram`} integralmente quitados,{' '}
+                    demonstrando capacidade de honrar compromissos até a conclusão final.
                   </>
                 ) : stats.progressoPagamento > 0 ? (
                   <>
-                    O arrematante possui {stats.totalLeiloes} {stats.totalLeiloes === 1 ? 'participação ativa' : 'participações ativas'}{' '}
-                    no sistema, com pagamentos em andamento conforme os prazos estabelecidos. Embora ainda não tenha concluído{' '}
-                    a quitação completa de nenhum leilão, já realizou o pagamento de <strong>{stats.progressoPagamento.toFixed(1)}%</strong>{' '}
-                    do valor total arrematado, demonstrando comprometimento com as obrigações assumidas.
+                    {stats.totalLeiloes === 1 ? 'A participação está' : 'As participações estão'} em andamento com pagamentos sendo realizados{' '}
+                    conforme os prazos estabelecidos. O histórico atual demonstra comprometimento com o cumprimento das obrigações financeiras.
                   </>
                 ) : (
                   <>
-                    O arrematante possui {stats.totalLeiloes} {stats.totalLeiloes === 1 ? 'participação ativa' : 'participações ativas'}{' '}
-                    no sistema, com pagamentos programados conforme os prazos estabelecidos nos respectivos contratos de arrematação.
+                    {stats.totalLeiloes === 1 ? 'A participação está' : 'As participações estão'} programada com pagamentos a serem realizados{' '}
+                    conforme os prazos estabelecidos nos contratos de arrematação.
                   </>
                 )}
               </p>
@@ -472,39 +536,36 @@ export default function Historico() {
                 <>
                   <p>
                     Durante o histórico de participações do arrematante, foram identificados <strong>{historicoAtrasos.quantidadeAtrasos}</strong>{' '}
-                    {historicoAtrasos.quantidadeAtrasos === 1 ? 'registro de atraso' : 'registros de atraso'} em pagamentos.{' '}
-                    {historicoAtrasos.quantidadeAtrasos === 1 
-                      ? 'Este atraso está relacionado ao seguinte leilão:' 
-                      : 'Estes atrasos estão relacionados aos seguintes leilões:'}
+                    {historicoAtrasos.quantidadeAtrasos === 1 ? 'episódio de inadimplência' : 'episódios de inadimplência'}.{' '}
+                    {historicoAtrasos.atrasos.map((atraso, index) => (
+                      <span key={index}>
+                        {index > 0 && index === historicoAtrasos.atrasos.length - 1 && ' e '}
+                        {index > 0 && index < historicoAtrasos.atrasos.length - 1 && ', '}
+                        {index === 0 && historicoAtrasos.quantidadeAtrasos === 1 ? 'Este episódio ocorreu' : index === 0 ? 'Os episódios ocorreram' : ''}
+                        {index === 0 && ' '}no leilão <strong>{atraso.leilaoNome}</strong> realizado em <strong>{formatDate(atraso.leilaoData)}</strong>,{' '}
+                        onde {atraso.tipo === 'atrasado' ? 'há pagamento pendente' : 'houve pagamento realizado'} com{' '}
+                        <strong>{atraso.diasAtraso} {atraso.diasAtraso === 1 ? 'dia' : 'dias'} de atraso</strong> em relação{' '}
+                        ao vencimento estabelecido para <strong>{atraso.dataVencimento}</strong>
+                        {index === historicoAtrasos.atrasos.length - 1 && '.'}
+                      </span>
+                    ))}
                   </p>
 
-                  <div className="space-y-3 mt-4">
-                    {historicoAtrasos.atrasos.map((atraso, index) => (
-                      <div key={index} className="bg-gray-50 border border-gray-200 rounded-lg p-4">
-                        <div className="flex items-start justify-between mb-2">
-                          <h3 className="text-sm font-medium text-gray-900">{atraso.leilaoNome}</h3>
-                          <span className="text-xs text-red-600 font-medium bg-red-50 px-2 py-1 rounded">
-                            {atraso.diasAtraso} {atraso.diasAtraso === 1 ? 'dia' : 'dias'} de atraso
-                          </span>
-                        </div>
-                        <div className="grid grid-cols-2 gap-4 text-xs text-gray-600">
-                          <div>
-                            <span className="text-gray-500">Data do Leilão:</span>
-                            <span className="ml-1 text-gray-900">{formatDate(atraso.leilaoData)}</span>
-                          </div>
-                          <div>
-                            <span className="text-gray-500">Vencimento:</span>
-                            <span className="ml-1 text-gray-900">{atraso.dataVencimento}</span>
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <p className="mt-4">
-                    É importante destacar que {historicoAtrasos.quantidadeAtrasos === 1 ? 'este atraso pode' : 'estes atrasos podem'} impactar{' '}
-                    a avaliação de crédito e o relacionamento comercial com o arrematante. Recomenda-se acompanhamento próximo{' '}
-                    e comunicação regular para regularização das pendências e estabelecimento de acordos de pagamento quando necessário.
+                  <p>
+                    {historicoAtrasos.atrasos.some(a => a.tipo === 'atrasado') ? (
+                      <>
+                        {historicoAtrasos.atrasos.filter(a => a.tipo === 'atrasado').length === 1 ? 'O pagamento em atraso requer' : 'Os pagamentos em atraso requerem'}{' '}
+                        atenção imediata. Recomenda-se contato urgente para regularização das pendências, pois a inadimplência{' '}
+                        pode impactar negativamente a avaliação de crédito e as condições de participação em futuros eventos.
+                      </>
+                    ) : (
+                      <>
+                        Embora {historicoAtrasos.quantidadeAtrasos === 1 ? 'o pagamento tenha sido realizado' : 'os pagamentos tenham sido realizados'} com atraso,{' '}
+                        {historicoAtrasos.quantidadeAtrasos === 1 ? 'a obrigação foi eventualmente quitada' : 'as obrigações foram eventualmente quitadas'}.{' '}
+                        Este histórico deve ser considerado em avaliações futuras de crédito e recomenda-se atenção especial{' '}
+                        aos prazos estabelecidos em próximas transações.
+                      </>
+                    )}
                   </p>
                 </>
               ) : (
@@ -531,10 +592,8 @@ export default function Historico() {
             
             <div className="text-sm text-gray-700 leading-relaxed mb-6">
               <p>
-                A seguir, apresentamos o detalhamento cronológico de todas as participações do arrematante em leilões.{' '}
-                Para cada evento, são fornecidas informações sobre o valor arrematado, a forma de pagamento acordada,{' '}
-                o status atual do pagamento e o progresso de quitação. Estas informações permitem uma visão completa{' '}
-                da trajetória do arrematante e do cumprimento de suas obrigações financeiras ao longo do tempo.
+                Detalhamento cronológico de todas as participações, incluindo valores arrematados, formas de pagamento{' '}
+                e progresso de quitação de cada evento.
               </p>
             </div>
 
@@ -634,35 +693,18 @@ export default function Historico() {
             <h2 className="text-base font-medium text-gray-900 mb-4">Considerações Finais</h2>
             <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
               <p>
-                Este documento constitui um registro oficial e completo do histórico de participações do arrematante
-                {' '}<strong>{selectedArrematante.nome}</strong> na plataforma de leilões. Todas as informações aqui apresentadas 
-                são baseadas nos dados cadastrais e transacionais registrados no sistema até a data de geração deste relatório.
-              </p>
-              
-              <p>
-                {selectedArrematante.email || selectedArrematante.telefone ? (
-                  <>
-                    Para contato com o arrematante, estão disponíveis os seguintes dados:
-                    {selectedArrematante.email && <> e-mail: <strong>{selectedArrematante.email}</strong></>}
-                    {selectedArrematante.email && selectedArrematante.telefone && ', '}
-                    {selectedArrematante.telefone && <> telefone: <strong>{selectedArrematante.telefone}</strong></>}.
-                  </>
-                ) : (
-                  'Os dados de contato do arrematante não estão disponíveis no cadastro atual.'
-                )}
-                {selectedArrematante.endereco && (
-                  <> O endereço cadastrado é: <strong>{selectedArrematante.endereco}</strong>.</>
-                )}
+                Este documento constitui um registro oficial e completo do histórico de participações{' '}
+                na plataforma de leilões. Todas as informações apresentadas são baseadas nos dados cadastrais{' '}
+                e transacionais registrados no sistema até a data de geração deste relatório.
               </p>
               
               <p>
                 O sistema mantém registro atualizado de todas as transações, pagamentos e status de cada participação,{' '}
-                garantindo a transparência e rastreabilidade de todas as operações realizadas. Este relatório pode ser{' '}
-                utilizado para fins de auditoria, controle financeiro, análise de crédito e acompanhamento de relacionamento{' '}
-                com o arrematante.
+                garantindo transparência e rastreabilidade das operações. Este relatório pode ser utilizado para{' '}
+                fins de auditoria, controle financeiro, análise de crédito e acompanhamento do relacionamento comercial.
               </p>
               
-              <div className="mt-6 pt-6 border-t border-gray-100 text-xs text-gray-500 text-center">
+              <div className="mt-6 pt-6 pb-8 border-t border-gray-100 text-xs text-gray-500 text-center">
                 <p>Documento gerado automaticamente pelo sistema de gestão de leilões</p>
                 <p className="mt-1">Data de geração: {new Date().toLocaleDateString('pt-BR', { 
                   day: '2-digit', 

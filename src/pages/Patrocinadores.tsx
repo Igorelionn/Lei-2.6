@@ -408,6 +408,9 @@ export default function Patrocinadores() {
     const now = new Date();
 
     auctions.forEach((auction) => {
+      // Filtrar por arquivado
+      if (showArchived ? !auction.arquivado : auction.arquivado) return;
+      
       if (auction.detalhePatrocinios && auction.detalhePatrocinios.length > 0) {
         auction.detalhePatrocinios.forEach((patrocinio) => {
           const nomeKey = patrocinio.nomePatrocinador.trim().toLowerCase();
@@ -534,7 +537,7 @@ export default function Patrocinadores() {
     });
 
     return Array.from(patrocinadorMap.values());
-  }, [auctions]);
+  }, [auctions, showArchived]);
 
   // Estatísticas
   const stats = useMemo(() => {
@@ -745,7 +748,19 @@ export default function Patrocinadores() {
                   onClick={() => setShowArchived(!showArchived)}
                   className="h-11 px-4 border-gray-300 text-gray-700 hover:text-black hover:bg-gray-50"
                 >
-                  {showArchived ? "Ver Ativos" : "Ver Arquivados"}
+                  {showArchived ? "Ver Ativos" : `Ver Arquivados (${
+                    (() => {
+                      const patrocinadorMapArquivados = new Map();
+                      auctions.filter(a => a.arquivado).forEach(auction => {
+                        if (auction.detalhePatrocinios && auction.detalhePatrocinios.length > 0) {
+                          auction.detalhePatrocinios.forEach(patrocinio => {
+                            patrocinadorMapArquivados.set(patrocinio.nomePatrocinador.trim().toLowerCase(), true);
+                          });
+                        }
+                      });
+                      return patrocinadorMapArquivados.size;
+                    })()
+                  })`}
                 </Button>
 
                 <Button onClick={handleNovoPatrocinador} className="h-11 bg-black hover:bg-gray-800 text-white">

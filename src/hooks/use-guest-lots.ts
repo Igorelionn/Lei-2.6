@@ -418,33 +418,84 @@ export function useGuestLots() {
         .eq('id', id)
         .single();
 
-      // 2. Deletar o lote (cascata deletará mercadorias)
+      // 2. Deletar arrematantes vinculados a este lote de convidado (guest_lot_id)
+      const { error: biddersError } = await supabaseClient
+        .from('bidders')
+        .delete()
+        .eq('guest_lot_id', id);
+
+      if (biddersError) {
+        console.error('Erro ao deletar arrematantes do lote:', biddersError);
+        // Continuar com a exclusão do lote mesmo se houver erro
+      }
+
+      // 3. Se o lote está vinculado a um leilão, deletar arrematantes do array do leilão também
+      if (lot?.leilao_id) {
+        const { data: auctionData } = await supabaseClient
+          .from('auctions')
+          .select('lotes, arrematantes')
+          .eq('id', lot.leilao_id)
+          .single();
+
+        if (auctionData) {
+          // Encontrar o lote no array para pegar seu lote_id interno
+          const loteNoArray = (auctionData.lotes || []).find(
+            (l: any) => l.guestLotId === id
+          );
+
+          if (loteNoArray) {
+            const loteIdInterno = loteNoArray.id;
+
+            // Deletar arrematantes da tabela que têm esse lote_id e estão vinculados ao leilão
+            const { error: auctionBiddersError } = await supabaseClient
+              .from('bidders')
+              .delete()
+              .eq('auction_id', lot.leilao_id)
+              .eq('lote_id', loteIdInterno);
+
+            if (auctionBiddersError) {
+              console.error('Erro ao deletar arrematantes do leilão:', auctionBiddersError);
+            }
+
+            // Remover arrematantes do array de arrematantes do leilão
+            const arrematantesAtualizados = (auctionData.arrematantes || []).filter(
+              (a: any) => a.loteId !== loteIdInterno
+            );
+
+            // Remover lote do array de lotes
+            const lotesAtualizados = (auctionData.lotes || []).filter(
+              (l: any) => l.guestLotId !== id
+            );
+
+            // Atualizar o leilão removendo o lote e os arrematantes
+            await supabaseClient
+              .from('auctions')
+              .update({ 
+                lotes: lotesAtualizados,
+                arrematantes: arrematantesAtualizados
+              })
+              .eq('id', lot.leilao_id);
+          } else {
+            // Se não encontrou o lote no array, apenas remover do array de lotes
+            const lotesAtualizados = (auctionData.lotes || []).filter(
+              (l: any) => l.guestLotId !== id
+            );
+
+            await supabaseClient
+              .from('auctions')
+              .update({ lotes: lotesAtualizados })
+              .eq('id', lot.leilao_id);
+          }
+        }
+      }
+
+      // 4. Deletar o lote (cascata deletará mercadorias)
       const { error } = await supabaseClient
         .from('guest_lots')
         .delete()
         .eq('id', id);
 
       if (error) throw error;
-
-      // 3. Remover do array de lotes do leilão (se houver)
-      if (lot?.leilao_id) {
-        const { data: auctionData } = await supabaseClient
-          .from('auctions')
-          .select('lotes')
-          .eq('id', lot.leilao_id)
-          .single();
-
-        if (auctionData) {
-          const lotesAtualizados = (auctionData.lotes || []).filter(
-            (l: any) => l.guestLotId !== id
-          );
-
-          await supabaseClient
-            .from('auctions')
-            .update({ lotes: lotesAtualizados })
-            .eq('id', lot.leilao_id);
-        }
-      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: GUEST_LOTS_KEY });

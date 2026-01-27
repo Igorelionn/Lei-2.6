@@ -1249,6 +1249,9 @@ export default function LoteConvidadoWizard({
   };
 
   const handleSubmit = async () => {
+    // Prevenir múltiplos cliques
+    if (isSubmitting) return;
+    
     if (canProceed()) {
       setIsSubmitting(true);
       try {

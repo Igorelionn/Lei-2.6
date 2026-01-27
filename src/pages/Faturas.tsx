@@ -1632,8 +1632,8 @@ function Faturas() {
                   <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Status</Label>
                   <div className="mt-1.5">
                     {getStatusBadge(selectedFatura.status)}
-                  </div>
-                </div>
+                      </div>
+                    </div>
                     <div>
                       <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Pagamento</Label>
                       <p className="mt-1.5 text-sm font-medium text-gray-900">
@@ -1989,7 +1989,7 @@ function Faturas() {
                   {new Date(selectedFatura.dataVencimento).toLocaleDateString('pt-BR')}
                 </p>
               </div>
-                    <div>
+              <div>
                       <Label className="text-xs font-medium text-gray-500">Status</Label>
                       <div className="mt-1">
                         {getStatusBadge(selectedFatura.status)}

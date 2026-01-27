@@ -432,7 +432,7 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
     celularProprietario: initialData?.celularProprietario || "",
     emailProprietario: initialData?.emailProprietario || "",
     documentos: initialData?.documentos?.map(doc => ({
-      nome: `documento_${Math.random()}.pdf`,
+      nome: `documento_${crypto.randomUUID().split('-')[0]}.pdf`, // 🔒 SEGURANÇA: ID seguro
       base64: doc
     })) || [],
   });

@@ -5,6 +5,7 @@ import { getLembreteEmailTemplate, getCobrancaEmailTemplate, getConfirmacaoPagam
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { obterValorTotalArrematante } from '@/lib/parcelamento-calculator';
+import { fetchWithTimeout } from '@/lib/secure-utils'; // 🔒 SEGURANÇA: Fetch com timeout para prevenir travamentos
 
 interface EmailConfig {
   resendApiKey?: string;
@@ -25,8 +26,9 @@ interface EmailLog {
   erro?: string;
 }
 
+// 🔒 SEGURANÇA: Chave API deve vir de variável de ambiente
 const DEFAULT_CONFIG: EmailConfig = {
-  resendApiKey: 're_HVRGMxM1_D2T7xwKk96YKRfH7fczu847P',
+  resendApiKey: import.meta.env.VITE_RESEND_API_KEY || undefined, // Remover hardcoded!
   emailRemetente: 'notificacoes@grupoliraleiloes.com',
   diasAntesLembrete: 3,
   diasDepoisCobranca: 1,
@@ -142,11 +144,18 @@ export function useEmailNotifications() {
     }
 
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://moojuqphvhrhasxhaahd.supabase.co';
+      // 🔒 SEGURANÇA: Usar apenas variáveis de ambiente
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey) {
+        throw new Error('Configuração do Supabase não encontrada');
+      }
+      
       const edgeFunctionUrl = `${supabaseUrl}/functions/v1/send-email`;
-      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1vb2p1cXBodmhyaGFzeGhhYWhkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTcwNDExMzEsImV4cCI6MjA3MjYxNzEzMX0.GR3YIs0QWsZP3Rdvw_-vCOPVtH2KCaoVO2pKeo1-WPs';
 
-      const response = await fetch(edgeFunctionUrl, {
+      // 🔒 SEGURANÇA: Fetch com timeout de 30s para prevenir travamentos
+      const response = await fetchWithTimeout(edgeFunctionUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -158,9 +167,11 @@ export function useEmailNotifications() {
           subject: assunto,
           html: htmlContent,
           from: `Arthur Lira Leilões <${config.emailRemetente}>`,
-          resendApiKey: config.resendApiKey,
+          // 🔒 SEGURANÇA: API key do Resend NUNCA deve vir do cliente!
+          // Deve estar configurada como secret na Edge Function do Supabase
+          // Configure: Settings > Edge Functions > Secrets > RESEND_API_KEY
         }),
-      });
+      }, 30000); // 30 segundos de timeout
 
       const responseData = await response.json();
 

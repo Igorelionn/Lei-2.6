@@ -302,7 +302,9 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         return costItems.length > 0 && sponsorItems.length > 0;
       case 7: // Forma de Pagamento dos Patrocínios
         return true; // Opcional
-      case 8: // Comissão do Leiloeiro
+      case 8: // Comissão de Compra
+        return true; // Opcional
+      case 9: // Comissão de Venda
         return true; // Opcional
       default:
         return true;
@@ -381,6 +383,9 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   };
 
   const handleSubmit = async () => {
+    // Prevenir múltiplos cliques
+    if (isSubmitting) return;
+    
     setIsSubmitting(true);
     try {
       await onSubmit(values);
@@ -1656,13 +1661,13 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     },
     {
       id: "comissao",
-      title: "Comissão do Leiloeiro",
+      title: "Comissão de Compra",
       content: (
         <div className="space-y-6">
           <div className="space-y-3">
-            <Label className="text-lg font-normal text-gray-600">Qual a porcentagem de comissão do leiloeiro?</Label>
+            <Label className="text-lg font-normal text-gray-600">Qual a porcentagem de comissão de compra?</Label>
             <p className="text-sm text-gray-400 mb-4">
-              Percentual adicional que cada arrematante pagará sobre o valor da mercadoria arrematada como comissão do leiloeiro
+              Percentual adicional que cada arrematante pagará sobre o valor do lote arrematado. Este valor vai para a leiloeira e é repartido entre o assessor, o leiloeiro, etc.
             </p>
             <div className="relative">
               <span className="absolute right-0 top-1/2 transform -translate-y-1/2 text-base text-gray-400">
@@ -1690,7 +1695,50 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
             
             {values.percentualComissaoLeiloeiro && values.percentualComissaoLeiloeiro > 0 && (
               <p className="text-sm text-gray-500 mt-4">
-                Cada arrematante pagará {values.percentualComissaoLeiloeiro}% a mais sobre o valor de cada mercadoria arrematada
+                Cada arrematante pagará {values.percentualComissaoLeiloeiro}% a mais sobre o valor do lote arrematado
+              </p>
+            )}
+          </div>
+        </div>
+      )
+    },
+    {
+      id: "comissao-venda",
+      title: "Comissão de Venda",
+      content: (
+        <div className="space-y-6">
+          <div className="space-y-3">
+            <Label className="text-lg font-normal text-gray-600">Qual a porcentagem de comissão de venda?</Label>
+            <p className="text-sm text-gray-400 mb-4">
+              A comissão de venda é aquela comissão que o dono do leilão ganha a mais por estar vendendo o lote de cada convidado.
+            </p>
+            <div className="relative">
+              <span className="absolute right-0 top-1/2 transform -translate-y-1/2 text-base text-gray-400">
+                %
+              </span>
+              <Input
+                type="text"
+                placeholder="Ex: 5"
+                value={values.percentualComissaoVenda?.toString() || ""}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Permite apenas números e vírgula/ponto decimal
+                  if (value === "" || /^[\d.,]*$/.test(value)) {
+                    // Converte vírgula para ponto e parseia
+                    const numericValue = value === "" ? undefined : parseFloat(value.replace(",", "."));
+                    // Limita entre 0 e 100
+                    if (numericValue === undefined || (numericValue >= 0 && numericValue <= 100)) {
+                      updateField("percentualComissaoVenda", numericValue);
+                    }
+                  }
+                }}
+                className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none pl-0 pr-10 bg-transparent placeholder:text-gray-400"
+              />
+            </div>
+            
+            {values.percentualComissaoVenda && values.percentualComissaoVenda > 0 && (
+              <p className="text-sm text-gray-500 mt-4">
+                O dono do leilão receberá {values.percentualComissaoVenda}% sobre o valor de cada lote vendido do convidado
               </p>
             )}
           </div>

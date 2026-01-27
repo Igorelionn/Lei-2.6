@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useEffect, useState } from "react";
+import { ImageWithFallback } from "@/components/ImageWithFallback"; // 🔒 SEGURANÇA: Componente seguro sem innerHTML
 import { 
   Calendar, 
   MapPin, 
@@ -236,28 +237,16 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
             }}
             title="Clique para visualizar"
           >
-            {/* Imagem ou Placeholder */}
+            {/* 🔒 SEGURANÇA: Usando componente seguro sem innerHTML */}
             <div className="h-32 bg-gradient-to-br from-gray-100 to-gray-200 flex items-center justify-center overflow-hidden relative group">
               {image.url ? (
                 <>
-                <img 
-                  src={image.url} 
+                <ImageWithFallback
+                  src={image.url}
                   alt={image.nome}
                   className="w-full h-full object-cover"
-                  onError={(e) => {
-                    // Fallback para placeholder se a imagem não carregar
-                    const target = e.target as HTMLImageElement;
-                    target.style.display = 'none';
-                    target.parentElement!.innerHTML = `
-                      <div class="text-center">
-                        <svg class="h-8 w-8 text-gray-400 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
-                        </svg>
-                        <p class="text-xs text-gray-500 font-medium">Erro ao carregar</p>
-                        <p class="text-xs text-gray-400">${image.tipo.toUpperCase()}</p>
-                      </div>
-                    `;
-                  }}
+                  containerClassName="w-full h-full"
+                  showZoomOverlay={false}
                 />
                   {/* Overlay de hover */}
                   <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-30 transition-all flex items-center justify-center">

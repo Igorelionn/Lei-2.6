@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import LoteConvidadoWizard from "@/components/LoteConvidadoWizard";
 import { ArrematanteWizard } from "@/components/ArrematanteWizard";
+import { ImageWithFallback } from "@/components/ImageWithFallback"; // 🔒 SEGURANÇA: Componente seguro para evitar XSS
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 import { useGuestLots, GuestLot, GuestLotMerchandise, GuestLotArrematante } from "@/hooks/use-guest-lots";
@@ -429,7 +430,7 @@ export default function LotesConvidados() {
                     }}
                     className="h-11 px-4 border-gray-300 text-gray-700 hover:text-black hover:bg-gray-50"
                   >
-                    {showArchived ? "Ver Ativos" : "Ver Arquivados"}
+                    {showArchived ? "Ver Ativos" : `Ver Arquivados (${stats.arquivados})`}
                   </Button>
                 </div>
 
@@ -855,18 +856,13 @@ export default function LotesConvidados() {
                           }
                         }}
                       >
-                        <img
+                        {/* 🔒 SEGURANÇA: Usando componente seguro sem innerHTML */}
+                        <ImageWithFallback
                           src={img}
                           alt={`Imagem ${index + 1}`}
                           className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                          onError={(e) => {
-                            e.currentTarget.style.display = 'none';
-                            const parent = e.currentTarget.parentElement;
-                            if (parent) {
-                              parent.classList.add('bg-gray-100', 'flex', 'items-center', 'justify-center');
-                              parent.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-300"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
-                            }
-                          }}
+                          containerClassName="w-full h-full"
+                          showZoomOverlay={false}
                         />
                         <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-full p-2 shadow-lg">
@@ -975,18 +971,13 @@ export default function LotesConvidados() {
                                   }
                                 }}
                               >
-                                <img
+                                {/* 🔒 SEGURANÇA: Usando componente seguro sem innerHTML */}
+                                <ImageWithFallback
                                   src={doc}
                                   alt={`Documento ${index + 1}`}
                                   className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-200"
-                                  onError={(e) => {
-                                    e.currentTarget.style.display = 'none';
-                                    const parent = e.currentTarget.parentElement;
-                                    if (parent) {
-                                      parent.classList.add('bg-gray-100', 'flex', 'items-center', 'justify-center');
-                                      parent.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-gray-300"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>';
-                                    }
-                                  }}
+                                  containerClassName="w-full h-full"
+                                  showZoomOverlay={false}
                                 />
                                 <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-10 transition-all duration-200 flex items-center justify-center">
                                   <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 bg-white rounded-full p-2 shadow-lg">

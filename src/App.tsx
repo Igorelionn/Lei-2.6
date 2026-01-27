@@ -28,11 +28,14 @@ import { MigrationNotification } from "@/components/MigrationNotification";
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
 
+// ⚡ PERFORMANCE: Cache otimizado conforme auditoria
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 5 * 60 * 1000, // 5 minutos
-      gcTime: 10 * 60 * 1000, // 10 minutos
+      staleTime: 30 * 1000, // 30 segundos - balance entre atualização e performance
+      gcTime: 5 * 60 * 1000, // 5 minutos - mantém cache mas libera memória
+      refetchOnWindowFocus: false, // Evita refetch desnecessários
+      retry: 1, // Apenas 1 retry para falhas
     },
   },
 });

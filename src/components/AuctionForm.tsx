@@ -277,7 +277,7 @@ export function AuctionForm({
         const blobUrl = URL.createObjectURL(file);
         
         const novoDocumento: DocumentoInfo = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
           nome: file.name,
           tipo: file.type,
           tamanho: file.size,
@@ -338,7 +338,7 @@ export function AuctionForm({
         const blobUrl = URL.createObjectURL(file);
         
         const novoDocumento: DocumentoInfo = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
           nome: file.name,
           tipo: file.type,
           tamanho: file.size,
@@ -858,7 +858,7 @@ export function AuctionForm({
                               variant="outline"
                               onClick={() => {
                                 const novoItem: ItemCustoInfo = {
-                                  id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                                  id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
                                   descricao: "",
                                   valor: "",
                                   valorNumerico: 0
@@ -1083,7 +1083,7 @@ export function AuctionForm({
                             variant="outline"
                             onClick={() => {
                               const novoItem: ItemPatrocinioInfo = {
-                                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                                id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
                                 nomePatrocinador: "",
                                 valor: "",
                                 valorNumerico: 0,
@@ -1206,14 +1206,14 @@ export function AuctionForm({
 
             <Separator className="my-6" />
 
-            {/* Comissão do Leiloeiro */}
+            {/* Comissão de Compra */}
             <div className="space-y-4">
               <div>
                 <Label htmlFor="percentualComissaoLeiloeiro" className="text-sm font-medium text-gray-700">
-                  Comissão do Leiloeiro
+                  Comissão de Compra
                 </Label>
                 <p className="text-xs text-gray-500 mt-1 mb-3">
-                  Percentual adicional que cada arrematante pagará sobre o valor da mercadoria arrematada como comissão do leiloeiro
+                  Percentual adicional que cada arrematante pagará sobre o valor do lote arrematado. Este valor vai para a leiloeira e é repartido entre o assessor, o leiloeiro, etc.
                 </p>
                 <div className="relative max-w-md">
                   <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm font-medium text-gray-500">
@@ -1242,7 +1242,51 @@ export function AuctionForm({
                 </div>
                 {values.percentualComissaoLeiloeiro && values.percentualComissaoLeiloeiro > 0 && (
                   <p className="text-xs text-gray-500 mt-2">
-                    Cada arrematante pagará {values.percentualComissaoLeiloeiro}% a mais sobre o valor de cada mercadoria arrematada
+                    Cada arrematante pagará {values.percentualComissaoLeiloeiro}% a mais sobre o valor do lote arrematado
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <Separator className="my-6" />
+
+            {/* Comissão de Venda */}
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="percentualComissaoVenda" className="text-sm font-medium text-gray-700">
+                  Comissão de Venda
+                </Label>
+                <p className="text-xs text-gray-500 mt-1 mb-3">
+                  A comissão de venda é aquela comissão que o dono do leilão ganha a mais por estar vendendo o lote de cada convidado.
+                </p>
+                <div className="relative max-w-md">
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-sm font-medium text-gray-500">
+                    %
+                  </span>
+                  <Input 
+                    id="percentualComissaoVenda"
+                    type="text" 
+                    value={values.percentualComissaoVenda?.toString() || ""} 
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      // Permite apenas números e vírgula/ponto decimal
+                      if (value === "" || /^[\d.,]*$/.test(value)) {
+                        // Converte vírgula para ponto e parseia
+                        const numericValue = value === "" ? undefined : parseFloat(value.replace(",", "."));
+                        // Limita entre 0 e 100
+                        if (numericValue === undefined || (numericValue >= 0 && numericValue <= 100)) {
+                          update("percentualComissaoVenda", numericValue);
+                          setHasUserChanges(true);
+                        }
+                      }
+                    }}
+                    className="h-11 pr-12 border-gray-300 focus:border-black focus:ring-0 focus-visible:ring-0 bg-white"
+                    placeholder="Ex: 5"
+                  />
+                </div>
+                {values.percentualComissaoVenda && values.percentualComissaoVenda > 0 && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    O dono do leilão receberá {values.percentualComissaoVenda}% sobre o valor de cada lote vendido do convidado
                   </p>
                 )}
               </div>
@@ -1274,7 +1318,7 @@ export function AuctionForm({
                     size="sm"
                     onClick={() => {
                       const novoLote: LoteInfo = {
-                        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
                         numero: String((values.lotes || []).length + 1).padStart(3, '0'),
                         descricao: "",
                         mercadorias: [],
@@ -1298,7 +1342,7 @@ export function AuctionForm({
                       size="sm"
                       onClick={() => {
                         const primeiroLote: LoteInfo = {
-                          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                          id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
                           numero: "001",
                           descricao: "",
                           mercadorias: [],
@@ -1422,7 +1466,7 @@ export function AuctionForm({
                           size="sm"
                           onClick={() => {
                             const novaMercadoria: MercadoriaInfo = {
-                              id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                              id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
                               tipo: "",
                               descricao: "",
                               quantidade: undefined,
@@ -1450,7 +1494,7 @@ export function AuctionForm({
                             size="sm"
                             onClick={() => {
                               const primeiraMercadoria: MercadoriaInfo = {
-                                id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                                id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
                                 tipo: "",
                                 descricao: "",
                                 quantidade: undefined,

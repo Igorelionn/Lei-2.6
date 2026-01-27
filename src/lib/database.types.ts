@@ -10,7 +10,7 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "13.0.4"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
@@ -24,6 +24,9 @@ export type Database = {
           data_entrada: string | null
           data_inicio: string
           data_vencimento_vista: string | null
+          detalhe_custos: Json | null
+          detalhe_patrocinios: Json | null
+          dia_entrada: number | null
           dia_vencimento_padrao: number | null
           endereco: string | null
           historico_notas: string[] | null
@@ -34,6 +37,9 @@ export type Database = {
           mes_inicio_pagamento: string | null
           nome: string
           parcelas_padrao: number | null
+          patrocinios_total: number | null
+          percentual_comissao_leiloeiro: number | null
+          percentual_comissao_venda: number | null
           status: Database["public"]["Enums"]["auction_status"] | null
           tipo_pagamento: string | null
           updated_at: string | null
@@ -47,6 +53,9 @@ export type Database = {
           data_entrada?: string | null
           data_inicio: string
           data_vencimento_vista?: string | null
+          detalhe_custos?: Json | null
+          detalhe_patrocinios?: Json | null
+          dia_entrada?: number | null
           dia_vencimento_padrao?: number | null
           endereco?: string | null
           historico_notas?: string[] | null
@@ -57,6 +66,9 @@ export type Database = {
           mes_inicio_pagamento?: string | null
           nome: string
           parcelas_padrao?: number | null
+          patrocinios_total?: number | null
+          percentual_comissao_leiloeiro?: number | null
+          percentual_comissao_venda?: number | null
           status?: Database["public"]["Enums"]["auction_status"] | null
           tipo_pagamento?: string | null
           updated_at?: string | null
@@ -70,6 +82,9 @@ export type Database = {
           data_entrada?: string | null
           data_inicio?: string
           data_vencimento_vista?: string | null
+          detalhe_custos?: Json | null
+          detalhe_patrocinios?: Json | null
+          dia_entrada?: number | null
           dia_vencimento_padrao?: number | null
           endereco?: string | null
           historico_notas?: string[] | null
@@ -80,6 +95,9 @@ export type Database = {
           mes_inicio_pagamento?: string | null
           nome?: string
           parcelas_padrao?: number | null
+          patrocinios_total?: number | null
+          percentual_comissao_leiloeiro?: number | null
+          percentual_comissao_venda?: number | null
           status?: Database["public"]["Enums"]["auction_status"] | null
           tipo_pagamento?: string | null
           updated_at?: string | null
@@ -89,58 +107,136 @@ export type Database = {
       bidders: {
         Row: {
           arquivado: boolean | null
-          auction_id: string
+          auction_id: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
           created_at: string | null
+          data_entrada: string | null
+          data_vencimento_vista: string | null
           dia_vencimento_mensal: number | null
           documento: string | null
           email: string | null
           endereco: string | null
+          estado: string | null
+          fator_multiplicador: number | null
+          foto: string | null
+          guest_lot_id: string | null
           id: string
+          lote_id: string | null
+          mercadoria_id: string | null
           mes_inicio_pagamento: string | null
           nome: string
+          numero: string | null
           observacoes: string | null
+          pago: boolean | null
+          parcelas_duplas: number | null
+          parcelas_especificas_pagas: string | null
           parcelas_pagas: number | null
+          parcelas_simples: number | null
+          parcelas_triplas: number | null
+          percentual_juros_atraso: number | null
           quantidade_parcelas: number | null
+          rua: string | null
           telefone: string | null
+          tipo_juros_atraso: string | null
+          tipo_pagamento: string | null
           updated_at: string | null
+          usa_fator_multiplicador: boolean | null
+          valor_entrada_numerico: number | null
+          valor_entrada_texto: string | null
+          valor_lance: number | null
           valor_pagar_numerico: number | null
           valor_pagar_texto: string | null
         }
         Insert: {
           arquivado?: boolean | null
-          auction_id: string
+          auction_id?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           created_at?: string | null
+          data_entrada?: string | null
+          data_vencimento_vista?: string | null
           dia_vencimento_mensal?: number | null
           documento?: string | null
           email?: string | null
           endereco?: string | null
+          estado?: string | null
+          fator_multiplicador?: number | null
+          foto?: string | null
+          guest_lot_id?: string | null
           id?: string
+          lote_id?: string | null
+          mercadoria_id?: string | null
           mes_inicio_pagamento?: string | null
           nome: string
+          numero?: string | null
           observacoes?: string | null
+          pago?: boolean | null
+          parcelas_duplas?: number | null
+          parcelas_especificas_pagas?: string | null
           parcelas_pagas?: number | null
+          parcelas_simples?: number | null
+          parcelas_triplas?: number | null
+          percentual_juros_atraso?: number | null
           quantidade_parcelas?: number | null
+          rua?: string | null
           telefone?: string | null
+          tipo_juros_atraso?: string | null
+          tipo_pagamento?: string | null
           updated_at?: string | null
+          usa_fator_multiplicador?: boolean | null
+          valor_entrada_numerico?: number | null
+          valor_entrada_texto?: string | null
+          valor_lance?: number | null
           valor_pagar_numerico?: number | null
           valor_pagar_texto?: string | null
         }
         Update: {
           arquivado?: boolean | null
-          auction_id?: string
+          auction_id?: string | null
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          complemento?: string | null
           created_at?: string | null
+          data_entrada?: string | null
+          data_vencimento_vista?: string | null
           dia_vencimento_mensal?: number | null
           documento?: string | null
           email?: string | null
           endereco?: string | null
+          estado?: string | null
+          fator_multiplicador?: number | null
+          foto?: string | null
+          guest_lot_id?: string | null
           id?: string
+          lote_id?: string | null
+          mercadoria_id?: string | null
           mes_inicio_pagamento?: string | null
           nome?: string
+          numero?: string | null
           observacoes?: string | null
+          pago?: boolean | null
+          parcelas_duplas?: number | null
+          parcelas_especificas_pagas?: string | null
           parcelas_pagas?: number | null
+          parcelas_simples?: number | null
+          parcelas_triplas?: number | null
+          percentual_juros_atraso?: number | null
           quantidade_parcelas?: number | null
+          rua?: string | null
           telefone?: string | null
+          tipo_juros_atraso?: string | null
+          tipo_pagamento?: string | null
           updated_at?: string | null
+          usa_fator_multiplicador?: boolean | null
+          valor_entrada_numerico?: number | null
+          valor_entrada_texto?: string | null
+          valor_lance?: number | null
           valor_pagar_numerico?: number | null
           valor_pagar_texto?: string | null
         }
@@ -157,6 +253,13 @@ export type Database = {
             columns: ["auction_id"]
             isOneToOne: false
             referencedRelation: "auctions_complete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bidders_guest_lot_id_fkey"
+            columns: ["guest_lot_id"]
+            isOneToOne: false
+            referencedRelation: "guest_lots"
             referencedColumns: ["id"]
           },
         ]
@@ -245,6 +348,13 @@ export type Database = {
             foreignKeyName: "documents_bidder_id_fkey"
             columns: ["bidder_id"]
             isOneToOne: false
+            referencedRelation: "bidders_complete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_bidder_id_fkey"
+            columns: ["bidder_id"]
+            isOneToOne: false
             referencedRelation: "bidders_with_status"
             referencedColumns: ["id"]
           },
@@ -273,46 +383,151 @@ export type Database = {
       }
       email_logs: {
         Row: {
-          auction_id: string
           arrematante_nome: string
+          auction_id: string
           created_at: string | null
-          data_envio: string
+          data_envio: string | null
           email_destinatario: string
           erro: string | null
           id: string
-          sucesso: boolean
+          sucesso: boolean | null
           tipo_email: string
+          updated_at: string | null
         }
         Insert: {
-          auction_id: string
           arrematante_nome: string
+          auction_id: string
           created_at?: string | null
-          data_envio: string
+          data_envio?: string | null
           email_destinatario: string
           erro?: string | null
           id?: string
-          sucesso: boolean
+          sucesso?: boolean | null
           tipo_email: string
+          updated_at?: string | null
         }
         Update: {
-          auction_id?: string
           arrematante_nome?: string
+          auction_id?: string
           created_at?: string | null
-          data_envio?: string
+          data_envio?: string | null
           email_destinatario?: string
           erro?: string | null
           id?: string
-          sucesso?: boolean
+          sucesso?: boolean | null
           tipo_email?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      guest_lot_merchandise: {
+        Row: {
+          created_at: string | null
+          descricao: string
+          guest_lot_id: string
+          id: string
+          nome: string
+          quantidade: number
+          updated_at: string | null
+          valor_estimado: number | null
+        }
+        Insert: {
+          created_at?: string | null
+          descricao: string
+          guest_lot_id: string
+          id?: string
+          nome: string
+          quantidade?: number
+          updated_at?: string | null
+          valor_estimado?: number | null
+        }
+        Update: {
+          created_at?: string | null
+          descricao?: string
+          guest_lot_id?: string
+          id?: string
+          nome?: string
+          quantidade?: number
+          updated_at?: string | null
+          valor_estimado?: number | null
         }
         Relationships: [
           {
-            foreignKeyName: "email_logs_auction_id_fkey"
-            columns: ["auction_id"]
+            foreignKeyName: "guest_lot_merchandise_guest_lot_id_fkey"
+            columns: ["guest_lot_id"]
+            isOneToOne: false
+            referencedRelation: "guest_lots"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      guest_lots: {
+        Row: {
+          arquivado: boolean | null
+          celular_proprietario: string
+          codigo_pais: string
+          created_at: string | null
+          descricao: string
+          documentos: Json | null
+          email_proprietario: string
+          id: string
+          imagens: Json | null
+          leilao_id: string | null
+          numero: string
+          observacoes: string | null
+          proprietario: string
+          status: Database["public"]["Enums"]["guest_lot_status"] | null
+          updated_at: string | null
+        }
+        Insert: {
+          arquivado?: boolean | null
+          celular_proprietario: string
+          codigo_pais?: string
+          created_at?: string | null
+          descricao: string
+          documentos?: Json | null
+          email_proprietario: string
+          id?: string
+          imagens?: Json | null
+          leilao_id?: string | null
+          numero: string
+          observacoes?: string | null
+          proprietario: string
+          status?: Database["public"]["Enums"]["guest_lot_status"] | null
+          updated_at?: string | null
+        }
+        Update: {
+          arquivado?: boolean | null
+          celular_proprietario?: string
+          codigo_pais?: string
+          created_at?: string | null
+          descricao?: string
+          documentos?: Json | null
+          email_proprietario?: string
+          id?: string
+          imagens?: Json | null
+          leilao_id?: string | null
+          numero?: string
+          observacoes?: string | null
+          proprietario?: string
+          status?: Database["public"]["Enums"]["guest_lot_status"] | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "guest_lots_leilao_id_fkey"
+            columns: ["leilao_id"]
             isOneToOne: false
             referencedRelation: "auctions"
             referencedColumns: ["id"]
-          }
+          },
+          {
+            foreignKeyName: "guest_lots_leilao_id_fkey"
+            columns: ["leilao_id"]
+            isOneToOne: false
+            referencedRelation: "auctions_complete"
+            referencedColumns: ["id"]
+          },
         ]
       }
       invoices: {
@@ -396,6 +611,13 @@ export type Database = {
             columns: ["bidder_id"]
             isOneToOne: false
             referencedRelation: "bidders"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_bidder_id_fkey"
+            columns: ["bidder_id"]
+            isOneToOne: false
+            referencedRelation: "bidders_complete"
             referencedColumns: ["id"]
           },
           {
@@ -489,6 +711,13 @@ export type Database = {
             foreignKeyName: "lots_bidder_id_fkey"
             columns: ["bidder_id"]
             isOneToOne: false
+            referencedRelation: "bidders_complete"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "lots_bidder_id_fkey"
+            columns: ["bidder_id"]
+            isOneToOne: false
             referencedRelation: "bidders_with_status"
             referencedColumns: ["id"]
           },
@@ -561,32 +790,235 @@ export type Database = {
           },
         ]
       }
-      users: {
+      user_actions: {
+        Row: {
+          action_description: string
+          action_type: string
+          created_at: string | null
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          target_id: string | null
+          target_type: string | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          action_description: string
+          action_type: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          action_description?: string
+          action_type?: string
+          created_at?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          target_id?: string | null
+          target_type?: string | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_actions_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_activity_logs: {
+        Row: {
+          activity_type: string
+          created_at: string | null
+          description: string | null
+          id: string
+          ip_address: unknown
+          metadata: Json | null
+          user_agent: string | null
+          user_id: string | null
+        }
+        Insert: {
+          activity_type: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          activity_type?: string
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          ip_address?: unknown
+          metadata?: Json | null
+          user_agent?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_activity_logs_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_credentials: {
         Row: {
           created_at: string | null
-          email: string
           id: string
-          name: string
-          role: string | null
+          password_hash: string
           updated_at: string | null
+          user_id: string | null
         }
         Insert: {
           created_at?: string | null
-          email: string
           id?: string
-          name: string
-          role?: string | null
+          password_hash: string
           updated_at?: string | null
+          user_id?: string | null
         }
         Update: {
           created_at?: string | null
-          email?: string
           id?: string
-          name?: string
+          password_hash?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_credentials_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      users: {
+        Row: {
+          avatar: string | null
+          can_create: boolean | null
+          can_create_backup: boolean | null
+          can_delete: boolean | null
+          can_delete_backup: boolean | null
+          can_edit: boolean | null
+          can_edit_backup: boolean | null
+          can_manage_users: boolean | null
+          can_manage_users_backup: boolean | null
+          created_at: string | null
+          deactivated_at: string | null
+          deactivated_by: string | null
+          deactivation_reason: string | null
+          display_name: string | null
+          email: string
+          first_login_at: string | null
+          full_name: string | null
+          id: string
+          is_active: boolean | null
+          is_online: boolean | null
+          last_activity_at: string | null
+          last_ip_address: unknown
+          last_login_at: string | null
+          last_user_agent: string | null
+          login_count: number | null
+          name: string
+          phone: string | null
+          registration_date: string | null
+          role: string | null
+          session_count: number | null
+          updated_at: string | null
+        }
+        Insert: {
+          avatar?: string | null
+          can_create?: boolean | null
+          can_create_backup?: boolean | null
+          can_delete?: boolean | null
+          can_delete_backup?: boolean | null
+          can_edit?: boolean | null
+          can_edit_backup?: boolean | null
+          can_manage_users?: boolean | null
+          can_manage_users_backup?: boolean | null
+          created_at?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
+          display_name?: string | null
+          email: string
+          first_login_at?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_online?: boolean | null
+          last_activity_at?: string | null
+          last_ip_address?: unknown
+          last_login_at?: string | null
+          last_user_agent?: string | null
+          login_count?: number | null
+          name: string
+          phone?: string | null
+          registration_date?: string | null
           role?: string | null
+          session_count?: number | null
           updated_at?: string | null
         }
-        Relationships: []
+        Update: {
+          avatar?: string | null
+          can_create?: boolean | null
+          can_create_backup?: boolean | null
+          can_delete?: boolean | null
+          can_delete_backup?: boolean | null
+          can_edit?: boolean | null
+          can_edit_backup?: boolean | null
+          can_manage_users?: boolean | null
+          can_manage_users_backup?: boolean | null
+          created_at?: string | null
+          deactivated_at?: string | null
+          deactivated_by?: string | null
+          deactivation_reason?: string | null
+          display_name?: string | null
+          email?: string
+          first_login_at?: string | null
+          full_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          is_online?: boolean | null
+          last_activity_at?: string | null
+          last_ip_address?: unknown
+          last_login_at?: string | null
+          last_user_agent?: string | null
+          login_count?: number | null
+          name?: string
+          phone?: string | null
+          registration_date?: string | null
+          role?: string | null
+          session_count?: number | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "users_deactivated_by_fkey"
+            columns: ["deactivated_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
@@ -597,47 +1029,143 @@ export type Database = {
           custos_numerico: number | null
           custos_texto: string | null
           data_encerramento: string | null
+          data_entrada: string | null
           data_inicio: string | null
+          data_vencimento_vista: string | null
+          detalhe_custos: Json | null
+          detalhe_patrocinios: Json | null
+          dia_entrada: number | null
           dia_vencimento_padrao: number | null
           endereco: string | null
           historico_notas: string[] | null
           id: string | null
           identificacao: string | null
           local: Database["public"]["Enums"]["location_type"] | null
+          lotes: Json | null
           mes_inicio_pagamento: string | null
           nome: string | null
           parcelas_padrao: number | null
+          patrocinios_total: number | null
           status: Database["public"]["Enums"]["auction_status"] | null
+          tipo_pagamento: string | null
+          total_arrecadado: number | null
           total_arrematantes: number | null
-          total_documentos: number | null
           total_lotes: number | null
-          total_mercadorias: number | null
           updated_at: string | null
-          valor_pendente_arrematantes: number | null
         }
         Relationships: []
+      }
+      bidders_complete: {
+        Row: {
+          arquivado: boolean | null
+          auction_id: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
+          created_at: string | null
+          data_entrada: string | null
+          data_vencimento_vista: string | null
+          dia_vencimento_mensal: number | null
+          documento: string | null
+          email: string | null
+          endereco: string | null
+          estado: string | null
+          fator_multiplicador: number | null
+          foto: string | null
+          id: string | null
+          leilao_data_inicio: string | null
+          leilao_nome: string | null
+          lote_id: string | null
+          mercadoria_id: string | null
+          mes_inicio_pagamento: string | null
+          nome: string | null
+          numero: string | null
+          observacoes: string | null
+          pago: boolean | null
+          parcelas_duplas: number | null
+          parcelas_especificas_pagas: string | null
+          parcelas_pagas: number | null
+          parcelas_simples: number | null
+          parcelas_triplas: number | null
+          percentual_juros_atraso: number | null
+          quantidade_parcelas: number | null
+          rua: string | null
+          telefone: string | null
+          tipo_juros_atraso: string | null
+          tipo_pagamento: string | null
+          total_documentos: number | null
+          updated_at: string | null
+          usa_fator_multiplicador: boolean | null
+          valor_entrada_numerico: number | null
+          valor_entrada_texto: string | null
+          valor_lance: number | null
+          valor_pagar_numerico: number | null
+          valor_pagar_texto: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "bidders_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "bidders_auction_id_fkey"
+            columns: ["auction_id"]
+            isOneToOne: false
+            referencedRelation: "auctions_complete"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       bidders_with_status: {
         Row: {
           arquivado: boolean | null
           auction_id: string | null
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          complemento: string | null
           created_at: string | null
+          data_entrada: string | null
+          data_vencimento_vista: string | null
           dia_vencimento_mensal: number | null
           documento: string | null
           email: string | null
           endereco: string | null
+          estado: string | null
+          fator_multiplicador: number | null
+          foto: string | null
           id: string | null
-          leilao_data: string | null
           leilao_nome: string | null
+          leilao_status: Database["public"]["Enums"]["auction_status"] | null
+          lote_id: string | null
+          mercadoria_id: string | null
           mes_inicio_pagamento: string | null
           nome: string | null
+          numero: string | null
           observacoes: string | null
+          pago: boolean | null
+          parcelas_duplas: number | null
+          parcelas_especificas_pagas: string | null
           parcelas_pagas: number | null
+          parcelas_simples: number | null
+          parcelas_triplas: number | null
+          percentual_juros_atraso: number | null
           quantidade_parcelas: number | null
+          rua: string | null
+          saldo_restante: number | null
           status_pagamento: string | null
           telefone: string | null
-          total_documentos: number | null
+          tipo_juros_atraso: string | null
+          tipo_pagamento: string | null
           updated_at: string | null
+          usa_fator_multiplicador: boolean | null
+          valor_entrada_numerico: number | null
+          valor_entrada_texto: string | null
+          valor_lance: number | null
           valor_pagar_numerico: number | null
           valor_pagar_texto: string | null
         }
@@ -660,19 +1188,14 @@ export type Database = {
       }
       dashboard_stats: {
         Row: {
-          arrematantes_atrasados: number | null
           arrematantes_pendentes: number | null
           faturas_atrasadas: number | null
-          faturas_em_aberto: number | null
-          leiloes_agendados: number | null
-          leiloes_em_andamento: number | null
-          leiloes_finalizados: number | null
+          leiloes_ativos: number | null
           total_a_receber: number | null
           total_arrematantes: number | null
           total_custos: number | null
           total_leiloes: number | null
           total_recebido: number | null
-          valor_faturas_pendentes: number | null
         }
         Relationships: []
       }
@@ -686,23 +1209,32 @@ export type Database = {
         Args: { data_pagamento: string; data_vencimento: string }
         Returns: Database["public"]["Enums"]["invoice_status"]
       }
+      create_user_credentials: {
+        Args: { user_email: string; user_password: string }
+        Returns: string
+      }
+      create_user_password: {
+        Args: { user_email: string; user_password: string }
+        Returns: undefined
+      }
       get_auctions_with_stats: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           arquivado: boolean
           created_at: string
           custos_numerico: number
           custos_texto: string
-          data_andamento: string
           data_encerramento: string
           data_inicio: string
+          dia_vencimento_padrao: number
           endereco: string
-          historico_notas: string[]
+          historico_notas: string
           id: string
           identificacao: string
-          local: Database["public"]["Enums"]["location_type"]
+          local: string
+          mes_inicio_pagamento: number
           nome: string
-          prazo_final_pagamento: string
+          parcelas_padrao: number
           status: Database["public"]["Enums"]["auction_status"]
           total_arrematantes: number
           total_documentos: number
@@ -710,6 +1242,23 @@ export type Database = {
           updated_at: string
           valor_total_arrecadado: number
         }[]
+      }
+      is_mercadoria_arrematada: {
+        Args: {
+          p_auction_id: string
+          p_exclude_bidder_id?: string
+          p_mercadoria_id: string
+        }
+        Returns: boolean
+      }
+      mark_user_offline: { Args: { user_email: string }; Returns: undefined }
+      update_user_password: {
+        Args: { new_password: string; user_email: string }
+        Returns: boolean
+      }
+      verify_password: {
+        Args: { user_email: string; user_password: string }
+        Returns: boolean
       }
     }
     Enums: {
@@ -737,6 +1286,7 @@ export type Database = {
         | "xls"
         | "txt"
         | "outros"
+      guest_lot_status: "disponivel" | "arrematado" | "arquivado"
       invoice_status: "em_aberto" | "pago" | "atrasado" | "cancelado"
       location_type: "presencial" | "online" | "hibrido"
     }
@@ -892,6 +1442,7 @@ export const Constants = {
         "txt",
         "outros",
       ],
+      guest_lot_status: ["disponivel", "arrematado", "arquivado"],
       invoice_status: ["em_aberto", "pago", "atrasado", "cancelado"],
       location_type: ["presencial", "online", "hibrido"],
     },

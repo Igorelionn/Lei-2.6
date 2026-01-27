@@ -1,4 +1,5 @@
 import { DomainState, Auction, Lot, Bidder, Invoice, InvoiceStatus } from "@/lib/types";
+import { generateSecureId, safeJsonParse } from "./secure-utils"; // 🔒 SEGURANÇA
 
 const STORAGE_KEY = "auction-usher.db";
 
@@ -9,19 +10,18 @@ function emptyState(): DomainState {
 function readState(): DomainState {
   const raw = localStorage.getItem(STORAGE_KEY);
   if (!raw) return emptyState();
-  try {
-    return JSON.parse(raw) as DomainState;
-  } catch {
-    return emptyState();
-  }
+  
+  // 🔒 SEGURANÇA: Parse seguro com fallback
+  return safeJsonParse<DomainState>(raw, emptyState());
 }
 
 function writeState(state: DomainState) {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
+// 🔒 SEGURANÇA: Usar crypto.randomUUID() ao invés de Math.random()
 function genId(prefix: string): string {
-  return `${prefix}_${Math.random().toString(36).slice(2, 10)}`;
+  return generateSecureId(prefix);
 }
 
 export const db = {

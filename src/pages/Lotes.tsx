@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useRef } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { useClientPagination } from "@/hooks/use-pagination"; // ⚡ PERFORMANCE: Paginação
+import { Pagination } from "@/components/Pagination"; // ⚡ PERFORMANCE: Componente de paginação
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,10 +14,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
   Plus, Search, Eye, Edit, Trash2, FileText, Package, DollarSign, 
   Calendar, Building, Archive, RefreshCw, ArrowLeft, Download, 
-  Image, Upload, File, X, Check, AlertCircle, Gavel, ChevronRight
+  Image, Upload, File, X, Check, AlertCircle, Gavel, ChevronRight, MoreVertical
 } from "lucide-react";
 import { Lot, Auction, DocumentoInfo, MercadoriaInfo, LoteInfo } from "@/lib/types";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
@@ -23,6 +26,7 @@ import { supabaseClient } from "@/lib/supabase-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { AuctionDetails } from "@/components/AuctionDetails";
+import { useToast } from "@/hooks/use-toast";
 
 // Função para converter string de moeda para número
 const parseCurrencyToNumber = (currencyString: string): number => {
@@ -240,6 +244,7 @@ function Lotes() {
   const { auctions, isLoading, updateAuction, archiveAuction, unarchiveAuction } = useSupabaseAuctions();
   const queryClient = useQueryClient();
   const { logLotAction, logMerchandiseAction, logDocumentAction } = useActivityLogger();
+  const { toast } = useToast();
   
   // Flag para garantir que a migração execute apenas uma vez
   const hasMigrated = useRef(false);
@@ -556,6 +561,14 @@ function Lotes() {
     return matchesSearch && matchesStatus && matchesArchived;
   });
 
+  // ⚡ PERFORMANCE: Paginação client-side (30 lotes por página)
+  const {
+    items: paginatedLotes,
+    currentPage: currentPageLotes,
+    totalPages: totalPagesLotes,
+    setPage: setPageLotes,
+  } = useClientPagination(filteredLotes, 30);
+
   // Estatísticas de lotes
   const statsLotes = {
     total: mockLotes.filter(l => l.statusLote !== "arquivado").length,
@@ -865,7 +878,7 @@ function Lotes() {
       const mercadoria: MercadoriaInfo = {
         id: isEditingLote && selectedLote?.mercadorias?.[0]?.id 
           ? selectedLote.mercadorias[0].id 
-          : Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          : crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
         nome: loteForm.mercadoria,
         tipo: loteForm.mercadoria,
         descricao: loteForm.mercadoria,
@@ -938,7 +951,7 @@ function Lotes() {
       } else {
         // CRIAR novo lote
         const novoLote: LoteInfo = {
-          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+          id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
           numero: loteForm.numero,
           descricao: loteForm.descricao,
           mercadorias: [mercadoria]
@@ -1596,7 +1609,7 @@ function Lotes() {
                     }}
                     className="h-11 px-4 border-gray-300 text-gray-700 hover:text-black hover:bg-gray-50"
                   >
-                    {showArchivedLotes ? "Ver Ativos" : "Ver Arquivados"}
+                    {showArchivedLotes ? "Ver Ativos" : `Ver Arquivados (${statsLotes.arquivados})`}
                   </Button>
                 </div>
 
@@ -1686,7 +1699,7 @@ function Lotes() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredLotes.map((lote) => (
+                  {paginatedLotes.map((lote) => (
                     <TableRow key={lote.id} className="border-gray-100 hover:bg-gray-50/50">
                       <TableCell>
                         <span className="font-semibold text-gray-900">#{lote.numero}</span>
@@ -1802,12 +1815,75 @@ function Lotes() {
                                </AlertDialogFooter>
                              </AlertDialogContent>
                            </AlertDialog>
+                           
+                           <DropdownMenu>
+                             <DropdownMenuTrigger asChild>
+                               <Button
+                                 variant="ghost"
+                                 size="sm"
+                                 className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                 title="Mais opções"
+                               >
+                                 <MoreVertical className="h-4 w-4" />
+                               </Button>
+                             </DropdownMenuTrigger>
+                             <DropdownMenuContent align="end" className="w-48">
+                               <AlertDialog>
+                                 <AlertDialogTrigger asChild>
+                                   <DropdownMenuItem
+                                     onSelect={(e) => e.preventDefault()}
+                                     className="text-red-600 focus:text-red-600 focus:bg-red-50 cursor-pointer"
+                                   >
+                                     <Trash2 className="h-4 w-4 mr-2" />
+                                     Excluir Lote
+                                   </DropdownMenuItem>
+                                 </AlertDialogTrigger>
+                                 <AlertDialogContent>
+                                   <AlertDialogHeader>
+                                     <AlertDialogTitle>Excluir Lote</AlertDialogTitle>
+                                     <AlertDialogDescription>
+                                       Tem certeza que deseja excluir permanentemente o lote #{lote.numero}?
+                                       <br /><br />
+                                       Esta ação não pode ser desfeita e todos os dados do lote serão perdidos.
+                                     </AlertDialogDescription>
+                                   </AlertDialogHeader>
+                                   <AlertDialogFooter>
+                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                     <AlertDialogAction
+                                       onClick={() => {
+                                         if (window.confirm(`ATENÇÃO: Você está prestes a deletar permanentemente o lote #${lote.numero}.\n\nEsta ação é IRREVERSÍVEL. Deseja continuar?`)) {
+                                           // TODO: Implementar função de exclusão
+                                           toast({
+                                             title: "Funcionalidade em desenvolvimento",
+                                             description: "A exclusão de lotes será implementada em breve.",
+                                           });
+                                         }
+                                       }}
+                                       className="bg-red-600 hover:bg-red-700 btn-save-click"
+                                     >
+                                       Excluir Permanentemente
+                                     </AlertDialogAction>
+                                   </AlertDialogFooter>
+                                 </AlertDialogContent>
+                               </AlertDialog>
+                             </DropdownMenuContent>
+                           </DropdownMenu>
                         </div>
                       </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
               </Table>
+
+              {/* ⚡ PERFORMANCE: Paginação */}
+              {filteredLotes.length > 0 && (
+                <Pagination
+                  currentPage={currentPageLotes}
+                  totalPages={totalPagesLotes}
+                  onPageChange={setPageLotes}
+                  showFirstLast={true}
+                />
+              )}
             </div>
           )}
         </CardContent>
@@ -2100,7 +2176,7 @@ function Lotes() {
                   files.forEach((file) => {
                     const blobUrl = URL.createObjectURL(file);
                     const novoDocumento: DocumentoInfo = {
-                      id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                      id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
                       nome: file.name,
                       tipo: file.type,
                       tamanho: file.size,
@@ -2148,7 +2224,7 @@ function Lotes() {
                       Array.from(files).forEach((file) => {
                         const blobUrl = URL.createObjectURL(file);
                         const novoDocumento: DocumentoInfo = {
-                          id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+                          id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
                           nome: file.name,
                           tipo: file.type,
                           tamanho: file.size,

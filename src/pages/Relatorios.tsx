@@ -9,6 +9,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import html2pdf from 'html2pdf.js';
+import { escapeHtml } from "@/lib/secure-utils"; // 🔒 SEGURANÇA: Escape HTML para prevenir XSS
 import {
   ArrowLeft,
   FileText,
@@ -669,13 +670,13 @@ function Relatorios() {
         dadosRelatorio = inadimplentes.map(auction => `
           <div style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; page-break-inside: avoid;">
             <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px; color: #dc2626;">
-              ${auction.identificacao ? `#${auction.identificacao}` : auction.nome || 'Leilão sem nome'}
+              ${escapeHtml(auction.identificacao ? `#${auction.identificacao}` : auction.nome || 'Leilão sem nome')}
             </h3>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 12px;">
-              <div><strong>Arrematante:</strong> ${auction.arrematante?.nome || 'N/A'}</div>
-              <div><strong>CPF/CNPJ:</strong> ${auction.arrematante?.documento || 'N/A'}</div>
-              <div><strong>Telefone:</strong> ${auction.arrematante?.telefone || 'N/A'}</div>
-              <div><strong>Valor Total:</strong> ${auction.arrematante?.valorPagar || 'N/A'}</div>
+              <div><strong>Arrematante:</strong> ${escapeHtml(auction.arrematante?.nome) || 'N/A'}</div>
+              <div><strong>CPF/CNPJ:</strong> ${escapeHtml(auction.arrematante?.documento) || 'N/A'}</div>
+              <div><strong>Telefone:</strong> ${escapeHtml(auction.arrematante?.telefone) || 'N/A'}</div>
+              <div><strong>Valor Total:</strong> ${escapeHtml(auction.arrematante?.valorPagar) || 'N/A'}</div>
               <div><strong>Data do Leilão:</strong> ${auction.dataInicio ? new Date(auction.dataInicio + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</div>
               <div><strong>Parcelas Pagas:</strong> ${auction.arrematante?.parcelasPagas || 0} de ${auction.arrematante?.quantidadeParcelas || 0}</div>
             </div>
@@ -689,18 +690,18 @@ function Relatorios() {
         dadosRelatorio = comArrematante.map(auction => `
           <div style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; page-break-inside: avoid;">
             <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">
-              ${auction.identificacao ? `#${auction.identificacao}` : auction.nome || 'Leilão sem nome'}
+              ${escapeHtml(auction.identificacao ? `#${auction.identificacao}` : auction.nome || 'Leilão sem nome')}
             </h3>
             <div style="font-size: 12px;">
               <div style="margin-bottom: 10px;">
-                <strong>Arrematante:</strong> ${auction.arrematante?.nome || 'N/A'}<br>
+                <strong>Arrematante:</strong> ${escapeHtml(auction.arrematante?.nome) || 'N/A'}<br>
                 <strong>Data:</strong> ${auction.dataInicio ? new Date(auction.dataInicio + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}<br>
                 <strong>Status:</strong> ${auction.arrematante?.pago ? 'Pago' : (isOverdue(auction.arrematante, auction) ? 'ATRASADO' : 'Pendente')}
               </div>
               ${auction.historicoNotas && auction.historicoNotas.length > 0 ? `
                 <div style="background: #f5f5f5; padding: 8px; border-radius: 4px;">
                   <strong>Observações:</strong><br>
-                  ${auction.historicoNotas.map(nota => `• ${nota}`).join('<br>')}
+                  ${auction.historicoNotas.map(nota => `• ${escapeHtml(nota)}`).join('<br>')}
                 </div>
               ` : ''}
             </div>
@@ -810,20 +811,20 @@ function Relatorios() {
           return `
           <div style="margin-bottom: 20px; border: 1px solid #ddd; border-radius: 8px; padding: 15px; page-break-inside: avoid;">
             <h3 style="font-size: 16px; font-weight: bold; margin-bottom: 10px;">
-              Fatura - ${auction.identificacao ? `#${auction.identificacao}` : auction.nome || 'Leilão sem nome'}
+              Fatura - ${escapeHtml(auction.identificacao ? `#${auction.identificacao}` : auction.nome || 'Leilão sem nome')}
             </h3>
             <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; font-size: 12px;">
-              <div><strong>Cliente:</strong> ${arrematante?.nome || 'N/A'}</div>
-              <div><strong>CPF/CNPJ:</strong> ${arrematante?.documento || 'N/A'}</div>
-                <div><strong>Valor Total:</strong> ${valorTotalStr}${detalhamentoJuros}</div>
+              <div><strong>Cliente:</strong> ${escapeHtml(arrematante?.nome) || 'N/A'}</div>
+              <div><strong>CPF/CNPJ:</strong> ${escapeHtml(arrematante?.documento) || 'N/A'}</div>
+                <div><strong>Valor Total:</strong> ${escapeHtml(valorTotalStr)}${escapeHtml(detalhamentoJuros)}</div>
               <div><strong>Status:</strong> ${arrematante?.pago ? 'Pago' : (isOverdue(arrematante, auction) ? 'ATRASADO' : 'Pendente')}</div>
               <div><strong>Data Leilão:</strong> ${auction.dataInicio ? new Date(auction.dataInicio + 'T00:00:00').toLocaleDateString('pt-BR') : 'N/A'}</div>
               <div><strong>Parcelas:</strong> ${arrematante?.parcelasPagas || 0}/${arrematante?.quantidadeParcelas || 0}</div>
             </div>
             ${mercadoriaComprada ? `
               <div style="margin-top: 10px; padding: 8px; background: #f9fafb; border-radius: 4px; font-size: 11px; border-left: 3px solid #6b7280;">
-                <strong>Mercadoria Arrematada:</strong> ${mercadoriaComprada.titulo || mercadoriaComprada.tipo || 'Mercadoria'}<br>
-                <strong>Lote:</strong> Lote ${loteComprado.numero} - ${loteComprado.descricao || 'Sem descrição'}
+                <strong>Mercadoria Arrematada:</strong> ${escapeHtml(mercadoriaComprada.titulo || mercadoriaComprada.tipo) || 'Mercadoria'}<br>
+                <strong>Lote:</strong> Lote ${loteComprado.numero} - ${escapeHtml(loteComprado.descricao) || 'Sem descrição'}
               </div>
             ` : ''}
             ${arrematante?.valorPagarNumerico && arrematante?.quantidadeParcelas ? `
@@ -842,11 +843,14 @@ function Relatorios() {
       const element = document.createElement('div');
       element.style.position = 'absolute';
       element.style.left = '-9999px';
+      // 🔒 SEGURANÇA: Escape do título (que pode conter texto fornecido pelo usuário)
+      const tituloSeguro = escapeHtml(titulo);
+      
       element.innerHTML = `
         <div style="font-family: Arial, sans-serif; padding: 20px; color: black;">
           <div style="text-align: center; margin-bottom: 40px; border-bottom: 2px solid #333; padding-bottom: 20px;">
             <h1 style="font-size: 24px; font-weight: bold; color: #1a1a1a; margin-bottom: 10px;">
-              ${titulo}
+              ${tituloSeguro}
             </h1>
             <p style="color: #666; font-size: 12px;">
               Gerado em: ${new Date().toLocaleDateString('pt-BR')} às ${new Date().toLocaleTimeString('pt-BR')}
