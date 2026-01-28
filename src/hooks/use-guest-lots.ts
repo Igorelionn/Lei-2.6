@@ -2,6 +2,7 @@ import { useMemo } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase-client";
 import { LoteInfo, ArrematanteInfo } from "@/lib/types";
+import { logger } from "@/lib/logger";
 
 // Tipos para o lote de convidado
 export interface GuestLotMerchandise {
