@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
+import { logger } from "@/lib/logger";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { ChevronRight, Check, X, Upload, FileText, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { logger } from "@/lib/logger";
 
 // Componente de bandeira (SVG)
 const FlagIcon = ({ countryCode, countryName }: { countryCode: string; countryName?: string }) => {
@@ -515,10 +515,10 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
           }
           const byteArray = new Uint8Array(byteNumbers);
           const blob = new Blob([byteArray], { type: mimeType });
-          logger.debug(`✅ Blob criado: ${blob.size} bytes`);
+          logger.debug('✅ Blob criado:', blob.size, 'bytes');
           
           const blobUrl = URL.createObjectURL(blob);
-          logger.debug(`✅ Blob URL criado: ${blobUrl}`);
+          logger.debug('✅ Blob URL criado:', blobUrl);
           
           // Para PDFs, criar página HTML com iframe
           if (mimeType === 'application/pdf') {
