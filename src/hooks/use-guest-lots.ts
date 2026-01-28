@@ -136,8 +136,11 @@ export function useGuestLots() {
             celular_proprietario: lot.celular_proprietario,
             email_proprietario: lot.email_proprietario,
             leilao_id: lot.leilao_id || undefined,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             leilao_nome: (lot.auctions as any)?.nome || undefined,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             imagens: (lot.imagens as any) || [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             documentos: (lot.documentos as any) || [],
             observacoes: lot.observacoes || undefined,
             status: lot.status as 'disponivel' | 'arrematado' | 'arquivado',
@@ -211,13 +214,13 @@ export function useGuestLots() {
           const lotesExistentes = auctionData.lotes || [];
           
           // ✅ VERIFICAR se o lote já existe no array (prevenir duplicação)
-          const loteJaExiste = lotesExistentes.some((l: LoteInfo) => l.guestLotId === createdLot.id);
+          const loteJaExiste = (lotesExistentes as LoteInfo[]).some((l: LoteInfo) => l.guestLotId === createdLot.id);
           
           if (!loteJaExiste) {
             logger.debug('➕ Adicionando lote convidado ao array do leilão (não existe ainda)');
             
             // Adicionar o lote convidado ao array de lotes
-            const lotesAtualizados = [...lotesExistentes, {
+            const lotesAtualizados = [...(lotesExistentes as LoteInfo[]), {
               id: `guest-${createdLot.id}`,
               numero: data.numero,
               descricao: data.descricao,
@@ -338,7 +341,7 @@ export function useGuestLots() {
           .single();
 
         if (oldAuctionData) {
-          const lotesAtualizados = (oldAuctionData.lotes || []).filter(
+          const lotesAtualizados = ((oldAuctionData.lotes as LoteInfo[]) || []).filter(
             (l: LoteInfo) => l.guestLotId !== id
           );
 
@@ -358,7 +361,7 @@ export function useGuestLots() {
           .single();
 
         if (newAuctionData) {
-          let lotesAtualizados = newAuctionData.lotes || [];
+          const lotesAtualizados = (newAuctionData.lotes as LoteInfo[]) || [];
           const loteExistente = lotesAtualizados.findIndex((l: LoteInfo) => l.guestLotId === id);
 
           const loteAtualizado = {
@@ -460,12 +463,12 @@ export function useGuestLots() {
             }
 
             // Remover arrematantes do array de arrematantes do leilão
-            const arrematantesAtualizados = (auctionData.arrematantes || []).filter(
+            const arrematantesAtualizados = ((auctionData.arrematantes as ArrematanteInfo[]) || []).filter(
               (a: ArrematanteInfo) => a.loteId !== loteIdInterno
             );
 
             // Remover lote do array de lotes
-            const lotesAtualizados = (auctionData.lotes || []).filter(
+            const lotesAtualizados = ((auctionData.lotes as LoteInfo[]) || []).filter(
               (l: LoteInfo) => l.guestLotId !== id
             );
 
@@ -479,7 +482,7 @@ export function useGuestLots() {
               .eq('id', lot.leilao_id);
           } else {
             // Se não encontrou o lote no array, apenas remover do array de lotes
-            const lotesAtualizados = (auctionData.lotes || []).filter(
+            const lotesAtualizados = ((auctionData.lotes as LoteInfo[]) || []).filter(
               (l: LoteInfo) => l.guestLotId !== id
             );
 
