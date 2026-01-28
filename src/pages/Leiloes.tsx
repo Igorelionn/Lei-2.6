@@ -3,12 +3,11 @@ import { useLocation } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useClientPagination } from "@/hooks/use-pagination"; // ⚡ PERFORMANCE: Paginação
 import { Pagination } from "@/components/Pagination"; // ⚡ PERFORMANCE: Componente de paginação
 import { logger } from "@/lib/logger";
-import { AuctionForm, AuctionFormValues, createEmptyAuctionForm } from "@/components/AuctionForm";
+import { AuctionFormValues, createEmptyAuctionForm } from "@/components/AuctionForm";
 import { AuctionWizard } from "@/components/AuctionWizard";
 import { ArrematanteWizard } from "@/components/ArrematanteWizard";
 import { AuctionDetails } from "@/components/AuctionDetails";
@@ -23,7 +22,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { StringDatePicker } from "@/components/ui/date-picker";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { Separator } from "@/components/ui/separator";
@@ -35,7 +33,6 @@ import {
   Calendar, 
   MapPin, 
   DollarSign, 
-  Filter,
   Download,
   Eye,
   MoreVertical,
@@ -43,7 +40,6 @@ import {
   Building,
   Globe,
   Users,
-  Clock,
   UserPlus,
   Archive,
   Copy,
@@ -60,14 +56,13 @@ import {
   Loader2
 } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import { Calendar as CalendarIcon, CreditCard } from "lucide-react";
+import { CreditCard } from "lucide-react";
 
 function Leiloes() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { auctions, isLoading, createAuction, updateAuction, deleteAuction, archiveAuction, unarchiveAuction, duplicateAuction } = useSupabaseAuctions();
-  const { toast } = useToast();
-  const { logAuctionAction, logBidderAction, logLotAction, logMerchandiseAction, logDocumentAction, logReportAction } = useActivityLogger();
+  const { logAuctionAction, logBidderAction, logLotAction: _logLotAction, logMerchandiseAction: _logMerchandiseAction, logDocumentAction: _logDocumentAction, logReportAction } = useActivityLogger();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<AuctionStatus | "todos">("todos");
   const [localFilter, setLocalFilter] = useState<string>("todos");
@@ -76,8 +71,8 @@ function Leiloes() {
   const [editingAuction, setEditingAuction] = useState<Auction | null>(null);
   const [viewingAuction, setViewingAuction] = useState<Auction | null>(null);
   const [viewingVersion, setViewingVersion] = useState(0);
-  const [isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
-  const [isLocalFilterOpen, setIsLocalFilterOpen] = useState(false);
+  const [_isStatusFilterOpen, setIsStatusFilterOpen] = useState(false);
+  const [_isLocalFilterOpen, setIsLocalFilterOpen] = useState(false);
   const [isLoadingResults, setIsLoadingResults] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [searchInputValue, setSearchInputValue] = useState("");
@@ -120,7 +115,7 @@ function Leiloes() {
   // Estados para o modal de exportação
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedAuctionForExport, setSelectedAuctionForExport] = useState<string>("");
-  const [isExportSelectOpen, setIsExportSelectOpen] = useState(false);
+  const [_isExportSelectOpen, setIsExportSelectOpen] = useState(false);
   
   // Estado para sincronização bidirecional entre leilão e arrematante
   const [auctionFormChanges, setAuctionFormChanges] = useState<Partial<AuctionFormValues>>({});
@@ -219,12 +214,6 @@ function Leiloes() {
             ...prev,
             [arrematanteField]: newValue
           }));
-          
-          toast({
-            title: "🔄 Sincronização em Tempo Real",
-            description: `Campo "${arrematanteField}" do arrematante foi atualizado automaticamente baseado na mudança do leilão.`,
-            duration: 3000,
-          });
         }
       } else {
         logger.debug('Evento ignorado - não corresponde ao arrematante atual ou modal não está aberto');
@@ -238,7 +227,7 @@ function Leiloes() {
     return () => {
       window.removeEventListener('auctionFormChanged', handleAuctionFormChanged as EventListener);
     };
-  }, [addingArrematanteFor, toast]);
+  }, [addingArrematanteFor]);
 
   // 🔄 SINCRONIZAÇÃO ADICIONAL: Listener sempre ativo para capturar mudanças mesmo quando modal não está focado
   useEffect(() => {
@@ -381,7 +370,7 @@ function Leiloes() {
   };
 
   // Função para formatar documento baseado no tipo selecionado
-  const formatDocument = (value: string) => {
+  const _formatDocument = (value: string) => {
     return documentType === 'CPF' ? formatCPF(value) : formatCNPJ(value);
   };
 
@@ -660,12 +649,6 @@ function Leiloes() {
               [auctionField]: value
             };
           });
-          
-          toast({
-            title: "🔄 Sincronização Bidirecional",
-            description: `Campo "${auctionField}" do leilão foi atualizado automaticamente.`,
-            duration: 3000,
-          });
         }
         
         // Disparar evento para notificar outros componentes
@@ -717,11 +700,6 @@ function Leiloes() {
 
     const maxFiles = 20;
     if (files.length > maxFiles) {
-      toast({
-        title: "Muitos arquivos",
-        description: `Você pode fazer upload de no máximo ${maxFiles} arquivos por vez.`,
-        variant: "destructive",
-      });
       event.target.value = '';
       return;
     }
@@ -769,21 +747,6 @@ function Leiloes() {
         ...prev,
         documentos: [...prev.documentos, ...novosDocumentos]
       }));
-      
-      if (erros.length === 0) {
-        toast({
-          title: "Arquivos adicionados",
-          description: `${novosDocumentos.length} arquivo(s) adicionado(s) com sucesso.`,
-        });
-      }
-    }
-
-    if (erros.length > 0) {
-      toast({
-        title: erros.length === files.length ? "Nenhum arquivo adicionado" : "Alguns arquivos foram rejeitados",
-        description: erros.slice(0, 3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length - 3}` : ''),
-        variant: "destructive",
-      });
     }
 
     event.target.value = '';
@@ -938,11 +901,6 @@ function Leiloes() {
       );
     } catch (error) {
       logger.error('Erro ao salvar arrematante', { error });
-      toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar as alterações. Tente novamente.",
-        variant: "destructive",
-      });
       return;
     } finally {
       setIsSavingArrematante(false);
@@ -1120,18 +1078,8 @@ function Leiloes() {
             logger.info('Lote de convidado criado com sucesso', { numero: loteConvidado.numero });
           } catch (error) {
             logger.error('Erro ao criar lote de convidado', { numero: loteConvidado.numero, error });
-            toast({
-              title: "Aviso",
-              description: `Não foi possível criar o lote de convidado ${loteConvidado.numero}. Você pode criá-lo manualmente depois.`,
-              variant: "destructive",
-            });
           }
         }
-        
-        toast({
-          title: "Lotes de convidados criados",
-          description: `${lotesConvidados.length} lote(s) de convidado(s) foram criados e estão disponíveis na aba "Lotes de Convidados".`,
-        });
       }
       
       // Log da criação do leilão
@@ -1148,11 +1096,6 @@ function Leiloes() {
       setIsCreateModalOpen(false);
     } catch (error) {
       logger.error('Erro ao criar leilão', { error });
-      toast({
-        title: "Erro ao criar",
-        description: "Não foi possível criar o leilão.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -1314,13 +1257,6 @@ function Leiloes() {
             logger.error('Erro ao criar lote de convidado', { numero: loteConvidado.numero, error });
           }
         }
-        
-        if (lotesConvidados.length > 0) {
-          toast({
-            title: "Lotes de convidados criados",
-            description: `${lotesConvidados.length} lote(s) de convidado(s) foram criados e estão disponíveis na aba "Lotes de Convidados".`,
-          });
-        }
       }
       
       // Log da edição do leilão
@@ -1354,18 +1290,12 @@ function Leiloes() {
       
       // Desativar estado de carregamento
       setIsRefreshing(false);
-      
-      toast({
-        title: "Erro ao atualizar",
-        description: "Não foi possível salvar as alterações.",
-        variant: "destructive",
-      });
       // Manter modal aberto em caso de erro
     }
   };
 
   // Função para capturar mudanças em tempo real no formulário do leilão
-  const handleAuctionFormChange = (values: AuctionFormValues, changedField?: keyof AuctionFormValues) => {
+  const _handleAuctionFormChange = (values: AuctionFormValues, changedField?: keyof AuctionFormValues) => {
     if (!editingAuction) {
       return;
     }
@@ -1452,14 +1382,9 @@ function Leiloes() {
   };
 
   // Função para gerar PDF diretamente (sem modal)
-  const generatePDFDirect = async (auctionId: string) => {
+  const _generatePDFDirect = async (auctionId: string) => {
     const auction = auctions.find(a => a.id === auctionId);
     if (!auction) {
-      toast({
-        title: "Erro",
-        description: "Leilão não encontrado.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -1508,19 +1433,8 @@ function Leiloes() {
         }
       });
       
-      toast({
-        title: "PDF Gerado com Sucesso!",
-        description: `Relatório do leilão ${auction.identificacao || auction.id} foi baixado.`,
-        duration: 4000,
-      });
-      
     } catch (error) {
       logger.error('Erro ao gerar PDF', { error });
-      toast({
-        title: "Erro ao Gerar PDF",
-        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       // Sempre fechar o modal no final
       setIsExportModalOpen(false);
@@ -1532,11 +1446,6 @@ function Leiloes() {
   const generatePDF = async (auctionId: string) => {
     const auction = auctions.find(a => a.id === auctionId);
     if (!auction) {
-      toast({
-        title: "Erro",
-        description: "Leilão não encontrado.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -1570,20 +1479,9 @@ function Leiloes() {
 
       await html2pdf().set(opt).from(element).save();
       
-      toast({
-        title: "PDF Gerado com Sucesso!",
-        description: `Relatório do leilão ${auction.identificacao || auction.id} foi baixado.`,
-        duration: 4000,
-      });
-      
       setIsExportModalOpen(false);
     } catch (error) {
       logger.error('Erro ao gerar PDF', { error });
-      toast({
-        title: "Erro ao Gerar PDF",
-        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -1675,19 +1573,9 @@ function Leiloes() {
             had_bidder: !!auction.arrematante
           }
         });
-        
-        toast({
-          title: "Leilão excluído",
-          description: `O leilão "${auction.nome}" e seus lotes convidados foram excluídos com sucesso.`,
-        });
       }
     } catch (error) {
       logger.error('Erro ao excluir leilão', { error });
-      toast({
-        title: "Erro ao excluir leilão",
-        description: "Não foi possível excluir o leilão. Tente novamente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -1705,19 +1593,9 @@ function Leiloes() {
             total_lotes: auction.lotes?.length || 0
           }
         });
-        
-        toast({
-          title: "Leilão arquivado",
-          description: `O leilão "${auction.nome}" foi arquivado com sucesso.`,
-        });
       }
     } catch (error) {
       logger.error('Erro ao arquivar leilão', { error });
-      toast({
-        title: "Erro ao arquivar leilão",
-        description: "Não foi possível arquivar o leilão. Tente novamente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -1735,19 +1613,9 @@ function Leiloes() {
             total_lotes: auction.lotes?.length || 0
           }
         });
-        
-        toast({
-          title: "Leilão desarquivado",
-          description: `O leilão "${auction.nome}" foi desarquivado com sucesso.`,
-        });
       }
     } catch (error) {
       logger.error('Erro ao desarquivar leilão', { error });
-      toast({
-        title: "Erro ao desarquivar leilão",
-        description: "Não foi possível desarquivar o leilão. Tente novamente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -1765,17 +1633,8 @@ function Leiloes() {
         }
       });
       
-      toast({
-        title: "Leilão duplicado",
-        description: `O leilão "${auction.nome}" foi duplicado com sucesso.`,
-      });
     } catch (error) {
       logger.error('Erro ao duplicar leilão', { error });
-      toast({
-        title: "Erro ao duplicar leilão",
-        description: "Não foi possível duplicar o leilão. Tente novamente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -1824,7 +1683,7 @@ function Leiloes() {
     });
   };
 
-  const getLocalIcon = (local: string) => {
+  const _getLocalIcon = (local: string) => {
     switch (local) {
       case "presencial": return <Building className="h-4 w-4 text-blue-600" />;
       case "online": return <Globe className="h-4 w-4 text-green-600" />;
@@ -2693,18 +2552,8 @@ function Leiloes() {
                   }
                 }
               );
-              
-              toast({
-                title: "Arrematante excluído",
-                description: `${arrematanteRemovido?.nome || 'Arrematante'} foi excluído com sucesso.`,
-              });
             } catch (error) {
               logger.error('Erro ao excluir arrematante', { error });
-              toast({
-                title: "Erro ao excluir",
-                description: "Não foi possível excluir o arrematante.",
-                variant: "destructive",
-              });
             }
           }}
           onSubmit={async (data) => {

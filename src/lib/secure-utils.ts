@@ -237,7 +237,7 @@ export function sanitizeFilename(filename: string): string {
   if (!filename) return 'arquivo';
   
   return filename
-    .replace(/[^a-zA-Z0-9\-_\.]/g, '_') // Apenas alfanuméricos, hífens, underscores e pontos
+    .replace(/[^a-zA-Z0-9_.-]/g, '_') // Apenas alfanuméricos, hífens, underscores e pontos
     .replace(/\.{2,}/g, '.') // Remove múltiplos pontos consecutivos
     .replace(/^\.+/, '') // Remove pontos do início
     .slice(0, 255); // Limite de sistema de arquivos
@@ -247,12 +247,14 @@ export function sanitizeFilename(filename: string): string {
  * 🔒 Debounce seguro
  * Útil para limitar rate de chamadas
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function debounce<T extends (...args: any[]) => any>(
   func: T,
   waitMs: number
 ): (...args: Parameters<T>) => void {
   let timeoutId: ReturnType<typeof setTimeout> | null = null;
   
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   return function(this: any, ...args: Parameters<T>) {
     if (timeoutId !== null) {
       clearTimeout(timeoutId);

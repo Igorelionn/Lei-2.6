@@ -250,10 +250,10 @@ export function useSupabaseAuctions() {
   // Query para listar leilões com arrematantes
   const listQuery = useQuery({
     queryKey: AUCTIONS_KEY,
-    staleTime: 0, // Sempre considerar dados como "velhos" para forçar refetch
-    gcTime: 0, // NÃO manter em cache - forçar busca fresca sempre
-    refetchOnWindowFocus: true, // Refazer query ao focar na janela
-    refetchOnMount: 'always', // SEMPRE refazer query ao montar componente
+    staleTime: 5 * 60 * 1000, // ⚡ OTIMIZAÇÃO: 5 minutos - dados frescos mas sem refetch excessivo
+    gcTime: 10 * 60 * 1000, // ⚡ OTIMIZAÇÃO: 10 minutos - mantém cache em memória
+    refetchOnWindowFocus: false, // ⚡ OTIMIZAÇÃO: Não refazer automaticamente ao focar
+    refetchOnMount: false, // ⚡ OTIMIZAÇÃO: Usar cache se disponível
     refetchInterval: false, // Não usar polling automático
     queryFn: async () => {
       const { data, error } = await supabaseClient

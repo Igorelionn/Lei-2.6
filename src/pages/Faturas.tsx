@@ -1,5 +1,4 @@
-import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
@@ -19,7 +18,6 @@ import {
 } from "lucide-react";
 import { Invoice, InvoiceStatus, ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
-import { useToast } from "@/hooks/use-toast";
 import { obterValorTotalArrematante, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 
 interface FaturaExtendida extends Invoice {
@@ -78,7 +76,6 @@ const normalizarMesInicioPagamento = (mesInicioPagamento: string): string => {
 
 function Faturas() {
   const { auctions, isLoading } = useSupabaseAuctions();
-  const { toast } = useToast();
   
   // Estados para Faturas
   const [searchTermFaturas, setSearchTermFaturas] = useState("");
@@ -107,6 +104,12 @@ function Faturas() {
     vencimento: "",
     status: "em_aberto" as InvoiceStatus
   });
+
+  // Função para calcular próxima data de vencimento baseada no sistema de parcelas (DESABILITADA - usando lógica específica por lote)
+  const _calculateNextPaymentDate = (_arrematante: ArrematanteInfo) => {
+    // Esta função foi desabilitada pois agora usamos configurações específicas por lote
+    return null;
+  };
 
   // Função para determinar status da fatura baseado na data atual e parcelas
   const getInvoiceStatus = (arrematante: ArrematanteInfo, parcelaIndex: number, dueDate: Date): InvoiceStatus => {
@@ -1047,6 +1050,24 @@ function Faturas() {
     });
   };
 
+
+  const _handleEditFatura = (fatura: FaturaExtendida) => {
+    setFaturaForm({
+      lotId: fatura.lotId,
+      auctionId: fatura.auctionId,
+      arrematanteId: fatura.arrematanteId,
+      valorArremate: fatura.valorLiquido.toString(),
+      comissao: "0",
+      custosAdicionais: "0",
+      valorLiquido: fatura.valorLiquido.toString(),
+      vencimento: fatura.dataVencimento || '',
+      status: fatura.status
+    });
+    setSelectedFatura(fatura);
+    setIsEditingFatura(true);
+    setIsFaturaModalOpen(true);
+  };
+
   const handleDeleteFatura = (faturaId: string) => {
     // Implementar exclusão da fatura
     logger.info('Excluir fatura', { faturaId });
@@ -1122,20 +1143,9 @@ function Faturas() {
       await html2pdf().set(opt).from(element).save();
       
       logger.info('PDF da fatura gerado com sucesso');
-
-      toast({
-        title: "PDF Gerado",
-        description: `Fatura do lote #${selectedFaturaForPreview.loteNumero} foi baixada.`,
-        duration: 4000,
-      });
       
     } catch (error) {
       logger.error('Erro ao gerar PDF da fatura', { error });
-      toast({
-        title: "Erro ao Gerar PDF",
-        description: "Ocorreu um erro ao gerar o PDF. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       // Sempre fechar o modal no final
       setIsExportFaturaModalOpen(false);

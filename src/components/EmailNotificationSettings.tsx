@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useEmailNotifications } from '@/hooks/use-email-notifications';
 import { useAuth } from '@/hooks/use-auth';
-import { useToast } from '@/hooks/use-toast';
 import { Mail, CheckCircle, Check, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -24,7 +23,6 @@ import {
 export function EmailNotificationSettings() {
   const { config, saveConfig, carregarLogs, emailLogs, limparHistorico } = useEmailNotifications();
   const { user } = useAuth();
-  const { toast } = useToast();
   const [localConfig, setLocalConfig] = useState({
     resendApiKey: '', // 🔒 SEGURANÇA: API Key não deve estar no frontend - usar Edge Function
     emailRemetente: 'notificacoes@grupoliraleiloes.com', // Email remetente padrão fixo
@@ -76,18 +74,8 @@ export function EmailNotificationSettings() {
     
     const result = await limparHistorico();
     
-    if (result.success) {
-      toast({
-        title: 'Histórico limpo',
-        description: result.message,
-        variant: 'default',
-      });
-    } else {
-      toast({
-        title: 'Erro ao limpar histórico',
-        description: result.message,
-        variant: 'destructive',
-      });
+    if (!result.success) {
+      logger.error('Erro ao limpar histórico:', result.message);
     }
     
     setIsClearing(false);

@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { AlertCircle, ChevronRight, ChevronLeft, Check, Plus, Trash2, X, Phone, Mail, Package, Edit } from "lucide-react";
 import { useGuestLots } from "@/hooks/use-guest-lots";
-import { useToast } from "@/hooks/use-toast";
 import { LoteConvidadoFormData, MercadoriaInfo } from "@/lib/types";
 
 const FlagIcon = ({ countryCode, countryName }: { countryCode: string; countryName?: string }) => {
@@ -288,7 +287,6 @@ export default function LoteConvidadoWizard({
   leiloes = []
 }: LoteConvidadoWizardProps) {
   const { createGuestLot, updateGuestLot } = useGuestLots();
-  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [attemptedNext, setAttemptedNext] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -297,7 +295,7 @@ export default function LoteConvidadoWizard({
   const [documentMetadata, setDocumentMetadata] = useState<{ name: string; type: string }[]>([]);
   
   // Detectar se está em modo de edição
-  const isEditMode = !!(initialData && initialData.id);
+  const isEditMode = !!(initialData && (initialData as any).id);
   
   const [values, setValues] = useState<LoteConvidadoFormData>({
     numero: "",
@@ -427,7 +425,7 @@ export default function LoteConvidadoWizard({
   };
 
   const addMercadoria = () => {
-    if (!currentMercadoria.nome?.trim() || !currentMercadoria.descricao?.trim() || !currentMercadoria.quantidade || currentMercadoria.quantidade < 1) return;
+    if (!currentMercadoria.nome.trim() || !currentMercadoria.descricao?.trim() || !currentMercadoria.quantidade || currentMercadoria.quantidade < 1) return;
     
     if (editingMercadoriaId) {
       // Modo de edição: atualizar mercadoria existente
@@ -635,7 +633,7 @@ export default function LoteConvidadoWizard({
              <button
                type="button"
                onClick={addMercadoria}
-               disabled={!currentMercadoria.nome?.trim() || !currentMercadoria.descricao?.trim() || !currentMercadoria.quantidade || currentMercadoria.quantidade < 1}
+               disabled={!currentMercadoria.nome.trim() || !currentMercadoria.descricao?.trim() || !currentMercadoria.quantidade || currentMercadoria.quantidade < 1}
                className="w-8 h-8 flex items-center justify-center text-gray-900 hover:text-gray-900 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                title={editingMercadoriaId ? "Salvar alterações" : "Adicionar mercadoria"}
              >
@@ -1277,23 +1275,13 @@ export default function LoteConvidadoWizard({
         };
 
         // Salvar no banco de dados (criar ou atualizar)
-        if (isEditMode && initialData?.id) {
+        if (isEditMode) {
           await updateGuestLot({ 
-            id: initialData.id, 
+            id: (initialData as any).id, 
             data: dataToSave 
-          });
-          
-          toast({
-            title: "Lote atualizado com sucesso!",
-            description: `O lote #${values.numero} foi atualizado.`,
           });
         } else {
           await createGuestLot(dataToSave);
-          
-          toast({
-            title: "Lote cadastrado com sucesso!",
-            description: `O lote #${values.numero} foi adicionado ao sistema.`,
-          });
         }
 
         // Chamar callback opcional
@@ -1302,11 +1290,6 @@ export default function LoteConvidadoWizard({
         handleClose();
       } catch (error) {
         logger.error('Erro ao salvar lote:', error);
-        toast({
-          title: isEditMode ? "Erro ao atualizar lote" : "Erro ao cadastrar lote",
-          description: "Ocorreu um erro ao salvar o lote. Tente novamente.",
-          variant: "destructive",
-        });
       } finally {
         setIsSubmitting(false);
       }

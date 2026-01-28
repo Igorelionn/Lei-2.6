@@ -8,24 +8,14 @@ import {
   Users,
   ArrowLeftRight,
   AlertCircle,
-  Calendar,
-  DollarSign,
-  CheckCircle,
   Clock,
-  Mail,
-  Phone,
-  MapPin,
-  FileText,
-  Package,
-  TrendingUp,
-  CreditCard,
   ArrowLeft,
   Download
 } from "lucide-react";
-import { Arrematante, AuctionStatus } from "@/lib/types";
+import { ArrematanteInfo, AuctionStatus } from "@/lib/types";
 
 // 🔒 Tipo para histórico de leilões do arrematante
-interface LeilaoHistorico extends Arrematante {
+interface LeilaoHistorico extends ArrematanteInfo {
   leilaoId: string;
   leilaoNome: string;
   leilaoIdentificacao: string;
@@ -33,20 +23,18 @@ interface LeilaoHistorico extends Arrematante {
   leilaoStatus: AuctionStatus;
 }
 
-interface ArrematanteComHistorico extends Arrematante {
+interface ArrematanteComHistorico extends ArrematanteInfo {
   leiloes: LeilaoHistorico[];
 }
-import { calcularEstruturaParcelas, calcularJurosProgressivos, descreverEstruturaParcelas } from "@/lib/parcelamento-calculator";
+import { calcularEstruturaParcelas, descreverEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import html2pdf from 'html2pdf.js';
-import { useToast } from "@/hooks/use-toast";
 
 export default function Historico() {
   const { auctions } = useSupabaseAuctions();
-  const { toast } = useToast();
   const [searchText, setSearchText] = useState("");
   const [searchMode, setSearchMode] = useState<'cpf' | 'nome'>('cpf');
   const [showAllBidders, setShowAllBidders] = useState(false);
-  const [selectedArrematante, setSelectedArrematante] = useState<Arrematante | null>(null);
+  const [selectedArrematante, setSelectedArrematante] = useState<ArrematanteComHistorico | null>(null);
   const [isHoveringButton, setIsHoveringButton] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
@@ -181,9 +169,9 @@ export default function Historico() {
       if (!element) return;
 
       const opt = {
-        margin: [0.5, 0.5, 0.8, 0.5],
-        filename: `historico-${selectedArrematante.nome.replace(/\s+/g, '-')}.pdf`,
-        image: { type: 'jpeg', quality: 0.98 },
+        margin: [0.5, 0.5, 0.8, 0.5] as [number, number, number, number],
+        filename: `historico-${selectedArrematante.nome}.pdf`,
+        image: { type: 'jpeg' as const, quality: 0.98 },
         html2canvas: { 
           scale: 2,
           useCORS: true,
@@ -193,18 +181,13 @@ export default function Historico() {
           scrollX: 0,
           height: element.scrollHeight + 50
         },
-        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' },
+        jsPDF: { unit: 'in', format: 'a4', orientation: 'portrait' as const },
         pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
       };
 
       await html2pdf().set(opt).from(element).save();
     } catch (error) {
       logger.error('Erro ao gerar PDF:', error);
-      toast({
-        title: "Erro ao gerar PDF",
-        description: "Não foi possível gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsGenerating(false);
     }

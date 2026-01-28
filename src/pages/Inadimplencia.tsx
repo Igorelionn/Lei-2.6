@@ -1,11 +1,9 @@
 import { useState, useMemo, createContext, useContext } from "react";
-import { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
@@ -15,33 +13,23 @@ import {
   AlertTriangle, 
   Search, 
   Calendar, 
-  DollarSign, 
   Phone, 
   Mail, 
-  User,
-  Filter,
   Download,
   Send,
-  Clock,
-  TrendingUp,
-  FileText,
   Paperclip,
   X,
   Image as ImageIcon,
-  History,
-  CheckCircle,
-  XCircle,
-  Timer
+  History
 } from "lucide-react";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
-import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { obterValorTotalArrematante, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import { ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
 
 // Interface estendida para arrematante com campos adicionais
-interface ArrematanteInfoExtended extends ArrematanteInfo {
+interface _ArrematanteInfoExtended extends ArrematanteInfo {
   dataPagamento?: string;
 }
 
@@ -92,8 +80,9 @@ const HoverContext = createContext<{
 });
 
 // Componente para transição suave entre entrada e parcela
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const HoverTransitionValue = ({ 
-  auction, 
+  auction: _auction, 
   primaryValue, 
   primaryLabel, 
   secondaryValue, 
@@ -145,7 +134,7 @@ const HoverTransitionValue = ({
 
 // Componente para transição de datas/vencimentos
 const HoverTransitionDate = ({ 
-  auction, 
+  auction: _auction, 
   primaryDate, 
   primaryLabel, 
   secondaryDate, 
@@ -200,7 +189,7 @@ const HoverTransitionDate = ({
 
 // Componente para transição de status de parcelas
 const HoverTransitionStatus = ({ 
-  auction, 
+  auction: _auction, 
   primaryStatus, 
   primarySubtext, 
   secondaryStatus, 
@@ -278,7 +267,6 @@ const HoverSyncHeader = ({
 
 export default function Inadimplencia() {
   const { auctions, isLoading } = useSupabaseAuctions();
-  const { toast } = useToast();
   const { logReportAction } = useActivityLogger();
   const { enviarCobranca, enviarLembrete, testarEnvioCobranca } = useEmailNotifications();
 
@@ -304,8 +292,8 @@ export default function Inadimplencia() {
   const [statusFilter, setStatusFilter] = useState("all");
   const [sortBy, setSortBy] = useState("due_date");
   const [isRowHovered, setIsRowHovered] = useState(false);
-  const [isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
-  const [isSortSelectOpen, setIsSortSelectOpen] = useState(false);
+  const [_isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
+  const [_isSortSelectOpen, setIsSortSelectOpen] = useState(false);
   
   // Estados para modal de cobrança
   const [isChargeModalOpen, setIsChargeModalOpen] = useState(false);
@@ -321,7 +309,7 @@ export default function Inadimplencia() {
   // Estados para modal de exportação
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedArrematanteForExport, setSelectedArrematanteForExport] = useState<string>("");
-  const [isExportSelectOpen, setIsExportSelectOpen] = useState(false);
+  const [_isExportSelectOpen, setIsExportSelectOpen] = useState(false);
 
   // Estados para modal de teste de envio
   const [isTestEmailModalOpen, setIsTestEmailModalOpen] = useState(false);
@@ -390,19 +378,8 @@ export default function Inadimplencia() {
         }
       });
       
-      toast({
-        title: "PDF Gerado com Sucesso!",
-        description: `Relatório de ${selectedArrematante.arrematante?.nome} foi baixado.`,
-        duration: 4000,
-      });
-      
     } catch (error) {
       logger.error('Erro ao gerar PDF:', error);
-      toast({
-        title: "Erro ao Gerar PDF",
-        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -452,31 +429,18 @@ export default function Inadimplencia() {
       
       await html2pdf().set(options).from(element).save();
       
-      toast({
-        title: "PDF Gerado com Sucesso!",
-        description: selectedArrematanteForExport === 'todos' 
-          ? 'Relatório de inadimplência geral foi baixado.'
-          : `Relatório de inadimplência de ${filteredOverdueAuctions.find(a => a.id === selectedArrematanteForExport)?.arrematante?.nome} foi baixado.`,
-        duration: 4000,
-      });
-
       // Fechar modal após sucesso
       setIsExportModalOpen(false);
       setSelectedArrematanteForExport("");
       
     } catch (error) {
       logger.error('Erro ao gerar PDF:', error);
-      toast({
-        title: "Erro ao Gerar PDF",
-        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
     }
   };
 
 
   // Função para gerar texto de cobrança personalizado
-  const generateChargeText = (auction: AuctionWithOverdueInfo) => {
+  const _generateChargeText = (auction: AuctionWithOverdueInfo) => {
     const nome = auction.arrematante?.nome || 'Cliente';
     const valor = currency.format(auction.overdueAmount || 0);
     const dias = auction.daysOverdue === 1 ? '1 dia' : `${auction.daysOverdue} dias`;
@@ -1265,7 +1229,7 @@ Atenciosamente,
               
             case 'entrada_parcelamento': {
               const parcelasPagas = arrematante.parcelasPagas || 0;
-              const quantidadeParcelasTotal = arrematante.quantidadeParcelas || loteArrematado.parcelasPadrao || 12;
+              const _quantidadeParcelasTotal = arrematante.quantidadeParcelas || loteArrematado.parcelasPadrao || 12;
               
               // Calcular valores (entrada e parcelas são INDEPENDENTES)
               const valorEntrada = arrematante.valorEntrada ? 
@@ -1793,47 +1757,24 @@ Atenciosamente,
 Arthur Lira Leilões`;
   };
 
-  const handleSendReminder = async (auction: AuctionWithOverdueInfo) => {
+  const _handleSendReminder = async (auction: AuctionWithOverdueInfo) => {
     if (!auction.arrematante?.email) {
-      toast({
-        title: "❌ Email Não Cadastrado",
-        description: "Este arrematante não possui email cadastrado.",
-        variant: "destructive",
-      });
       return;
     }
     
     try {
       const result = await enviarLembrete(auction);
       
-      if (result.success) {
-        toast({
-          title: "✅ Lembrete Enviado",
-          description: result.message,
-        });
-      } else {
-        toast({
-          title: "⚠️ Aviso",
-          description: result.message,
-          variant: "destructive",
-        });
+      if (!result.success) {
+        logger.warn('Falha ao enviar lembrete:', result.message);
       }
-    } catch (error) {
-      toast({
-        title: "❌ Erro",
-        description: "Erro ao enviar lembrete. Tente novamente.",
-        variant: "destructive",
-      });
+    } catch (_error) {
+      logger.error('Erro ao enviar lembrete:', _error);
     }
   };
 
-  const handleSendCharge = (auction: AuctionWithOverdueInfo) => {
+  const _handleSendCharge = (auction: AuctionWithOverdueInfo) => {
     if (!auction.arrematante?.email) {
-      toast({
-        title: "❌ Email Não Cadastrado",
-        description: "Este arrematante não possui email cadastrado.",
-        variant: "destructive",
-      });
       return;
     }
     
@@ -1863,27 +1804,15 @@ Arthur Lira Leilões`;
       const result = await enviarCobranca(selectedDebtor);
       
       if (result.success) {
-        toast({
-          title: "✅ Email Enviado",
-          description: result.message,
-        });
         setIsChargeModalOpen(false);
         setSelectedDebtor(null);
         setChargeMessage("");
         setAttachments([]);
       } else {
-        toast({
-          title: "❌ Erro ao Enviar",
-          description: result.message,
-          variant: "destructive",
-        });
+        logger.warn('Erro ao enviar cobrança:', result.message);
       }
-    } catch (error) {
-      toast({
-        title: "❌ Erro",
-        description: "Erro ao enviar cobrança. Tente novamente.",
-        variant: "destructive",
-      });
+    } catch (_error) {
+      logger.error('Erro ao enviar cobrança:', _error);
     } finally {
       setIsSending(false);
     }
@@ -1895,11 +1824,6 @@ Arthur Lira Leilões`;
     const auctionOriginal = auctions.find(a => a.id === auctionProcessado.id);
     
     if (!auctionOriginal) {
-      toast({
-        title: "❌ Erro",
-        description: "Leilão não encontrado",
-        variant: "destructive",
-      });
       return;
     }
     
@@ -1914,17 +1838,8 @@ Arthur Lira Leilões`;
       
       setTestEmailLogs(result.detalhes || []);
       
-      if (result.success) {
-        toast({
-          title: "✅ Teste Concluído",
-          description: result.message,
-        });
-      } else {
-        toast({
-          title: "⚠️ Teste Concluído com Avisos",
-          description: result.message,
-          variant: "destructive",
-        });
+      if (!result.success) {
+        logger.warn('Teste concluído com avisos:', result.message);
       }
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
@@ -1941,12 +1856,6 @@ Arthur Lira Leilões`;
         '• Console do navegador (F12)',
         '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
       ]);
-      
-      toast({
-        title: "❌ Erro ao Testar",
-        description: errorMessage,
-        variant: "destructive",
-      });
     } finally {
       setIsTestingSend(false);
     }
@@ -2147,13 +2056,13 @@ Arthur Lira Leilões`;
                   <TableHead className="font-semibold text-gray-700">
                     {(() => {
                       // Verificar se há algum pagamento à vista na lista filtrada
-                      const hasAVista = filteredOverdueAuctions.some(auction => {
+                      const _hasAVista = filteredOverdueAuctions.some(auction => {
                         const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === auction.arrematante?.loteId);
                         return loteArrematado?.tipoPagamento === 'a_vista';
                       });
 
                       // Verificar se há algum pagamento parcelado na lista filtrada  
-                      const hasParcelado = filteredOverdueAuctions.some(auction => {
+                      const _hasParcelado = filteredOverdueAuctions.some(auction => {
                         const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === auction.arrematante?.loteId);
                         return loteArrematado?.tipoPagamento !== 'a_vista';
                       });
@@ -2768,7 +2677,7 @@ Arthur Lira Leilões`;
                          // Usar dados reais do arrematante
                               const arrematante = selectedArrematante.arrematante;
                               const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
-                         const tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
+                         const _tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
                          const parcelasPagas = arrematante?.parcelasPagas || 0;
                          
                          // Baseado nos dados reais: todos os pagamentos foram COM ATRASO
@@ -3166,10 +3075,6 @@ Arthur Lira Leilões`;
                   variant="outline"
                   onClick={() => {
                     navigator.clipboard.writeText(testEmailLogs.join('\n'));
-                    toast({
-                      title: "✅ Logs Copiados",
-                      description: "Logs foram copiados para a área de transferência",
-                    });
                   }}
                   disabled={testEmailLogs.length === 0}
                 >

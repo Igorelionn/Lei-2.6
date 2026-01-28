@@ -29,7 +29,7 @@ const Configuracoes = lazy(() => import("./pages/Configuracoes"));
 const Email = lazy(() => import("./pages/Email"));
 const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const Login = lazy(() => import("./pages/Login"));
-const MigrationManager = lazy(() => import("@/components/MigrationManager"));
+const MigrationManager = lazy(() => import("@/components/MigrationManager").then(module => ({ default: module.MigrationManager })));
 
 // ⚡ PERFORMANCE: Cache otimizado conforme auditoria
 const queryClient = new QueryClient({

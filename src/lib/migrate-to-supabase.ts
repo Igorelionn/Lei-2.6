@@ -1,6 +1,6 @@
 import { supabaseClient } from './supabase-client';
 import { db } from './storage';
-import { Auction, Bidder, Lot, Invoice, LoteInfo } from './types';
+import { LoteInfo } from './types';
 import { Database } from './database.types';
 import { logger } from './logger';
 
@@ -143,7 +143,7 @@ export async function migrateLocalStorageToSupabase(): Promise<MigrationResult> 
               arquivado: auction.arquivado || false,
             };
             
-            logger.debug('Arrematante mapeado', { id: mappedBidder.id });
+            logger.debug('Arrematante mapeado', { auction_id: mappedBidder.auction_id, nome: mappedBidder.nome });
             biddersToInsert.push(mappedBidder);
           }
         }

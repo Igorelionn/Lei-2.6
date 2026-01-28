@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState, useRef } from "react";
 import { supabase } from "@/lib/supabase";
-import { toast, dismiss } from "@/hooks/use-toast";
+import { dismiss } from "@/hooks/use-toast";
 import { logger } from '@/lib/logger';
 
 type UserRole = "admin";
@@ -357,7 +357,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         
         logger.error('Erro ao atualizar heartbeat', { error: updateError });
         
-        // ✅ Detectar erros de conexão e mostrar toast (evitar spam)
+        // ✅ Detectar erros de conexão
         const now = Date.now();
         const timeSinceLastToast = now - lastToastTimeRef.current;
         const shouldShowToast = timeSinceLastToast > 30000; // 30 segundos
@@ -365,15 +365,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (shouldShowToast && isOnlineRef.current) {
           isOnlineRef.current = false;
           lastToastTimeRef.current = now;
-          
-          // Guardar ID do toast para poder fechá-lo depois
-          const offlineToast = toast({
-            variant: "destructive",
-            title: "Sem conexão",
-            description: "Verifique sua internet",
-            duration: Infinity, // Fica até reconectar
-          });
-          offlineToastIdRef.current = offlineToast.id;
         }
         
         return;
@@ -383,18 +374,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isOnlineRef.current) {
         isOnlineRef.current = true;
         
-        // Fechar o toast de "Sem conexão" se existir
+        // Limpar notificação de "Sem conexão" se existir
         if (offlineToastIdRef.current) {
           dismiss(offlineToastIdRef.current);
           offlineToastIdRef.current = null;
         }
-        
-        toast({
-          variant: "default",
-          title: "Conectado",
-          description: "Você está online",
-          duration: 2000, // 2 segundos - sai mais rápido
-        });
       }
 
       // Se o usuário foi desativado, fazer logout automático
@@ -488,15 +472,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (shouldShowToast && isOnlineRef.current) {
           isOnlineRef.current = false;
           lastToastTimeRef.current = now;
-          
-          // Guardar ID do toast para poder fechá-lo depois
-          const offlineToast = toast({
-            variant: "destructive",
-            title: "Sem conexão",
-            description: "Verifique sua internet",
-            duration: Infinity, // Fica até reconectar
-          });
-          offlineToastIdRef.current = offlineToast.id;
         }
       }
     }
@@ -534,18 +509,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (!isOnlineRef.current) {
         isOnlineRef.current = true;
         
-        // Fechar o toast de "Sem conexão" se existir
+        // Limpar notificação de "Sem conexão" se existir
         if (offlineToastIdRef.current) {
           dismiss(offlineToastIdRef.current);
           offlineToastIdRef.current = null;
         }
         
-        toast({
-          variant: "default",
-          title: "Conectado",
-          description: "Você está online",
-          duration: 2000, // 2 segundos - sai mais rápido
-        });
         // Forçar atualização imediata do heartbeat
         updateHeartbeat();
       }
@@ -556,15 +525,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (isOnlineRef.current) {
         isOnlineRef.current = false;
         lastToastTimeRef.current = Date.now();
-        
-        // Guardar ID do toast para poder fechá-lo depois
-        const offlineToast = toast({
-          variant: "destructive",
-          title: "Sem conexão",
-          description: "Verifique sua internet",
-          duration: Infinity, // Fica até reconectar
-        });
-        offlineToastIdRef.current = offlineToast.id;
       }
     };
 

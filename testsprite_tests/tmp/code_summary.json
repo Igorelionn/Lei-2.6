@@ -1,276 +1,141 @@
 {
-  "project_name": "Auction Usher - Sistema de Leilões Arthur Lira",
-  "description": "Sistema completo de gestão de leilões com suporte para leilões presenciais, online e híbridos. Inclui gestão de lotes, arrematantes, patrocinadores, pagamentos e relatórios.",
-  "tech_stack": {
+  "techStack": {
     "frontend": {
       "framework": "React 18.3.1",
       "language": "TypeScript 5.8.3",
-      "build_tool": "Vite 5.4.19",
-      "routing": "React Router DOM 6.30.1"
-    },
-    "ui_framework": {
+      "buildTool": "Vite 7.3.1",
       "styling": "Tailwind CSS 3.4.17",
-      "component_library": "Radix UI (shadcn/ui components)",
-      "icons": "Lucide React 0.462.0",
-      "themes": "next-themes 0.3.0"
-    },
-    "state_management": {
-      "server_state": "TanStack React Query 5.83.0",
-      "forms": "React Hook Form 7.61.1",
-      "validation": "Zod 3.25.76"
+      "uiLibrary": "Radix UI (shadcn/ui)",
+      "stateManagement": "React Query 5.83.0",
+      "routing": "React Router DOM 6.30.1",
+      "formHandling": "React Hook Form 7.61.1 + Zod 3.25.76",
+      "charts": "Recharts 2.15.4",
+      "pdf": "jsPDF 4.0.0 + html2pdf.js 0.14.0",
+      "excel": "xlsx 0.18.5 + docx 9.5.1",
+      "email": "EmailJS 4.4.1"
     },
     "backend": {
       "database": "Supabase (PostgreSQL)",
       "auth": "Supabase Auth",
       "storage": "Supabase Storage",
-      "realtime": "Supabase Realtime Subscriptions"
-    },
-    "integrations": {
-      "email": "EmailJS 4.4.1",
-      "pdf_generation": "jsPDF 3.0.2, html2pdf.js 0.12.1",
-      "document_generation": "docx 9.5.1",
-      "excel": "xlsx 0.18.5",
-      "charts": "Recharts 2.15.4"
-    },
-    "utilities": {
-      "date_handling": "date-fns 3.6.0",
-      "file_saving": "file-saver 2.0.5",
-      "html_to_canvas": "html2canvas 1.4.1",
-      "notifications": "sonner 1.7.4"
-    },
-    "analytics": {
-      "vercel_analytics": "1.5.0",
-      "vercel_speed_insights": "1.2.0"
+      "realtime": "Supabase Realtime",
+      "functions": "Supabase Edge Functions"
     },
     "deployment": {
       "platform": "Vercel",
-      "environment": "Production"
+      "analytics": "Vercel Analytics 1.5.0"
     }
   },
-  "features": {
-    "authentication": {
-      "description": "Sistema de autenticação e autorização com Supabase",
-      "components": [
-        "Login com email/senha",
-        "Proteção de rotas",
-        "Gestão de sessão",
-        "Row Level Security (RLS)"
-      ]
-    },
-    "auction_management": {
-      "description": "Gestão completa de leilões",
-      "components": [
-        "Criar/Editar leilões (presencial, online, híbrido)",
-        "Definir datas de início e encerramento",
-        "Configurar formas de pagamento (à vista, parcelamento, entrada+parcelamento)",
-        "Gestão de status (agendado, em andamento, finalizado)",
-        "Sistema de custos detalhados",
-        "Arquivo de leilões finalizados",
-        "Histórico de notas"
-      ]
-    },
-    "lot_management": {
-      "description": "Gestão de lotes e mercadorias",
-      "components": [
-        "Cadastro de lotes com numeração",
-        "Múltiplas mercadorias por lote",
-        "Upload de imagens e documentos",
-        "Valores estimados",
-        "Status de lotes (disponível, arrematado, arquivado)",
-        "Lotes de convidados (guest lots)"
-      ]
-    },
-    "guest_lots": {
-      "description": "Sistema de lotes de terceiros/convidados",
-      "components": [
-        "Cadastro de proprietários",
-        "Informações de contato (email, telefone)",
-        "Documentos do proprietário",
-        "Configurações de pagamento específicas",
-        "Comissões personalizadas"
-      ]
-    },
-    "bidder_management": {
-      "description": "Gestão de arrematantes",
-      "components": [
-        "Cadastro completo com CPF/CNPJ",
-        "Endereço detalhado (CEP, rua, número, bairro, cidade, estado)",
-        "Contatos (email, telefone)",
-        "Upload de documentos",
-        "Múltiplos arrematantes por lote",
-        "Histórico de arrematações"
-      ]
-    },
-    "payment_system": {
-      "description": "Sistema avançado de pagamentos e parcelamentos",
-      "components": [
-        "Pagamento à vista com data de vencimento",
-        "Parcelamento tradicional",
-        "Entrada + parcelamento",
-        "Sistema de fator multiplicador",
-        "Parcelas triplas, duplas e simples",
-        "Dia de vencimento mensal configurável",
-        "Controle de parcelas pagas",
-        "Cálculo automático de valores",
-        "Juros por atraso (simples ou composto)"
-      ]
-    },
-    "sponsor_management": {
-      "description": "Gestão de patrocinadores",
-      "components": [
-        "Cadastro de patrocinadores",
-        "Valores de patrocínio",
-        "Controle de recebimento",
-        "Formas de pagamento variadas",
-        "Sistema de parcelas para patrocínios",
-        "Total de patrocínios por leilão"
-      ]
-    },
-    "commission_system": {
-      "description": "Sistema de comissões",
-      "components": [
-        "Comissão do leiloeiro (compra)",
-        "Comissão de venda",
-        "Percentuais configuráveis por leilão",
-        "Percentuais configuráveis por lote",
-        "Cálculo automático nas faturas"
-      ]
-    },
-    "invoice_management": {
-      "description": "Gestão de faturas e inadimplência",
-      "components": [
-        "Geração automática de faturas",
-        "Controle de vencimentos",
-        "Status de pagamento (em aberto, pago, atrasado)",
-        "Identificação de inadimplentes",
-        "Relatório de inadimplência",
-        "Histórico de pagamentos"
-      ]
-    },
-    "reporting": {
-      "description": "Sistema de relatórios e exportação",
-      "components": [
-        "Dashboard com estatísticas",
-        "Relatórios de leilões",
-        "Relatórios de arrematantes",
-        "Relatórios de inadimplência",
-        "Exportação para PDF",
-        "Exportação para Excel (XLSX)",
-        "Exportação para Word (DOCX)",
-        "Gráficos e visualizações"
-      ]
-    },
-    "document_management": {
-      "description": "Gestão de documentos e imagens",
-      "components": [
-        "Upload de documentos",
-        "Upload de imagens",
-        "Validação de tipos de arquivo",
-        "Armazenamento seguro no Supabase Storage",
-        "Visualização de imagens",
-        "Download de documentos",
-        "Categorização de documentos"
-      ]
-    },
-    "email_notifications": {
-      "description": "Sistema de notificações por email",
-      "components": [
-        "Envio de emails automáticos",
-        "Templates personalizáveis",
-        "Notificações de pagamento",
-        "Lembretes de vencimento",
-        "Confirmações de arrematação",
-        "Integração com EmailJS"
-      ]
-    },
-    "realtime_sync": {
-      "description": "Sincronização em tempo real",
-      "components": [
-        "Atualizações automáticas de dados",
-        "Supabase Realtime subscriptions",
-        "Sincronização entre múltiplos usuários",
-        "Notificações de mudanças"
-      ]
-    },
-    "activity_logging": {
-      "description": "Log de atividades e auditoria",
-      "components": [
-        "Registro de ações dos usuários",
-        "Histórico de alterações",
-        "Rastreabilidade de operações",
-        "Auditoria de segurança"
-      ]
-    },
-    "data_migration": {
-      "description": "Sistema de migração de dados",
-      "components": [
-        "Migração automática para Supabase",
-        "Verificação de integridade",
-        "Notificações de status",
-        "Gerenciador de migração"
-      ]
-    },
-    "security": {
-      "description": "Recursos de segurança",
-      "components": [
-        "Row Level Security (RLS) no Supabase",
-        "Validação de arquivos",
-        "Sanitização de inputs",
-        "Proteção contra XSS",
-        "Autenticação segura",
-        "Encriptação de dados sensíveis"
-      ]
-    }
+  "features": [
+    "Sistema completo de gestão de leilões",
+    "Autenticação de usuários com RLS (Row Level Security)",
+    "CRUD de leilões, lotes, arrematantes e patrocinadores",
+    "Gestão de faturas com parcelas e cálculo de juros",
+    "Geração de relatórios em PDF/Excel",
+    "Sistema de email automatizado",
+    "Upload de imagens e documentos",
+    "Dashboard com estatísticas em tempo real",
+    "Histórico de atividades",
+    "Controle de inadimplência",
+    "Lotes convidados",
+    "Sistema de parcelamento (triplo, duplo, simples)",
+    "Cálculo de comissão e fator multiplicador",
+    "Validação de arquivos (MIME type, size, magic bytes)",
+    "Sanitização de dados (XSS prevention)",
+    "Logger estruturado",
+    "Code splitting e lazy loading",
+    "Manual vendor chunking"
+  ],
+  "projectStructure": {
+    "src/pages": "16 páginas principais da aplicação",
+    "src/components": "Componentes reutilizáveis e wizards",
+    "src/hooks": "Custom hooks para lógica de negócio",
+    "src/lib": "Utilitários, tipos, e configurações",
+    "supabase": "Configurações e scripts de database"
   },
-  "project_structure": {
-    "src": {
-      "components": "Componentes React reutilizáveis (wizards, forms, layouts)",
-      "pages": "Páginas da aplicação (Leilões, Lotes, Arrematantes, Relatórios, etc.)",
-      "hooks": "Custom React hooks para lógica de negócio",
-      "lib": "Utilitários, tipos, clientes e configurações",
-      "ui": "Componentes UI do shadcn/ui (buttons, dialogs, forms, etc.)"
-    },
-    "supabase": {
-      "functions": "Supabase Edge Functions (envio de email)"
-    },
-    "public": "Assets estáticos (logos, imagens, ícones)"
+  "keyFiles": {
+    "pages": [
+      "Dashboard.tsx",
+      "Leiloes.tsx",
+      "Arrematantes.tsx",
+      "Lotes.tsx",
+      "LotesConvidados.tsx",
+      "Patrocinadores.tsx",
+      "Faturas.tsx",
+      "Relatorios.tsx",
+      "Inadimplencia.tsx",
+      "Historico.tsx",
+      "Configuracoes.tsx",
+      "Email.tsx",
+      "Login.tsx"
+    ],
+    "hooks": [
+      "use-supabase-auctions.ts (1521 linhas - hook principal)",
+      "use-auth.tsx",
+      "use-realtime-sync.ts",
+      "use-email-notifications.ts",
+      "use-auto-email-notifications.ts",
+      "use-guest-lots.ts",
+      "use-dashboard-stats.ts"
+    ],
+    "lib": [
+      "supabase-client.ts",
+      "database.types.ts",
+      "types.ts",
+      "storage.ts",
+      "secure-utils.ts",
+      "file-validation.ts",
+      "logger.ts",
+      "migrate-to-supabase.ts",
+      "parcelamento-calculator.ts"
+    ]
   },
-  "key_files": {
-    "src/lib/types.ts": "Definições de tipos TypeScript do domínio",
-    "src/lib/database.types.ts": "Tipos gerados do schema do Supabase",
-    "src/lib/supabase-client.ts": "Cliente configurado do Supabase",
-    "src/hooks/use-supabase-auctions.ts": "Hook principal para operações de leilões",
-    "src/hooks/use-auth.tsx": "Hook de autenticação",
-    "src/lib/storage.ts": "Gerenciamento de storage",
-    "src/lib/secure-utils.ts": "Utilitários de segurança",
-    "src/lib/file-validation.ts": "Validação de arquivos",
-    "supabase_rls_setup.sql": "Script de setup das políticas RLS"
-  },
-  "database_tables": [
+  "databaseTables": [
     "auctions",
-    "lots", 
-    "guest_lots",
     "bidders",
-    "sponsors",
+    "lots",
+    "merchandise",
     "invoices",
     "documents",
+    "users",
+    "sponsors",
+    "guest_lots",
     "activity_logs",
-    "email_notifications"
+    "email_logs",
+    "payments",
+    "profiles"
   ],
-  "page_routes": [
+  "routes": [
     "/",
-    "/login",
-    "/dashboard",
     "/leiloes",
+    "/arrematantes",
     "/lotes",
     "/lotes-convidados",
-    "/arrematantes",
     "/patrocinadores",
     "/faturas",
-    "/inadimplencia",
     "/relatorios",
+    "/inadimplencia",
     "/historico",
     "/configuracoes",
-    "/email"
+    "/email",
+    "/login"
+  ],
+  "securityFeatures": [
+    "Row Level Security (RLS) em todas as tabelas",
+    "Sanitização de strings (escapeHtml, sanitizeString)",
+    "Validação de arquivos (extensão, MIME, size, magic bytes)",
+    "UUID seguro (crypto.randomUUID)",
+    "Secure URL validation",
+    "Session management com localStorage",
+    "Custom RPC para verificação de senha (SECURITY DEFINER)",
+    "Logger para auditoria"
+  ],
+  "performanceOptimizations": [
+    "Lazy loading de 14 páginas",
+    "Manual code splitting (8 vendor chunks)",
+    "React Query cache (30s staleTime, 5min gcTime)",
+    "Bundle size reduzido 68% (2.5MB → 800KB)",
+    "Debounce em searches",
+    "Memory leak fixes (useRef patterns)"
   ]
 }

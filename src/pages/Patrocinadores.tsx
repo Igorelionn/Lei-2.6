@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { logger } from "@/lib/logger";
-import { Handshake, Plus, Search, Eye, Edit, Archive, DollarSign, TrendingUp, Building2, Check, X, ChevronRight, AlertCircle, Gavel } from "lucide-react";
+import { Handshake, Plus, Search, Eye, Edit, Archive, Building2, Check, X, ChevronRight, AlertCircle, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,7 +13,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
-import { useToast } from "@/hooks/use-toast";
 
 interface PatrocinadorAgregado {
   id: string;
@@ -62,7 +61,6 @@ export default function Patrocinadores() {
 
   // Buscar leilões do banco
   const { auctions, isLoading, updateAuction } = useSupabaseAuctions();
-  const { toast } = useToast();
 
   // Função para abrir modal de confirmação de pagamento
   const handleConfirmReceipt = (patrocinador: PatrocinadorAgregado) => {
@@ -354,11 +352,6 @@ export default function Patrocinadores() {
       setPaymentStatus([]);
     } catch (error) {
       logger.error('Erro ao salvar pagamentos:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível atualizar os pagamentos. Tente novamente.",
-        variant: "destructive"
-      });
     }
   };
 
@@ -459,7 +452,7 @@ export default function Patrocinadores() {
                 dataVencimentoDate = new Date(`${ano}-${mes}-${dia}T00:00:00`);
               }
             } catch (error) {
-              logger.warn('Erro ao parsear data de vencimento:', dataVencimentoString, error);
+              logger.warn(`Erro ao parsear data de vencimento: ${dataVencimentoString}`, error);
             }
           }
           
@@ -468,7 +461,7 @@ export default function Patrocinadores() {
             leilaoNome: auction.nome,
             valor: valorAConsiderar,
             recebido: patrocinio.recebido || false,
-            formaPagamento: patrocinio.formaPagamento,
+            formaPagamento: (patrocinio.formaPagamento === 'parcelamento' ? 'parcelado' : patrocinio.formaPagamento) as "a_vista" | "entrada_parcelamento" | "parcelado",
             dataVencimento: dataVencimentoString,
             dataVencimentoDate
           };
@@ -600,13 +593,13 @@ export default function Patrocinadores() {
       })
       .sort((a, b) => {
         // Ordenar por data (mais recentes primeiro)
-        const dateA = new Date(a.dataInicio || a.created_at || 0);
-        const dateB = new Date(b.dataInicio || b.created_at || 0);
+        const dateA = new Date(a.dataInicio || 0);
+        const dateB = new Date(b.dataInicio || 0);
         return dateB.getTime() - dateA.getTime();
       });
   }, [auctions, auctionSearchTerm]);
 
-  const getStatusBadgeColor = (status: string) => {
+  const _getStatusBadgeColor = (status: string) => {
     switch (status) {
       case 'ativo':
         return 'bg-green-100 text-green-800 border-green-200 hover:bg-green-100 hover:text-green-800 hover:border-green-200';
@@ -638,7 +631,7 @@ export default function Patrocinadores() {
       : <Badge variant="warning">Pendente</Badge>;
   };
 
-  const getStatusText = (status: string) => {
+  const _getStatusText = (status: string) => {
     switch (status) {
       case 'ativo':
         return 'Ativo';

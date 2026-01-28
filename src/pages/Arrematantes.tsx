@@ -1,17 +1,14 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { useQueryClient } from "@tanstack/react-query";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { useGuestLots } from "@/hooks/use-guest-lots"; // ✅ NOVO: Import para lotes convidados
 import { useClientPagination } from "@/hooks/use-pagination"; // ⚡ PERFORMANCE: Paginação
 import { Pagination } from "@/components/Pagination"; // ⚡ PERFORMANCE: Componente de paginação
-import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { ArrematanteInfo, DocumentoInfo, Auction, LoteInfo } from "@/lib/types";
 import html2pdf from 'html2pdf.js';
-import { parseISO } from 'date-fns';
 import { obterValorTotalArrematante, descreverEstruturaParcelas, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import { ArrematanteWizard } from "@/components/ArrematanteWizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -24,13 +21,11 @@ import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { StringDatePicker } from "@/components/ui/date-picker";
-import { Separator } from "@/components/ui/separator";
 import { Checkbox } from "@/components/ui/checkbox";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { 
   Search, 
   Filter, 
-  Plus, 
   Eye, 
   Edit, 
   Trash2, 
@@ -41,7 +36,6 @@ import {
   Clock, 
   CheckCircle, 
   AlertCircle,
-  XCircle,
   FileText,
   Paperclip,
   Upload,
@@ -69,11 +63,9 @@ interface ArrematanteExtendido extends ArrematanteInfo {
 }
 
 function Arrematantes() {
-  const queryClient = useQueryClient();
-  const { auctions, isLoading: isAuctionsLoading, updateAuction, deleteAuction, archiveAuction, unarchiveAuction } = useSupabaseAuctions();
-  const { guestLots, isLoading: isGuestLotsLoading } = useGuestLots(); // ✅ NOVO: Buscar lotes convidados
-  const { toast } = useToast();
-  const { logBidderAction, logPaymentAction, logDocumentAction, logReportAction } = useActivityLogger();
+  const { auctions, isLoading: isAuctionsLoading, updateAuction, archiveAuction, unarchiveAuction } = useSupabaseAuctions();
+  const { guestLots } = useGuestLots(); // ✅ NOVO: Buscar lotes convidados
+  const { logBidderAction, logPaymentAction, logReportAction } = useActivityLogger();
   const { enviarConfirmacao, enviarQuitacao } = useEmailNotifications();
 
   // ✅ Funções auxiliares para cálculo de datas (ajuste automático para meses com menos dias)
@@ -230,17 +222,17 @@ function Arrematantes() {
   const [statusFilter, setStatusFilter] = useState("todos");
   const [showArchived, setShowArchived] = useState(false);
   const [showGuestBidders, setShowGuestBidders] = useState(false); // ✅ NOVO: Filtro para arrematantes de lotes convidados
-  const [isLoading, setIsLoading] = useState(false);
+  const [_isLoading, setIsLoading] = useState(false);
   const [isTransitioning, setIsTransitioning] = useState(false);
   const [isSavingFullEdit, setIsSavingFullEdit] = useState(false);
   const [isSavingEdit, setIsSavingEdit] = useState(false);
   const [isSavingPayments, setIsSavingPayments] = useState(false);
-  const [isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
+  const [_isStatusSelectOpen, setIsStatusSelectOpen] = useState(false);
   
   // Estados para o modal de exportação
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedArrematanteForExport, setSelectedArrematanteForExport] = useState<string>("");
-  const [isExportSelectOpen, setIsExportSelectOpen] = useState(false);
+  const [_isExportSelectOpen, setIsExportSelectOpen] = useState(false);
   
   const debounceTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   // Set para rastrear URLs blob temporárias que precisam ser limpas
@@ -254,11 +246,6 @@ function Arrematantes() {
   const generateArrematantePDF = async (arrematanteId: string) => {
     const arrematante = filteredArrematantes.find(a => a.id === arrematanteId);
     if (!arrematante) {
-      toast({
-        title: "Erro",
-        description: "Arrematante não encontrado.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -303,12 +290,8 @@ function Arrematantes() {
       });
       
       setIsExportModalOpen(false);
-    } catch (error) {
-      toast({
-        title: "Erro ao Gerar PDF",
-        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
+    } catch (_error) {
+      logger.error('Erro ao gerar PDF:', _error);
     }
   };
   
@@ -385,7 +368,7 @@ function Arrematantes() {
           });
         }
         
-      } catch (error) {
+      } catch (_error) {
         // Erro silencioso durante sincronização
       } finally {
         isUpdatingRef.current = false;
@@ -419,7 +402,7 @@ function Arrematantes() {
       currentBlobUrls.forEach(url => {
         try {
           URL.revokeObjectURL(url);
-        } catch (error) {
+        } catch (_error) {
           // Erro silencioso ao revogar URL
         }
       });
@@ -508,7 +491,7 @@ function Arrematantes() {
       // Atualizar o leilão nos dados globais (isso será refletido quando o modal for aberto)
       if (fieldMapping[changedField as keyof typeof fieldMapping]) {
         // Encontrar e atualizar o leilão nos dados globais
-        const updatedAuctions = auctions.map(auction => {
+        const _updatedAuctions = auctions.map(auction => {
           if (auction.id === auctionId && auction.arrematante) {
             const arrematanteFieldMap = {
               diaVencimentoPadrao: 'diaVencimentoMensal',
@@ -562,7 +545,7 @@ function Arrematantes() {
     return () => {
       window.removeEventListener('auctionFormChanged', handleAuctionFormChanged as EventListener);
     };
-  }, [selectedArrematanteForFullEdit, isFullEditModalOpen, auctions, toast]);
+  }, [selectedArrematanteForFullEdit, isFullEditModalOpen, auctions]);
 
   // 🔄 SINCRONIZAÇÃO INICIAL: Quando um arrematante é selecionado, sincronizar com valores atuais do leilão
   useEffect(() => {
@@ -723,7 +706,7 @@ function Arrematantes() {
     }
     
     return [...result].sort((a, b) => {
-        const today = new Date();
+        const _today = new Date();
         
         // Calcular próximas datas de pagamento para comparação
         const aDate = calculateNextPaymentDate(a);
@@ -880,7 +863,7 @@ function Arrematantes() {
     try {
       // 🔄 Converter documentos blob para base64 se necessário
       const documentosProcessados = await Promise.all(
-        editForm.documentos.map(async (doc, index) => {
+        editForm.documentos.map(async (doc, _index) => {
           if (doc.url && doc.url.startsWith('blob:')) {
             // Verificar se a URL blob ainda existe no conjunto de URLs gerenciadas
             if (!tempBlobUrlsRef.current.has(doc.url)) {
@@ -921,13 +904,13 @@ function Arrematantes() {
               }
               
               return { ...doc, url: base64 };
-            } catch (error) {
+            } catch (_error) {
               // Tentar limpar a URL mesmo com erro
               if (tempBlobUrlsRef.current.has(doc.url)) {
                 try {
                   URL.revokeObjectURL(doc.url);
                   tempBlobUrlsRef.current.delete(doc.url);
-                } catch (cleanupError) {
+                } catch (_cleanupError) {
                   // Erro silencioso ao limpar
                 }
               }
@@ -1013,12 +996,8 @@ function Arrematantes() {
         id: auction.id,
         data: updateData
       });
-    } catch (error) {
-      toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar as alterações. Tente novamente.",
-        variant: "destructive",
-      });
+    } catch (_error) {
+      logger.error('Erro ao salvar:', _error);
     } finally {
       setIsSavingEdit(false);
     }
@@ -1031,11 +1010,6 @@ function Arrematantes() {
 
     const maxFiles = 20;
     if (files.length > maxFiles) {
-      toast({
-        title: "Muitos arquivos",
-        description: `Você pode fazer upload de no máximo ${maxFiles} arquivos por vez.`,
-        variant: "destructive",
-      });
       event.target.value = '';
       return;
     }
@@ -1074,22 +1048,14 @@ function Arrematantes() {
         documentos: [...prev.documentos, ...novosDocumentos]
       }));
       syncDocumentsToDetails(novosDocumentos, 'add');
-      
-      if (erros.length === 0) {
-        toast({ title: "Arquivos adicionados", description: `${novosDocumentos.length} arquivo(s) adicionado(s).` });
-      }
     }
 
     if (erros.length > 0) {
-      toast({
-        title: erros.length === files.length ? "Nenhum arquivo adicionado" : "Alguns arquivos rejeitados",
-        description: erros.slice(0, 3).join('\n') + (erros.length > 3 ? `\n...e mais ${erros.length - 3}` : ''),
-        variant: "destructive",
-      });
+      logger.warn('Alguns arquivos foram rejeitados:', erros);
     }
 
     event.target.value = '';
-  }, [syncDocumentsToDetails, toast]);
+  }, [syncDocumentsToDetails]);
 
   const handleRemoveDocument = useCallback((id: string) => {
     // Encontrar e limpar a blob URL do documento que será removido
@@ -1100,7 +1066,7 @@ function Arrematantes() {
       try {
         URL.revokeObjectURL(docToRemove.url);
         tempBlobUrlsRef.current.delete(docToRemove.url);
-      } catch (error) {
+      } catch (_error) {
         // Erro silencioso ao revogar
       }
     }
@@ -1160,7 +1126,6 @@ function Arrematantes() {
 
     const maxFiles = 20;
     if (files.length > maxFiles) {
-      toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} arquivos por vez.`, variant: "destructive" });
       event.target.value = '';
       return;
     }
@@ -1198,22 +1163,14 @@ function Arrematantes() {
         documentos: [...prev.documentos, ...novosDocumentos]
       }));
       syncDocumentsToDetails(novosDocumentos, 'add');
-      
-      if (erros.length === 0) {
-        toast({ title: "Arquivos adicionados", description: `${novosDocumentos.length} arquivo(s) adicionado(s).` });
-      }
     }
 
     if (erros.length > 0) {
-      toast({
-        title: "Alguns arquivos rejeitados",
-        description: erros.slice(0, 2).join('\n'),
-        variant: "destructive",
-      });
+      logger.warn('Alguns arquivos foram rejeitados:', erros);
     }
 
     event.target.value = '';
-  }, [syncDocumentsToDetails, toast]);
+  }, [syncDocumentsToDetails]);
 
   const handleRemoveFullEditDocument = useCallback((id: string) => {
     // Encontrar e limpar a blob URL do documento que será removido
@@ -1224,7 +1181,7 @@ function Arrematantes() {
       try {
         URL.revokeObjectURL(docToRemove.url);
         tempBlobUrlsRef.current.delete(docToRemove.url);
-      } catch (error) {
+      } catch (_error) {
         // Erro silencioso ao revogar
       }
     }
@@ -1641,7 +1598,7 @@ function Arrematantes() {
               parseFloat(arrematante.valorEntrada.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.')) : 
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
-          const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
+          const _quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           
           // Calcular estrutura real de parcelas
           const estruturaParcelas = calcularEstruturaParcelas(
@@ -1700,7 +1657,7 @@ function Arrematantes() {
           return sum + valorRecebido;
         } else {
           // Para parcelamento simples, calcular parcelas pagas com estrutura real
-          const quantidadeParcelas = arrematante.quantidadeParcelas || 1;
+          const _quantidadeParcelas = arrematante.quantidadeParcelas || 1;
           
           // Calcular estrutura real de parcelas
           const estruturaParcelas = calcularEstruturaParcelas(
@@ -1947,7 +1904,7 @@ function Arrematantes() {
           // Calcular quantas parcelas estão atrasadas
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const now = new Date();
-          let parcelasAtrasadas = 0;
+          let _parcelasAtrasadas = 0;
           let entradaAtrasada = false;
           
           // Verificar se entrada está atrasada
@@ -1966,7 +1923,7 @@ function Arrematantes() {
             for (let i = 0; i < quantidadeParcelas; i++) {
               const parcelaDate = calcularDataComAjusteEHorario(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate && i >= parcelasEfetivasPagas) {
-                parcelasAtrasadas++;
+                _parcelasAtrasadas++;
               }
             }
           }
@@ -2050,7 +2007,7 @@ function Arrematantes() {
   };
 
   // Função para abrir modal de edição completa
-  const handleOpenFullEdit = (arrematante: ArrematanteExtendido) => {
+  const _handleOpenFullEdit = (arrematante: ArrematanteExtendido) => {
     // 🔧 SINCRONIZAÇÃO: Buscar dados mais recentes do arrematante no leilão
     const auction = auctions.find(a => a.id === arrematante.leilaoId);
     if (auction && auction.arrematantes) {
@@ -2124,7 +2081,7 @@ function Arrematantes() {
 
       // 🔄 Converter documentos blob para base64 se necessário (edição completa)
       const documentosProcessados = await Promise.all(
-        fullEditForm.documentos.map(async (doc, index) => {
+        fullEditForm.documentos.map(async (doc, _index) => {
           if (doc.url && doc.url.startsWith('blob:')) {
             // Verificar se a URL blob ainda existe no conjunto de URLs gerenciadas
             if (!tempBlobUrlsRef.current.has(doc.url)) {
@@ -2165,13 +2122,13 @@ function Arrematantes() {
               }
               
               return { ...doc, url: base64 };
-            } catch (error) {
+            } catch (_error) {
               // Tentar limpar a URL mesmo com erro
               if (tempBlobUrlsRef.current.has(doc.url)) {
                 try {
                   URL.revokeObjectURL(doc.url);
                   tempBlobUrlsRef.current.delete(doc.url);
-                } catch (cleanupError) {
+                } catch (_cleanupError) {
                   // Erro silencioso
                 }
               }
@@ -2757,11 +2714,6 @@ function Arrematantes() {
       // Toast de sucesso removido - notificação silenciosa
     } catch (error) {
       logger.error('Erro ao salvar pagamentos', { error });
-      toast({
-        title: "Erro",
-        description: "Não foi possível atualizar o pagamento.",
-        variant: "destructive",
-      });
       // Em caso de erro, apenas resetar loading
       setIsSavingPayments(false);
       return;
@@ -2798,22 +2750,12 @@ function Arrematantes() {
       // Encontrar o leilão correspondente
       const auction = auctions.find(a => a.id === arrematante.leilaoId);
       if (!auction || !auction.arrematantes) {
-        toast({
-          title: "Erro",
-          description: "Leilão ou arrematante não encontrado.",
-          variant: "destructive",
-        });
         return;
       }
 
       // Buscar o arrematante específico no array
       const arrematanteNoArray = auction.arrematantes.find(a => a.id === arrematante.id);
       if (!arrematanteNoArray) {
-        toast({
-          title: "Erro",
-          description: "Arrematante não encontrado.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -2853,11 +2795,6 @@ function Arrematantes() {
 
     } catch (error) {
       logger.error('Erro ao desconfirmar pagamento', { error });
-      toast({
-        title: "Erro",
-        description: "Não foi possível desconfirmar o pagamento. Por favor, tente novamente.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -4182,7 +4119,7 @@ function Arrematantes() {
                         });
                         URL.revokeObjectURL(doc.url);
                         return { ...doc, url: base64 };
-                      } catch (error) {
+                      } catch (_error) {
                         return { ...doc, url: null };
                       }
                     }
@@ -4217,11 +4154,6 @@ function Arrematantes() {
           setSelectedArrematante(null);
               } catch (error) {
                 logger.error('Erro ao salvar', { error });
-                toast({
-                  title: "Erro ao salvar",
-                  description: "Não foi possível atualizar o arrematante.",
-                  variant: "destructive",
-                });
               } finally {
                 setIsSavingEdit(false);
         }
@@ -4656,7 +4588,7 @@ function Arrematantes() {
                               const dueDate = new Date(month.dueDate.split('/').reverse().join('-') + 'T23:59:59');
                               // Se a parcela foi paga com atraso, ainda deve mostrar o valor com juros
                               const wasOverdue = now > dueDate;
-                              const isOverdue = wasOverdue && !month.paid;
+                              const _isOverdue = wasOverdue && !month.paid;
                               
                               if (tipoPagamento === "a_vista") {
                                 // 💰 PAGAMENTO À VISTA: Valor total com juros se atrasado ou pago com atraso
@@ -4839,7 +4771,7 @@ function Arrematantes() {
                       paymentMonths.forEach((month, monthIndex) => {
                         const dueDate = new Date(month.dueDate.split('/').reverse().join('-') + 'T23:59:59');
                         const wasOverdue = now > dueDate;
-                        const isOverdue = wasOverdue && !month.paid;
+                        const _isOverdue = wasOverdue && !month.paid;
                         
                         if (tipoPagamento === "a_vista") {
                           let valorFinal = selectedArrematanteForPayment.valorPagarNumerico;
@@ -4951,7 +4883,7 @@ function Arrematantes() {
         }}>
           <DialogContent 
             className="max-w-6xl max-h-[90vh] overflow-y-auto"
-            onEscapeKeyDown={(e) => {
+            onEscapeKeyDown={(_e) => {
               handleCloseFullEdit();
             }}
           >

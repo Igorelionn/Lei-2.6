@@ -3,9 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Tabs, TabsContent } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { logger } from "@/lib/logger";
@@ -16,9 +14,6 @@ import {
   Mail, 
   Shield, 
   Database, 
-  Palette, 
-  Globe, 
-  Check,
   Info,
   Download,
   Upload,
@@ -29,7 +24,6 @@ import {
   RefreshCw,
   ArrowUp,
   Users,
-  Calendar,
   Clock,
   Activity,
   Edit,
@@ -37,9 +31,6 @@ import {
   UserMinus,
   UserPlus,
   Eye,
-  AlertTriangle,
-  X,
-  Gavel,
   Crown,
   ArrowDown,
   MoreVertical,
@@ -53,7 +44,6 @@ import {
   UserCheck
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
-import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
 
 // Interfaces de tipos para dados do banco
@@ -97,7 +87,7 @@ interface UserActivity {
 const untypedSupabase = supabase as any;
 
 export default function Configuracoes() {
-  const { user, updateFullName, updatePermissions, logUserAction } = useAuth();
+  const { user, updateFullName, logUserAction } = useAuth();
   const navigate = useNavigate();
   
   // Estados para configurações
@@ -126,7 +116,7 @@ export default function Configuracoes() {
   const [currentPassword, setCurrentPassword] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
   // Senha será buscada do banco de dados
-  const [actualPassword, setActualPassword] = useState("");
+  const [_actualPassword, setActualPassword] = useState("");
 
   // Estados para administração da equipe
   const [teamUsers, setTeamUsers] = useState<TeamUser[]>([]);
@@ -191,7 +181,7 @@ export default function Configuracoes() {
   );
 
 
-  const [system, setSystem] = useState({
+  const [_system, setSystem] = useState({
     autoBackup: true,
     backupFrequency: "daily",
     dataRetention: "1year",
@@ -200,7 +190,7 @@ export default function Configuracoes() {
     dateFormat: "dd/MM/yyyy"
   });
 
-  const [security, setSecurity] = useState({
+  const [_security, setSecurity] = useState({
     twoFactorAuth: false,
     sessionTimeout: "30min",
     passwordExpiry: "90days",
@@ -212,21 +202,11 @@ export default function Configuracoes() {
     if (file) {
       // Validar tipo de arquivo
       if (!file.type.startsWith('image/')) {
-      toast({
-          title: "Arquivo inválido",
-          description: "Por favor, selecione apenas arquivos de imagem.",
-          variant: "destructive",
-      });
         return;
       }
       
       // Validar tamanho (máximo 5MB)
       if (file.size > 5 * 1024 * 1024) {
-      toast({
-          title: "Arquivo muito grande",
-          description: "A imagem deve ter no máximo 5MB.",
-        variant: "destructive",
-      });
         return;
       }
 
@@ -234,11 +214,6 @@ export default function Configuracoes() {
       reader.onload = (e) => {
         const imageUrl = e.target?.result as string;
         handleInputChange('profile', 'avatar', imageUrl);
-        
-        toast({
-          title: "Imagem carregada",
-          description: "Sua foto de perfil foi atualizada com sucesso.",
-        });
       };
       reader.readAsDataURL(file);
     }
@@ -330,18 +305,8 @@ export default function Configuracoes() {
       // Atualizar o nome completo no contexto de autenticação
       updateFullName(profile.name);
       
-      toast({
-        title: "Alterações salvas",
-        description: "Suas configurações foram atualizadas com sucesso.",
-      });
-      
     } catch (error) {
       logger.error('Erro no salvamento', { error });
-      toast({
-        title: "Erro ao salvar",
-        description: "Ocorreu um erro ao salvar suas configurações.",
-        variant: "destructive",
-      });
     } finally {
       setIsLoading(false);
       // Manter a animação por um tempo adicional para feedback visual
@@ -451,11 +416,6 @@ export default function Configuracoes() {
     
     try {
       if (!currentPassword.trim()) {
-        toast({
-          title: "Senha obrigatória",
-          description: "Por favor, digite sua senha atual.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -467,22 +427,12 @@ export default function Configuracoes() {
 
       if (error || !data) {
         logger.error('Erro ao buscar credenciais', { error });
-        toast({
-          title: "Erro na consulta",
-          description: "Não foi possível verificar as credenciais.",
-          variant: "destructive",
-        });
         return;
       }
 
       const passwordFromDB = data.password_hash;
       
       if (!passwordFromDB) {
-        toast({
-          title: "Credenciais não encontradas",
-          description: "Usuário não possui credenciais válidas.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -495,20 +445,10 @@ export default function Configuracoes() {
 
       if (verifyError) {
         logger.error('Erro na verificação RPC', { error: verifyError });
-        toast({
-          title: "Erro na verificação",
-          description: "Ocorreu um erro ao verificar a senha. Tente novamente.",
-          variant: "destructive",
-        });
         return;
       }
 
       if (!passwordMatch) {
-        toast({
-          title: "Senha incorreta",
-          description: "A senha atual não confere. Tente novamente.",
-          variant: "destructive",
-        });
         return;
       }
       
@@ -519,20 +459,10 @@ export default function Configuracoes() {
       setShowPasswordModal(false);
       setCurrentPassword("");
       
-      toast({
-        title: "Senha revelada",
-        description: "Sua senha atual está sendo exibida temporariamente.",
-      });
-      
       logger.info('Senha verificada com sucesso', { userName: user?.name });
       
     } catch (error) {
       logger.error('Erro na verificação', { error });
-      toast({
-        title: "Erro na verificação",
-        description: "Ocorreu um erro ao verificar a senha. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsVerifying(false);
     }
@@ -595,11 +525,6 @@ export default function Configuracoes() {
   const handleClearHistory = () => {
     // Verificar permissões antes de prosseguir
     if (!user?.permissions?.can_manage_users) {
-      toast({
-        title: "Sem permissão",
-        description: "Você não tem permissão para limpar histórico de atividades.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -627,11 +552,6 @@ export default function Configuracoes() {
         { cleared_by: user?.id }
       );
 
-      toast({
-        title: "Histórico limpo",
-        description: `O histórico de atividades de ${selectedMemberActions.full_name || selectedMemberActions.name} foi limpo com sucesso.`,
-      });
-
       // Recarregar atividades
       await loadUserActivities(selectedMemberActions.id, 1);
       setActivitiesPage(1);
@@ -639,11 +559,6 @@ export default function Configuracoes() {
 
     } catch (error) {
       logger.error('Erro ao limpar histórico', { error });
-      toast({
-        title: "Erro ao limpar histórico",
-        description: "Não foi possível limpar o histórico de atividades.",
-        variant: "destructive",
-      });
     } finally {
       setIsClearingHistory(false);
     }
@@ -652,11 +567,6 @@ export default function Configuracoes() {
   const handleAddUser = () => {
     // Verificar permissões antes de prosseguir
     if (!user?.permissions?.can_manage_users) {
-      toast({
-        title: "Sem permissão",
-        description: "Você não tem permissão para adicionar usuários.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -712,11 +622,6 @@ export default function Configuracoes() {
 
   const confirmAddUser = async () => {
     if (!newUser.name.trim() || !newUser.email.trim() || !newUser.password.trim()) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Nome, email e senha são obrigatórios.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -729,11 +634,6 @@ export default function Configuracoes() {
         .eq('email', newUser.email.trim().toLowerCase());
 
       if (existingUsers && existingUsers.length > 0) {
-        toast({
-          title: "Email já existe",
-          description: "Este email já está sendo usado por outro usuário.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -797,11 +697,6 @@ export default function Configuracoes() {
         }
       );
 
-      toast({
-        title: "Usuário criado",
-        description: `${newUser.fullName || newUser.name} foi adicionado à equipe como ${newUser.isAdmin ? 'Administrador' : 'Usuário'}.`,
-      });
-
       // Limpar formulário e fechar modal
       clearNewUserForm();
       setShowAddUserModal(false);
@@ -811,11 +706,6 @@ export default function Configuracoes() {
 
     } catch (error) {
       logger.error('Erro ao criar usuário', { error });
-      toast({
-        title: "Erro ao criar usuário",
-        description: "Não foi possível adicionar o novo usuário à equipe.",
-        variant: "destructive",
-      });
     } finally {
       setIsAddingUser(false);
     }
@@ -825,11 +715,6 @@ export default function Configuracoes() {
   const handleDeactivateUser = (member: TeamUser) => {
     // Verificar permissões antes de prosseguir
     if (!user?.permissions?.can_manage_users) {
-      toast({
-        title: "Sem permissão",
-        description: "Você não tem permissão para desativar usuários.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -841,11 +726,6 @@ export default function Configuracoes() {
   const handleDeleteUser = (member: TeamUser) => {
     // Verificar permissões antes de prosseguir
     if (!user?.permissions?.can_manage_users) {
-      toast({
-        title: "Sem permissão",
-        description: "Você não tem permissão para excluir usuários.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -857,11 +737,6 @@ export default function Configuracoes() {
   const reactivateUser = async (member: TeamUser) => {
     // Verificar permissões antes de prosseguir
     if (!user?.permissions?.can_manage_users) {
-      toast({
-        title: "Sem permissão",
-        description: "Você não tem permissão para reativar usuários.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -898,19 +773,9 @@ export default function Configuracoes() {
         { previous_status: 'inactive', new_status: 'active' }
       );
 
-      toast({
-        title: "Usuário reativado",
-        description: `${member.full_name || member.name} foi reativado com sucesso.`,
-      });
-
       loadTeamUsers(); // Recarregar lista
     } catch (error) {
       logger.error('Erro ao reativar usuário', { error });
-      toast({
-        title: "Erro ao reativar usuário",
-        description: "Não foi possível reativar o usuário.",
-        variant: "destructive",
-      });
     } finally {
       setIsProcessingAction(false);
     }
@@ -920,11 +785,6 @@ export default function Configuracoes() {
     const expectedText = `Eu confirmo que quero desativar ${selectedUserForAction.full_name || selectedUserForAction.name}`;
     
     if (confirmText !== expectedText) {
-      toast({
-        title: "Confirmação incorreta",
-        description: "Digite exatamente a frase solicitada para confirmar.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -967,18 +827,9 @@ export default function Configuracoes() {
         } : u
       ));
 
-      toast({
-        title: "Usuário desativado",
-        description: `${selectedUserForAction.full_name || selectedUserForAction.name} foi desativado com sucesso.`,
-      });
-
       setShowDeactivateModal(false);
-    } catch (error) {
-      toast({
-        title: "Erro ao desativar",
-        description: "Não foi possível desativar o usuário.",
-        variant: "destructive",
-      });
+    } catch (_error) {
+      logger.error('Erro ao desativar usuário', { error: _error });
     } finally {
       setIsProcessingAction(false);
     }
@@ -988,11 +839,6 @@ export default function Configuracoes() {
     const expectedText = `Eu confirmo que quero excluir ${selectedUserForAction.full_name || selectedUserForAction.name}`;
     
     if (confirmText !== expectedText) {
-      toast({
-        title: "Confirmação incorreta",
-        description: "Digite exatamente a frase solicitada para confirmar.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -1033,19 +879,9 @@ export default function Configuracoes() {
       // Remover da lista local
       setTeamUsers(prev => prev.filter(u => u.id !== userIdToDelete));
 
-      toast({
-        title: "Usuário excluído",
-        description: `${userName} foi excluído permanentemente do sistema.`,
-      });
-
       setShowDeleteModal(false);
     } catch (error) {
       logger.error('Erro ao excluir usuário', { error });
-      toast({
-        title: "Erro ao excluir",
-        description: "Não foi possível excluir o usuário completamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsProcessingAction(false);
     }
@@ -1071,11 +907,6 @@ export default function Configuracoes() {
   // Função para promover usuário
   const handlePromoteUser = (member: TeamUser) => {
     if (!user?.permissions?.can_manage_users) {
-      toast({
-        title: "Sem permissão",
-        description: "Você não tem permissão para promover usuários.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -1087,21 +918,11 @@ export default function Configuracoes() {
   // Função para despromover usuário
   const handleDemoteUser = (member: TeamUser) => {
     if (!user?.permissions?.can_manage_users) {
-      toast({
-        title: "Sem permissão",
-        description: "Você não tem permissão para despromover usuários.",
-        variant: "destructive",
-      });
       return;
     }
 
     // Não permitir que admin se despromova
     if (member.id === user?.id) {
-      toast({
-        title: "Ação não permitida",
-        description: "Você não pode remover suas próprias permissões de administrador.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -1128,7 +949,7 @@ export default function Configuracoes() {
         updated_at: new Date().toISOString()
       };
 
-      const { data, error } = await untypedSupabase
+      const { data: _data, error } = await untypedSupabase
         .from('users')
         .update(updateData)
         .eq('id', selectedUserForPromotion.id)
@@ -1167,11 +988,6 @@ export default function Configuracoes() {
       // Recarregar a lista para garantir sincronização completa
       await loadTeamUsers();
 
-      toast({
-        title: isPromoting ? "Usuário promovido" : "Usuário despromovido",
-        description: `${userName} foi ${isPromoting ? 'promovido para administrador' : 'despromovido para usuário comum'}.`,
-      });
-
       setShowPromotionModal(false);
     } catch (error) {
       logger.error('Erro ao alterar permissões', {
@@ -1180,12 +996,6 @@ export default function Configuracoes() {
         details: error.details,
         hint: error.hint,
         code: error.code
-      });
-      
-      toast({
-        title: "Erro ao alterar permissões",
-        description: error.message || "Não foi possível alterar as permissões do usuário.",
-        variant: "destructive",
       });
     } finally {
       setIsProcessingPromotion(false);
@@ -1239,7 +1049,7 @@ export default function Configuracoes() {
         date: date.toLocaleDateString('pt-BR'),
         relative: formatRegistrationRelativeDate(dateToUse)
       };
-    } catch (error) {
+    } catch (_error) {
       return {
         date: 'Erro ao processar data',
         relative: 'Dados corrompidos'
@@ -1364,21 +1174,11 @@ export default function Configuracoes() {
   const handleChangeUserPassword = (member: TeamUser) => {
     // Verificar se é administrador
     if (!user?.permissions?.can_manage_users) {
-      toast({
-        title: "Sem permissão",
-        description: "Você não tem permissão para alterar senhas de outros usuários.",
-        variant: "destructive",
-      });
       return;
     }
 
     // Não permitir alterar própria senha por aqui
     if (member.id === user?.id) {
-      toast({
-        title: "Ação não permitida",
-        description: "Use a seção de perfil para alterar sua própria senha.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -1396,11 +1196,6 @@ export default function Configuracoes() {
     
     try {
       if (!adminPasswordForConfirm.trim()) {
-        toast({
-          title: "Senha obrigatória",
-          description: "Digite sua senha para confirmar a ação.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -1412,11 +1207,6 @@ export default function Configuracoes() {
 
       if (error || !data) {
         logger.error('Erro ao buscar credenciais do admin', { error });
-        toast({
-          title: "Erro na verificação",
-          description: "Não foi possível verificar suas credenciais.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -1429,39 +1219,19 @@ export default function Configuracoes() {
 
       if (verifyError) {
         logger.error('Erro na verificação RPC', { error: verifyError });
-        toast({
-          title: "Erro na verificação",
-          description: "Ocorreu um erro ao verificar sua senha. Tente novamente.",
-          variant: "destructive",
-        });
         return;
       }
 
       if (!passwordMatch) {
-        toast({
-          title: "Senha incorreta",
-          description: "Sua senha não confere. Tente novamente.",
-          variant: "destructive",
-        });
         return;
       }
 
       // Senha confirmada - prosseguir para definir nova senha
       setShowAdminPasswordConfirmModal(false);
       setShowChangePasswordModal(true);
-      
-      toast({
-        title: "Identidade confirmada",
-        description: "Agora defina a nova senha para o usuário.",
-      });
 
     } catch (error) {
       logger.error('Erro na verificação', { error });
-      toast({
-        title: "Erro na verificação",
-        description: "Ocorreu um erro ao verificar sua senha. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsVerifyingAdminPassword(false);
     }
@@ -1470,20 +1240,10 @@ export default function Configuracoes() {
   const handleConfirmPasswordChange = async () => {
     // Validações
     if (!newUserPassword.trim() || !confirmNewUserPassword.trim()) {
-      toast({
-        title: "Campos obrigatórios",
-        description: "Preencha todos os campos de senha.",
-        variant: "destructive",
-      });
       return;
     }
 
     if (newUserPassword !== confirmNewUserPassword) {
-      toast({
-        title: "Erro na confirmação",
-        description: "A senha digitada no campo 'Confirmar Nova Senha' não é igual à senha do campo 'Nova Senha'. Por favor, verifique se ambas as senhas estão idênticas.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -1527,11 +1287,6 @@ export default function Configuracoes() {
         }
       );
 
-      toast({
-        title: "Senha alterada",
-        description: `A senha de ${selectedUserForPasswordChange.full_name || selectedUserForPasswordChange.name} foi alterada com sucesso.`,
-      });
-
       // Fechar modal e limpar estados
       setShowChangePasswordModal(false);
       setSelectedUserForPasswordChange(null);
@@ -1541,11 +1296,6 @@ export default function Configuracoes() {
 
     } catch (error) {
       logger.error('Erro ao alterar senha', { error });
-      toast({
-        title: "Erro ao alterar senha",
-        description: "Não foi possível alterar a senha do usuário.",
-        variant: "destructive",
-      });
     } finally {
       setIsChangingPassword(false);
     }

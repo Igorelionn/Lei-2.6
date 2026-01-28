@@ -7,16 +7,17 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
-import { ChevronLeft, ChevronRight, Check, X as XIcon, Trash2, Plus, AlertCircle, Eye, Users, ArrowLeftRight } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, X as XIcon, Upload, Trash2, Plus, AlertCircle, Eye, Users, ArrowLeftRight } from "lucide-react";
 import { StringDatePicker } from "@/components/ui/date-picker";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { calcularValorTotal, obterQuantidadeTotalParcelas } from "@/lib/parcelamento-calculator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
-import { useToast } from "@/hooks/use-toast";
 import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
+  AlertDialogContent,
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
@@ -563,8 +564,6 @@ interface FormValues {
 }
 
 export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArrematante, isNewArrematante = false }: ArrematanteWizardProps) {
-  const { toast } = useToast();
-  
   // Verificar se deve mostrar seleção de arrematante
   const arrematantesExistentes = useMemo(() => initial.auction?.arrematantes || [], [initial.auction?.arrematantes]);
   
@@ -601,7 +600,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
   // Estados para o wizard de divisão de mercadoria
   const [showDivisaoWizard, setShowDivisaoWizard] = useState(false);
   const [showCancelDivisaoModal, setShowCancelDivisaoModal] = useState(false);
-  const [_tipoDivisao, _setTipoDivisao] = useState<'quantidade' | 'valor' | 'percentual'>('quantidade');
+  const [tipoDivisao, setTipoDivisao] = useState<'quantidade' | 'valor' | 'percentual'>('quantidade');
   const [numeroArrematantes, setNumeroArrematantes] = useState(1);
   const [numeroArrematantesInput, setNumeroArrematantesInput] = useState('1'); // String para permitir edição livre
   const [divisaoStep, setDivisaoStep] = useState(0); // 0 = config inicial, 1+ = config de cada arrematante, final = preview
@@ -902,7 +901,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
             uf: brasilData.state || ""
           };
         }
-      } catch (_error) {
+      } catch (error) {
         logger.warn('BrasilAPI falhou, tentando ViaCEP');
       }
       
@@ -1090,7 +1089,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         
         // ✅ Validar compatibilidade: dia da data deve ser igual ao dia do vencimento mensal
         // Parse da data ISO ignorando fuso horário
-        const [_ano, _mes, dia] = values.mesInicioPagamento.split('-').map(Number);
+        const [ano, mes, dia] = values.mesInicioPagamento.split('-').map(Number);
         const diaDataInicio = dia;
         
         if (diaDataInicio !== values.diaVencimentoMensal) {
@@ -1244,8 +1243,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         dataEntrada: values.dataEntrada,
         // Campos do sistema de fator multiplicador (para parcelamento e entrada_parcelamento)
         ...((values.tipoPagamento === "parcelamento" || values.tipoPagamento === "entrada_parcelamento") && {
-          valorLance: parseBrazilianNumber(values.valorLance || '') || 0,
-          fatorMultiplicador: parseBrazilianNumber(values.fatorMultiplicador || '') || 0,
+          valorLance: parseBrazilianNumber(values.valorLance),
+          fatorMultiplicador: parseBrazilianNumber(values.fatorMultiplicador),
           usaFatorMultiplicador: true,
           // ✅ CORREÇÃO: Garantir que sejam números válidos ou undefined (nunca strings ou arrays)
           parcelasTriplas: typeof values.parcelasTriplas === 'number' ? values.parcelasTriplas : undefined,
@@ -1287,7 +1286,6 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
 
     const maxFiles = 20;
     if (files.length > maxFiles) {
-      toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} por vez.`, variant: "destructive" });
       event.target.value = '';
       return;
     }
@@ -1324,13 +1322,10 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
 
     if (newDocs.length > 0) {
       updateField("documentos", [...values.documentos, ...newDocs]);
-      if (erros.length === 0) {
-        toast({ title: "Arquivos adicionados", description: `${newDocs.length} arquivo(s) adicionado(s).` });
-      }
     }
 
     if (erros.length > 0) {
-      toast({ title: "Alguns arquivos rejeitados", description: erros.slice(0, 2).join('\n'), variant: "destructive" });
+      logger.warn('Alguns arquivos foram rejeitados:', erros);
     }
 
     event.target.value = '';
@@ -1352,7 +1347,6 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
 
     const maxFiles = 20;
     if (files.length > maxFiles) {
-      toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} por vez.`, variant: "destructive" });
       event.target.value = '';
       return;
     }
@@ -1485,8 +1479,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         dataVencimentoVista: values.dataVencimentoVista,
         dataEntrada: values.dataEntrada,
         ...((values.tipoPagamento === "parcelamento" || values.tipoPagamento === "entrada_parcelamento") && {
-          valorLance: parseBrazilianNumber(values.valorLance || '') || 0,
-          fatorMultiplicador: parseBrazilianNumber(values.fatorMultiplicador || '') || 0,
+          valorLance: parseBrazilianNumber(values.valorLance),
+          fatorMultiplicador: parseBrazilianNumber(values.fatorMultiplicador),
           usaFatorMultiplicador: true,
           parcelasTriplas: typeof values.parcelasTriplas === 'number' ? values.parcelasTriplas : undefined,
           parcelasDuplas: typeof values.parcelasDuplas === 'number' ? values.parcelasDuplas : undefined,
@@ -1557,8 +1551,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
           dataVencimentoVista: arrDivisao.dataVencimentoVista,
           dataEntrada: arrDivisao.dataEntrada,
           ...((arrDivisao.tipoPagamento === "parcelamento" || arrDivisao.tipoPagamento === "entrada_parcelamento") && {
-            valorLance: parseBrazilianNumber(arrDivisao.valorLance || '') || 0,
-            fatorMultiplicador: parseBrazilianNumber(arrDivisao.fatorMultiplicador || '') || 0,
+            valorLance: parseBrazilianNumber(arrDivisao.valorLance),
+            fatorMultiplicador: parseBrazilianNumber(arrDivisao.fatorMultiplicador),
             usaFatorMultiplicador: true,
             parcelasTriplas: typeof arrDivisao.parcelasTriplas === 'number' ? arrDivisao.parcelasTriplas : undefined,
             parcelasDuplas: typeof arrDivisao.parcelasDuplas === 'number' ? arrDivisao.parcelasDuplas : undefined,
@@ -2105,7 +2099,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                 const fatorParsed = parseBrazilianNumber(values.fatorMultiplicador);
                 if (valorLanceParsed && fatorParsed && valorLanceParsed > 0 && fatorParsed > 0) {
                   const valorTotalParcelas = calcularValorTotal(valorLanceParsed, fatorParsed);
-                  const valorEntrada = values.valorEntrada ? parseBrazilianNumber(values.valorEntrada) || 0 : 0;
+                  const valorEntrada = values.valorEntrada ? parseBrazilianNumber(values.valorEntrada) : 0;
                   
                   // ✅ Calcular valor total da mercadoria (entrada + parcelas)
                   const valorTotalMercadoria = valorTotalParcelas + (values.tipoPagamento === 'entrada_parcelamento' ? valorEntrada : 0);
@@ -2126,10 +2120,10 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                       )}
                       
                       <div className="space-y-1 text-sm text-gray-600">
-                        {values.tipoPagamento === 'entrada_parcelamento' && (valorEntrada || 0) > 0 && (
+                        {values.tipoPagamento === 'entrada_parcelamento' && valorEntrada > 0 && (
                           <div className="flex justify-between">
                             <span>Entrada</span>
-                            <span>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorEntrada || 0)}</span>
+                            <span>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorEntrada)}</span>
                     </div>
                         )}
                         
@@ -2319,7 +2313,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                 
                 // Se estiver vazio, permitir (será tratado no onBlur)
                 if (inputValue === "") {
-                  updateField("diaVencimentoMensal", 0);
+                  updateField("diaVencimentoMensal", undefined);
                   return;
                 }
                 
@@ -2401,7 +2395,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
             )}
             {values.mesInicioPagamento && (() => {
               // Parse da data ISO ignorando fuso horário
-              const [_ano, _mes, dia] = values.mesInicioPagamento.split('-').map(Number);
+              const [ano, mes, dia] = values.mesInicioPagamento.split('-').map(Number);
               const diaDataInicio = dia;
               const incompativel = diaDataInicio !== values.diaVencimentoMensal;
               
@@ -2428,8 +2422,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
               placeholder="Ex: 0"
               value={values.parcelasPagas ?? ""}
               onChange={(e) => {
-                const value = e.target.value === "" ? 0 : parseInt(e.target.value);
-                updateField("parcelasPagas", value || 0);
+                const value = e.target.value === "" ? undefined : parseInt(e.target.value);
+                updateField("parcelasPagas", value);
               }}
               onBlur={(e) => {
                 // Se o campo estiver vazio ao sair, definir valor padrão
@@ -2464,8 +2458,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
               placeholder="Ex: 2.5"
               value={values.percentualJurosAtraso ?? ""}
               onChange={(e) => {
-                const value = e.target.value === "" ? 0 : parseFloat(e.target.value);
-                updateField("percentualJurosAtraso", value || 0);
+                const value = e.target.value === "" ? undefined : parseFloat(e.target.value);
+                updateField("percentualJurosAtraso", value);
               }}
               onBlur={(e) => {
                 // Se o campo estiver vazio ao sair, definir valor padrão
@@ -2677,11 +2671,6 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
       
       if (error) {
         logger.error('❌ Erro ao buscar arrematante:', error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível carregar os dados completos do arrematante.",
-          variant: "destructive",
-        });
         return;
       }
       
@@ -2751,11 +2740,6 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
       
     } catch (error) {
       logger.error('❌ Erro ao buscar arrematante:', error);
-      toast({
-        title: "Erro",
-        description: "Não foi possível carregar os dados do arrematante.",
-        variant: "destructive",
-      });
     }
   };
 
@@ -3203,8 +3187,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                               <div className="mt-3 pt-3 border-t border-gray-100">
                                 <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Lote Arrematado</p>
                                 <p className="text-sm text-gray-600 truncate">Lote {lote.numero} - {lote.descricao}</p>
-                                {arrematante.mercadoriaId && (
-                                  <p className="text-xs text-gray-500 mt-1">Mercadoria incluída</p>
+                                {arrematante.mercadorias && arrematante.mercadorias.length > 0 && (
+                                  <p className="text-xs text-gray-500 mt-1">{arrematante.mercadorias.length} {arrematante.mercadorias.length === 1 ? 'mercadoria incluída' : 'mercadorias incluídas'}</p>
                                 )}
                               </div>
                             )}
@@ -3690,7 +3674,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                           uf: brasilData.state || ""
                         };
                       }
-                    } catch (_error) {
+                    } catch (error) {
                       logger.debug('BrasilAPI falhou, tentando ViaCEP...');
                     }
                     
@@ -3731,7 +3715,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                 };
                 
                 // Função para importar dados de arrematante existente
-                const _handleImportArrematante = (arrematanteExistente: ArrematanteInfo) => {
+                const handleImportArrematante = (arrematanteExistente: ArrematanteInfo) => {
                   const newArr = [...arrematantesDivisao];
                   newArr[arrIndex] = {
                     ...newArr[arrIndex],
@@ -4177,10 +4161,10 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                                           <span>Total</span>
                                           <span>
                                             {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorComComissao)}
-                                            {currentArr.tipoPagamento === 'entrada_parcelamento' && (valorEntrada || 0) > 0 && (
+                                            {currentArr.tipoPagamento === 'entrada_parcelamento' && valorEntrada > 0 && (
                                               <span className="text-gray-600 font-normal">
                                                 {" + "}
-                                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorEntrada || 0)}
+                                                {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorEntrada)}
                                                 {" entrada"}
                                 </span>
                                             )}

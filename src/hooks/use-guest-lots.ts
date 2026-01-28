@@ -73,10 +73,10 @@ export function useGuestLots() {
   // Query para listar lotes de convidados
   const listQuery = useQuery({
     queryKey: GUEST_LOTS_KEY,
-    staleTime: 0,
-    gcTime: 0,
-    refetchOnWindowFocus: true,
-    refetchOnMount: 'always',
+    staleTime: 5 * 60 * 1000, // ⚡ OTIMIZAÇÃO: 5 minutos - dados frescos mas sem refetch excessivo
+    gcTime: 10 * 60 * 1000, // ⚡ OTIMIZAÇÃO: 10 minutos - mantém cache em memória
+    refetchOnWindowFocus: false, // ⚡ OTIMIZAÇÃO: Não refazer automaticamente ao focar
+    refetchOnMount: false, // ⚡ OTIMIZAÇÃO: Usar cache se disponível
     queryFn: async () => {
       const { data: lotsData, error: lotsError } = await supabaseClient
         .from('guest_lots')
@@ -214,13 +214,13 @@ export function useGuestLots() {
           const lotesExistentes = auctionData.lotes || [];
           
           // ✅ VERIFICAR se o lote já existe no array (prevenir duplicação)
-          const loteJaExiste = (lotesExistentes as LoteInfo[]).some((l: LoteInfo) => l.guestLotId === createdLot.id);
+          const loteJaExiste = (lotesExistentes as unknown as LoteInfo[]).some((l: LoteInfo) => l.guestLotId === createdLot.id);
           
           if (!loteJaExiste) {
             logger.debug('➕ Adicionando lote convidado ao array do leilão (não existe ainda)');
             
             // Adicionar o lote convidado ao array de lotes
-            const lotesAtualizados = [...(lotesExistentes as LoteInfo[]), {
+            const lotesAtualizados = [...(lotesExistentes as unknown as LoteInfo[]), {
               id: `guest-${createdLot.id}`,
               numero: data.numero,
               descricao: data.descricao,
@@ -247,7 +247,7 @@ export function useGuestLots() {
             // Atualizar o leilão
             const { error: auctionUpdateError } = await supabaseClient
               .from('auctions')
-              .update({ lotes: lotesAtualizados })
+              .update({ lotes: JSON.parse(JSON.stringify(lotesAtualizados)) })
               .eq('id', data.leilao_id);
 
             if (auctionUpdateError) {
@@ -341,13 +341,13 @@ export function useGuestLots() {
           .single();
 
         if (oldAuctionData) {
-          const lotesAtualizados = ((oldAuctionData.lotes as LoteInfo[]) || []).filter(
+          const lotesAtualizados = ((oldAuctionData.lotes as unknown as LoteInfo[]) || []).filter(
             (l: LoteInfo) => l.guestLotId !== id
           );
 
           await supabaseClient
             .from('auctions')
-            .update({ lotes: lotesAtualizados })
+            .update({ lotes: JSON.parse(JSON.stringify(lotesAtualizados)) })
             .eq('id', oldLeilaoId);
         }
       }
@@ -361,10 +361,10 @@ export function useGuestLots() {
           .single();
 
         if (newAuctionData) {
-          const lotesAtualizados = (newAuctionData.lotes as LoteInfo[]) || [];
+          const lotesAtualizados = (newAuctionData.lotes as unknown as LoteInfo[]) || [];
           const loteExistente = lotesAtualizados.findIndex((l: LoteInfo) => l.guestLotId === id);
 
-          const loteAtualizado = {
+          const loteAtualizado: LoteInfo = {
             id: `guest-${id}`,
             numero: data.numero || updatedLot.numero,
             descricao: data.descricao || updatedLot.descricao,
@@ -374,8 +374,8 @@ export function useGuestLots() {
             codigoPais: data.codigo_pais || updatedLot.codigo_pais,
             celularProprietario: data.celular_proprietario || updatedLot.celular_proprietario,
             emailProprietario: data.email_proprietario || updatedLot.email_proprietario,
-            documentos: data.documentos !== undefined ? data.documentos : updatedLot.documentos || [],
-            imagens: data.imagens !== undefined ? data.imagens : updatedLot.imagens || [],
+            documentos: (data.documentos !== undefined ? data.documentos : updatedLot.documentos || []) as string[],
+            imagens: (data.imagens !== undefined ? data.imagens : updatedLot.imagens || []) as string[],
             mercadorias: data.mercadorias ? data.mercadorias.map((m, index) => ({
               id: `merc-${index}`,
               titulo: m.nome,
@@ -400,7 +400,7 @@ export function useGuestLots() {
 
           await supabaseClient
             .from('auctions')
-            .update({ lotes: lotesAtualizados })
+            .update({ lotes: JSON.parse(JSON.stringify(lotesAtualizados)) })
             .eq('id', newLeilaoId);
         }
       }
@@ -436,15 +436,18 @@ export function useGuestLots() {
 
       // 3. Se o lote está vinculado a um leilão, deletar arrematantes do array do leilão também
       if (lot?.leilao_id) {
-        const { data: auctionData } = await supabaseClient
+        const { data: auctionData, error: auctionFetchError } = await supabaseClient
           .from('auctions')
           .select('lotes, arrematantes')
           .eq('id', lot.leilao_id)
           .single();
 
-        if (auctionData) {
+        if (auctionFetchError) {
+          logger.error('Erro ao buscar leilão para exclusão:', auctionFetchError);
+        } else if (auctionData) {
           // Encontrar o lote no array para pegar seu lote_id interno
-          const loteNoArray = (auctionData.lotes || []).find(
+          const lotesArray = ((auctionData as { lotes?: unknown }).lotes || []) as unknown as LoteInfo[];
+          const loteNoArray = lotesArray.find(
             (l: LoteInfo) => l.guestLotId === id
           );
 
@@ -463,12 +466,13 @@ export function useGuestLots() {
             }
 
             // Remover arrematantes do array de arrematantes do leilão
-            const arrematantesAtualizados = ((auctionData.arrematantes as ArrematanteInfo[]) || []).filter(
+            const arrematantesArray = ((auctionData as { arrematantes?: unknown }).arrematantes || []) as unknown as ArrematanteInfo[];
+            const arrematantesAtualizados = arrematantesArray.filter(
               (a: ArrematanteInfo) => a.loteId !== loteIdInterno
             );
 
             // Remover lote do array de lotes
-            const lotesAtualizados = ((auctionData.lotes as LoteInfo[]) || []).filter(
+            const lotesAtualizados = lotesArray.filter(
               (l: LoteInfo) => l.guestLotId !== id
             );
 
@@ -476,19 +480,19 @@ export function useGuestLots() {
             await supabaseClient
               .from('auctions')
               .update({ 
-                lotes: lotesAtualizados,
-                arrematantes: arrematantesAtualizados
+                lotes: JSON.parse(JSON.stringify(lotesAtualizados)),
+                arrematantes: JSON.parse(JSON.stringify(arrematantesAtualizados))
               })
               .eq('id', lot.leilao_id);
           } else {
             // Se não encontrou o lote no array, apenas remover do array de lotes
-            const lotesAtualizados = ((auctionData.lotes as LoteInfo[]) || []).filter(
+            const lotesAtualizados = lotesArray.filter(
               (l: LoteInfo) => l.guestLotId !== id
             );
 
             await supabaseClient
               .from('auctions')
-              .update({ lotes: lotesAtualizados })
+              .update({ lotes: JSON.parse(JSON.stringify(lotesAtualizados)) })
               .eq('id', lot.leilao_id);
           }
         }

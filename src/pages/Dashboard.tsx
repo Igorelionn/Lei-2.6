@@ -1,11 +1,8 @@
-import { StatCard } from "@/components/StatCard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DollarSign,
-  Gavel,
-  Clock,
   AlertTriangle,
   TrendingUp,
   Calendar,
@@ -15,7 +12,6 @@ import {
   FileText,
   ChevronLeft,
   ChevronRight,
-  Activity,
 } from "lucide-react";
 import { Invoice, ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
 import { useAuth } from "@/hooks/use-auth";
@@ -23,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
-import { obterValorTotalArrematante, calcularEstruturaParcelas, calcularValorTotal, obterQuantidadeTotalParcelas, descreverEstruturaParcelas } from "@/lib/parcelamento-calculator";
+import { obterValorTotalArrematante, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
@@ -257,7 +253,7 @@ export default function Dashboard() {
               parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
-          const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
+          const _quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
           
           // Calcular estrutura real de parcelas (valorTotal já inclui comissão)
           const estruturaParcelas = calcularEstruturaParcelas(
@@ -318,7 +314,7 @@ export default function Dashboard() {
           }
         } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
           // Para parcelamento simples - calcular parcelas pagas com estrutura real (triplas, duplas, simples)
-          const quantidadeParcelas = arrematante?.quantidadeParcelas || 1;
+          const _quantidadeParcelas = arrematante?.quantidadeParcelas || 1;
           
           // Calcular estrutura real de parcelas
           const estruturaParcelas = calcularEstruturaParcelas(
@@ -551,7 +547,7 @@ export default function Dashboard() {
         } else {
           // Entrada já paga, calcular parcelas restantes
           const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
-          const parcelasRestantes = quantidadeParcelas - parcelasEfetivasPagas;
+          const _parcelasRestantes = quantidadeParcelas - parcelasEfetivasPagas;
           
           // Verificar parcelas mensais com estrutura real (juros se atrasadas)
           if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) {
@@ -583,7 +579,7 @@ export default function Dashboard() {
       } else {
         // Para parcelamento simples, calcular parcelas restantes com estrutura real (juros)
         const quantidadeParcelas = arrematante?.quantidadeParcelas || 1;
-        const parcelasRestantes = quantidadeParcelas - parcelasPagas;
+        const _parcelasRestantes = quantidadeParcelas - parcelasPagas;
         
         // Calcular estrutura real de parcelas (valorTotal já inclui comissão)
         const estruturaParcelas = calcularEstruturaParcelas(
@@ -1230,7 +1226,7 @@ export default function Dashboard() {
                   <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalReceiverNumber)}</p>
                   {(() => {
                     // Verificar se há leilões com comissão do leiloeiro
-                    const leiloesComComissao = activeAuctions.filter(a => 
+                    const _leiloesComComissao = activeAuctions.filter(a => 
                       (a.percentualComissaoLeiloeiro && a.percentualComissaoLeiloeiro > 0) ||
                       (a.arrematantes?.some(arr => arr.percentualComissaoLeiloeiro && arr.percentualComissaoLeiloeiro > 0))
                     );
@@ -1296,7 +1292,7 @@ export default function Dashboard() {
                   <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalRecebido)}</p>
                   {(() => {
                     // Verificar se há leilões com comissão do leiloeiro
-                    const leiloesComComissao = activeAuctions.filter(a => 
+                    const _leiloesComComissao = activeAuctions.filter(a => 
                       (a.percentualComissaoLeiloeiro && a.percentualComissaoLeiloeiro > 0) ||
                       (a.arrematantes?.some(arr => arr.percentualComissaoLeiloeiro && arr.percentualComissaoLeiloeiro > 0))
                     );

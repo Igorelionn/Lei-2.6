@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useAuth } from "@/hooks/use-auth";
-import { toast } from "@/hooks/use-toast";
 
 export default function Login() {
   const { login, isAuthenticated } = useAuth();
@@ -32,24 +31,10 @@ export default function Login() {
     const deletionMessage = localStorage.getItem('deletion-message');
     
     if (deactivationMessage) {
-      toast({
-        title: "Conta Desativada",
-        description: deactivationMessage,
-        variant: "destructive",
-        duration: 5000,
-      });
-      // Limpar a mensagem após mostrar
       localStorage.removeItem('deactivation-message');
     }
     
     if (deletionMessage) {
-      toast({
-        title: "Conta Excluída",
-        description: deletionMessage,
-        variant: "destructive",
-        duration: 5000,
-      });
-      // Limpar a mensagem após mostrar
       localStorage.removeItem('deletion-message');
     }
   }, []);

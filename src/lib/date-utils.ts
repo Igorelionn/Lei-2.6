@@ -206,7 +206,7 @@ export function getEndOfMonth(date: Date | string | null | undefined): Date | nu
  */
 export function sanitizeDateInput(input: string): string {
   // Remove tudo exceto números e separadores de data
-  return input.replace(/[^\d/\-]/g, '');
+  return input.replace(/[^\d/-]/g, '');
 }
 
 /**

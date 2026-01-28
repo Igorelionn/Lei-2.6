@@ -11,15 +11,14 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogTrigger } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import {
-  Plus, Search, Eye, Edit, Trash2, FileText, Package, DollarSign, 
-  Calendar, Building, Archive, RefreshCw, ArrowLeft, Download, 
-  Image, Upload, File, X, Check, AlertCircle, Gavel, ChevronRight, MoreVertical
+  Plus, Search, Eye, Edit, Trash2, Package, 
+  Archive, RefreshCw, ArrowLeft, 
+  Image, Upload, X, AlertCircle, Gavel, ChevronRight, MoreVertical
 } from "lucide-react";
 import { Lot, Auction, DocumentoInfo, MercadoriaInfo, LoteInfo } from "@/lib/types";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
@@ -27,7 +26,6 @@ import { supabaseClient } from "@/lib/supabase-client";
 import { useQueryClient } from "@tanstack/react-query";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { AuctionDetails } from "@/components/AuctionDetails";
-import { useToast } from "@/hooks/use-toast";
 
 // Função para converter string de moeda para número
 const parseCurrencyToNumber = (currencyString: string): number => {
@@ -70,7 +68,7 @@ function LoteImagesModal({
   loteId, 
   loteNumero, 
   auctionId, 
-  onOpenAuctionDetails 
+  onOpenAuctionDetails: _onOpenAuctionDetails 
 }: { 
   loteId: string; 
   loteNumero: string; 
@@ -242,10 +240,9 @@ function LoteImagesModal({
 
 function Lotes() {
   const navigate = useNavigate();
-  const { auctions, isLoading, updateAuction, archiveAuction, unarchiveAuction } = useSupabaseAuctions();
+  const { auctions, isLoading, updateAuction, archiveAuction: _archiveAuction, unarchiveAuction: _unarchiveAuction } = useSupabaseAuctions();
   const queryClient = useQueryClient();
   const { logLotAction, logMerchandiseAction, logDocumentAction } = useActivityLogger();
-  const { toast } = useToast();
   
   // Flag para garantir que a migração execute apenas uma vez
   const hasMigrated = useRef(false);
@@ -270,7 +267,7 @@ function Lotes() {
           
           // Remover o campo status de todos os lotes
           const lotesLimpos = auction.lotes.map(lote => {
-            const { status, ...lotesSemStatus } = lote;
+            const { status: _status, ...lotesSemStatus } = lote;
             return lotesSemStatus;
           });
           
@@ -306,12 +303,12 @@ function Lotes() {
   const [isLoadingResults, setIsLoadingResults] = useState(false);
   const [isPhotoViewerOpen, setIsPhotoViewerOpen] = useState(false);
   const [selectedLoteForPhotos, setSelectedLoteForPhotos] = useState<LoteExtendido | null>(null);
-  const [isFilterSelectOpen, setIsFilterSelectOpen] = useState(false);
-  const [isAuctionSelectOpen, setIsAuctionSelectOpen] = useState(false);
+  const [_isFilterSelectOpen, setIsFilterSelectOpen] = useState(false);
+  const [_isAuctionSelectOpen, setIsAuctionSelectOpen] = useState(false);
   
   // Estados para operações assíncronas
   const [isSavingLote, setIsSavingLote] = useState(false);
-  const [isArchivingLote, setIsArchivingLote] = useState(false);
+  const [_isArchivingLote, _setIsArchivingLote] = useState(false);
   const [isLoadingLoteData, setIsLoadingLoteData] = useState(false);
   
   // Estados para modal de detalhes do leilão
@@ -479,7 +476,7 @@ function Lotes() {
   // 🔄 SINCRONIZAÇÃO: Escutar mudanças de lotes vindas do AuctionForm
   useEffect(() => {
     const handleLoteChangedFromForm = (event: CustomEvent) => {
-      const { auctionId, lotes, allValues } = event.detail;
+      const { auctionId, lotes, allValues: _allValues } = event.detail;
       
       logger.debug('Lotes.tsx recebeu evento loteChangedFromForm', {
         auctionId,
@@ -1470,7 +1467,7 @@ function Lotes() {
     }
   };
 
-  const formatCurrency = (value: number) => {
+  const _formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -1860,10 +1857,6 @@ function Lotes() {
                                        onClick={() => {
                                          if (window.confirm(`ATENÇÃO: Você está prestes a deletar permanentemente o lote #${lote.numero}.\n\nEsta ação é IRREVERSÍVEL. Deseja continuar?`)) {
                                            // TODO: Implementar função de exclusão
-                                           toast({
-                                             title: "Funcionalidade em desenvolvimento",
-                                             description: "A exclusão de lotes será implementada em breve.",
-                                           });
                                          }
                                        }}
                                        className="bg-red-600 hover:bg-red-700 btn-save-click"
@@ -2136,7 +2129,7 @@ function Lotes() {
                                 urlType: foto.url?.startsWith('blob:') ? 'blob' : foto.url?.startsWith('data:') ? 'base64' : 'other'
                               });
                             }}
-                            onError={(e) => {
+                            onError={(_e) => {
                               logger.error('❌ Erro ao carregar imagem:', {
                                 nome: foto.nome,
                                 url: foto.url?.substring(0, 50) + '...',
@@ -2231,7 +2224,6 @@ function Lotes() {
                       
                       const maxFiles = 20;
                       if (files.length > maxFiles) {
-                        toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} por vez.`, variant: "destructive" });
                         e.target.value = '';
                         return;
                       }
@@ -2268,7 +2260,7 @@ function Lotes() {
                       }
 
                       if (erros.length > 0) {
-                        toast({ title: "Alguns arquivos rejeitados", description: erros.slice(0, 2).join('\n'), variant: "destructive" });
+                        logger.warn('Alguns arquivos foram rejeitados:', erros);
                       }
                       
                       e.target.value = '';
@@ -2329,7 +2321,7 @@ function Lotes() {
               </div>
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
-                {selectedLoteForPhotos.fotosMercadoria.map((foto, index) => (
+                {selectedLoteForPhotos.fotosMercadoria.map((foto, _index) => (
                   <div key={foto.id} className="group cursor-pointer" onClick={() => window.open(foto.url, '_blank')}>
                     <div className="aspect-square bg-gray-50 rounded overflow-hidden border border-gray-200 hover:border-gray-400 transition-colors">
                       {foto.url ? (

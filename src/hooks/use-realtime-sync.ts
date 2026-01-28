@@ -1,16 +1,31 @@
 import { useEffect, useRef } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { supabaseClient } from '@/lib/supabase-client';
-import { Database } from '@/lib/database.types';
 import { logger } from '@/lib/logger';
-
-type Tables = Database['public']['Tables'];
 
 export function useRealtimeSync() {
   const queryClient = useQueryClient();
   
   // 🔒 FIX MEMORY LEAK: Usar ref para evitar recriação de channels
   const queryClientRef = useRef(queryClient);
+  
+  // ⚡ PERFORMANCE: Debounce para invalidações (evitar múltiplas invalidações simultâneas)
+  const invalidationTimersRef = useRef<Record<string, NodeJS.Timeout>>({});
+  
+  const debouncedInvalidate = (queryKey: string[], delay = 500) => {
+    const key = queryKey.join('-');
+    
+    // Limpar timer anterior se existir
+    if (invalidationTimersRef.current[key]) {
+      clearTimeout(invalidationTimersRef.current[key]);
+    }
+    
+    // Criar novo timer
+    invalidationTimersRef.current[key] = setTimeout(() => {
+      queryClientRef.current.invalidateQueries({ queryKey });
+      delete invalidationTimersRef.current[key];
+    }, delay);
+  };
   
   useEffect(() => {
     queryClientRef.current = queryClient;
@@ -27,10 +42,10 @@ export function useRealtimeSync() {
           schema: 'public',
           table: 'auctions',
         },
-        (payload) => {
-          // Invalidar queries relacionadas a leilões
-          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-auctions'] });
-          queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        (_payload) => {
+          // ⚡ OTIMIZAÇÃO: Usar debounce para evitar múltiplas invalidações
+          debouncedInvalidate(['supabase-auctions']);
+          debouncedInvalidate(['dashboard-stats'], 1000);
         }
       )
       .subscribe();
@@ -45,11 +60,11 @@ export function useRealtimeSync() {
           schema: 'public',
           table: 'bidders',
         },
-        (payload) => {
-          // Invalidar queries relacionadas a arrematantes
-          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-bidders'] });
-          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-auctions'] }); // Pode afetar arrematantes dos leilões
-          queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        (_payload) => {
+          // ⚡ OTIMIZAÇÃO: Usar debounce para evitar múltiplas invalidações
+          debouncedInvalidate(['supabase-bidders']);
+          debouncedInvalidate(['supabase-auctions'], 700);
+          debouncedInvalidate(['dashboard-stats'], 1000);
         }
       )
       .subscribe();
@@ -66,8 +81,9 @@ export function useRealtimeSync() {
         },
         (payload) => {
           logger.debug('Lot change received', { payload });
-          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-lots'] });
-          queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
+          // ⚡ OTIMIZAÇÃO: Usar debounce para evitar múltiplas invalidações
+          debouncedInvalidate(['supabase-lots']);
+          debouncedInvalidate(['dashboard-stats'], 1000);
         }
       )
       .subscribe();
@@ -84,56 +100,43 @@ export function useRealtimeSync() {
         },
         (payload) => {
           logger.debug('Merchandise change received', { payload });
-          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-merchandise'] });
+          // ⚡ OTIMIZAÇÃO: Usar debounce para evitar múltiplas invalidações
+          debouncedInvalidate(['supabase-merchandise']);
         }
       )
       .subscribe();
 
-    // Configurar sincronização para faturas
-    const invoicesChannel = supabaseClient
-      .channel('invoices-changes')
+    // Configurar sincronização para lotes de convidados
+    const guestLotsChannel = supabaseClient
+      .channel('guest-lots-changes')
       .on(
         'postgres_changes',
         {
           event: '*',
           schema: 'public',
-          table: 'invoices',
+          table: 'guest_lots',
         },
-        (payload) => {
-          logger.debug('Invoice change received', { payload });
-          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-invoices'] });
-          queryClientRef.current.invalidateQueries({ queryKey: ['dashboard-stats'] });
+        (_payload) => {
+          logger.debug('Guest lot change received');
+          // ⚡ OTIMIZAÇÃO: Usar debounce para evitar múltiplas invalidações
+          debouncedInvalidate(['guest-lots']);
         }
       )
       .subscribe();
 
-    // Configurar sincronização para documentos
-    const documentsChannel = supabaseClient
-      .channel('documents-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'documents',
-        },
-        (payload) => {
-          logger.debug('Document change received', { payload });
-          queryClientRef.current.invalidateQueries({ queryKey: ['supabase-documents'] });
-        }
-      )
-      .subscribe();
-
-    // Cleanup function
+    // ⚡ PERFORMANCE: Cleanup de timers ao desmontar
     return () => {
-      supabaseClient.removeChannel(auctionsChannel);
-      supabaseClient.removeChannel(biddersChannel);
-      supabaseClient.removeChannel(lotsChannel);
-      supabaseClient.removeChannel(merchandiseChannel);
-      supabaseClient.removeChannel(invoicesChannel);
-      supabaseClient.removeChannel(documentsChannel);
+      Object.values(invalidationTimersRef.current).forEach(timer => clearTimeout(timer));
+      invalidationTimersRef.current = {};
+      
+      auctionsChannel.unsubscribe();
+      biddersChannel.unsubscribe();
+      lotsChannel.unsubscribe();
+      merchandiseChannel.unsubscribe();
+      guestLotsChannel.unsubscribe();
     };
-  }, []); // 🔒 FIX MEMORY LEAK: Array vazio - channels criados apenas uma vez
+  }, []);
+
 
   return {
     // Função para forçar sincronização manual

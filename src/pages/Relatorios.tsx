@@ -1,14 +1,11 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Separator } from "@/components/ui/separator";
-import { Badge } from "@/components/ui/badge";
 import html2pdf from 'html2pdf.js';
 import { escapeHtml } from "@/lib/secure-utils"; // 🔒 SEGURANÇA: Escape HTML para prevenir XSS
 import {
@@ -16,26 +13,18 @@ import {
   FileText,
   Download,
   Calendar,
-  Filter,
   BarChart3,
-  PieChart,
   TrendingUp,
   DollarSign,
   Users,
   Package,
   Gavel,
   Clock,
-  FileSpreadsheet,
-  Printer,
-  Mail,
-  Eye,
   CreditCard
 } from "lucide-react";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
-import { useToast } from "@/hooks/use-toast";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { StringDatePicker } from "@/components/ui/date-picker";
-import { PdfReport } from "@/components/PdfReport";
 import { ArrematanteInfo, Auction, LoteInfo, MercadoriaInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
 import { calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 
@@ -254,9 +243,8 @@ interface RelatorioConfig {
 }
 
 function Relatorios() {
-  const navigate = useNavigate();
+  const _navigate = useNavigate();
   const { auctions, isLoading } = useSupabaseAuctions();
-  const { toast } = useToast();
   const { logReportAction } = useActivityLogger();
   const [config, setConfig] = useState<RelatorioConfig>({
     tipo: "",
@@ -296,7 +284,7 @@ function Relatorios() {
   ];
 
   // Estatísticas rápidas
-  const stats = {
+  const _stats = {
     totalLeiloes: auctions?.filter(a => !a.arquivado).length || 0,
     leiloesAtivos: auctions?.filter(a => a.status === 'em_andamento').length || 0,
     totalReceita: auctions?.reduce((sum, a) => {
@@ -312,7 +300,7 @@ function Relatorios() {
     }, 0) || 0
   };
 
-  const formatCurrency = (value: number) => {
+  const _formatCurrency = (value: number) => {
     return new Intl.NumberFormat('pt-BR', {
       style: 'currency',
       currency: 'BRL'
@@ -334,14 +322,9 @@ function Relatorios() {
   // Função para gerar PDF de todos os leilões - usando o mesmo método que funciona
   const generateLeiloesReport = async () => {
     logger.debug('🔍 Iniciando geração do relatório de leilões...');
-    logger.debug('📊 Leilões disponíveis:', auctions?.length);
+    logger.debug(`📊 Leilões disponíveis: ${auctions?.length}`);
 
     if (!auctions || auctions.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Nenhum leilão encontrado para gerar o relatório.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -353,11 +336,6 @@ function Relatorios() {
       logger.debug('📈 Leilões ativos (não arquivados):', leiloesAtivos.length);
       
       if (leiloesAtivos.length === 0) {
-        toast({
-          title: "Aviso",
-          description: "Nenhum leilão ativo encontrado para gerar o relatório.",
-          variant: "destructive",
-        });
         return;
       }
 
@@ -376,7 +354,7 @@ function Relatorios() {
       }
 
       logger.debug('📄 Elemento encontrado:', element);
-      logger.debug('📐 Dimensões:', element.offsetWidth, 'x', element.offsetHeight);
+      logger.debug(`📐 Dimensões: ${element.offsetWidth} x ${element.offsetHeight}`);
 
       // 4. Usar html2pdf importado estaticamente
 
@@ -403,11 +381,6 @@ function Relatorios() {
       
     } catch (error) {
       logger.error('❌ Erro ao gerar relatório:', error);
-      toast({
-        title: "Erro ao Gerar Relatório",
-        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsGenerating(false);
       // Sempre fechar o modal no final
@@ -417,7 +390,7 @@ function Relatorios() {
   };
 
   // Função auxiliar para criar conteúdo PDF de um leilão específico
-  const createPdfContentForAuction = (auction: Auction) => {
+  const _createPdfContentForAuction = (auction: Auction) => {
     const formatDate = (dateString?: string) => {
       if (!dateString) return 'Não informado';
       try {
@@ -578,7 +551,7 @@ function Relatorios() {
     `;
   };
 
-  const handleGerarRelatorio = async () => {
+  const _handleGerarRelatorio = async () => {
     if (!config.tipo) {
       alert("Selecione um tipo de relatório");
       return;
@@ -594,13 +567,8 @@ function Relatorios() {
   };
 
   // Função para gerar outros tipos de relatórios
-  const generateGenericReport = async (type: 'inadimplencia' | 'historico' | 'faturas') => {
+  const _generateGenericReport = async (type: 'inadimplencia' | 'historico' | 'faturas') => {
     if (!auctions || auctions.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Nenhum leilão encontrado para gerar o relatório.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -896,17 +864,12 @@ function Relatorios() {
       
     } catch (error) {
       logger.error('Erro ao gerar relatório:', error);
-      toast({
-        title: "Erro ao Gerar Relatório",
-        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handlePreviewRelatorio = () => {
+  const _handlePreviewRelatorio = () => {
     if (!config.tipo) {
       alert("Selecione um tipo de relatório");
       return;
@@ -933,11 +896,6 @@ function Relatorios() {
     logger.debug(`🔍 Iniciando geração do relatório de ${reportType}...`);
 
     if (!auctions || auctions.length === 0) {
-      toast({
-        title: "Erro",
-        description: "Nenhum leilão encontrado para gerar o relatório.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -958,7 +916,7 @@ function Relatorios() {
       }
 
       logger.debug('📄 Elemento encontrado:', element);
-      logger.debug('📐 Dimensões:', element.offsetWidth, 'x', element.offsetHeight);
+      logger.debug(`📐 Dimensões: ${element.offsetWidth} x ${element.offsetHeight}`);
 
       // 4. Usar html2pdf importado estaticamente
 
@@ -1001,11 +959,6 @@ function Relatorios() {
       
     } catch (error) {
       logger.error('❌ Erro ao gerar relatório:', error);
-      toast({
-        title: "Erro ao Gerar Relatório",
-        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsGenerating(false);
       // Sempre fechar o modal no final
@@ -1412,7 +1365,7 @@ function Relatorios() {
                             const dataInicio = config.filtros.dataInicio ? new Date(config.filtros.dataInicio) : new Date(now.getTime() - (6 * 30 * 24 * 60 * 60 * 1000));
                             const dataFim = config.filtros.dataFim ? new Date(config.filtros.dataFim) : now;
                             
-                            const meses = [];
+                            const _meses = [];
                             const start = new Date(dataInicio.getFullYear(), dataInicio.getMonth(), 1);
                             const end = new Date(dataFim.getFullYear(), dataFim.getMonth(), 1);
                             
@@ -1494,7 +1447,7 @@ function Relatorios() {
                           }
                           
                           const maxValue = Math.max(...chartData.map(d => d.count), 1);
-                          const adjustedMax = Math.max(maxValue, 7); // Mesma escala ajustada dos labels
+                          const _adjustedMax = Math.max(maxValue, 7); // Mesma escala ajustada dos labels
                           
                           return (
                             <>
@@ -3197,7 +3150,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                               
                               const quantidadeParcelas = arrematante.quantidadeParcelas || 0;
                               const parcelasPagas = arrematante.parcelasPagas || 0;
-                              const parcelasAtrasadas = detalhes.parcelasAtrasadas || 0;
+                              const _parcelasAtrasadas = detalhes.parcelasAtrasadas || 0;
                               
                               // Para entrada_parcelamento: parcelasPagas inclui a entrada
                               // Calcular o índice da primeira parcela não paga
@@ -3205,7 +3158,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                               if (tipoPagamento === 'entrada_parcelamento') {
                                 if (parcelasPagas === 0) {
                                   // Entrada não paga, incluir no cálculo
-                                  const valorEntrada = arrematante.valorEntrada ? 
+                                  const _valorEntrada = arrematante.valorEntrada ? 
                                     (typeof arrematante.valorEntrada === 'string' ? 
                                       parseCurrencyToNumber(arrematante.valorEntrada) : 
                                       arrematante.valorEntrada) : 
@@ -3696,8 +3649,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
 
   if (type === 'historico') {
     const comHistorico = auctions.filter(a => a.arrematante && !a.arquivado);
-    const totalTransacoes = comHistorico.reduce((sum, a) => sum + (a.historicoNotas?.length || 0), 0);
-    const valorTotalNegociado = comHistorico.reduce((sum, a) => {
+    const _totalTransacoes = comHistorico.reduce((sum, a) => sum + (a.historicoNotas?.length || 0), 0);
+    const _valorTotalNegociado = comHistorico.reduce((sum, a) => {
        // Incluir apenas valores já recebidos (contratos pagos)
        if (a.arrematante?.pago) {
          const valor = a.arrematante?.valorPagarNumerico || 
@@ -4069,7 +4022,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                           }
                           
                           // Usar dados reais de parcelas atrasadas para classificação de risco
-                          const totalLateEpisodes = parcelasAtrasadasCount; // Número atual de parcelas atrasadas
+                          const _totalLateEpisodes = parcelasAtrasadasCount; // Número atual de parcelas atrasadas
                           const avgDelayDays = diasAtrasoMaximo; // Maior número de dias de atraso entre as parcelas
                           
                           // Definir faixas de valor para classificação
@@ -4494,11 +4447,11 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
     const faturasReceber = todasFaturas.filter(f => !f.arrematante?.pago);
     
     // Calcular valor total a receber COM juros progressivos
-    const valorTotalReceber = faturasReceber.reduce((sum, f) => {
+    const _valorTotalReceber = faturasReceber.reduce((sum, f) => {
       return sum + calcularValorTotalComJuros(f.arrematante, f.auction);
     }, 0);
     
-    const valorTotalRecebido = faturasPagas.reduce((sum, f) => {
+    const _valorTotalRecebido = faturasPagas.reduce((sum, f) => {
       const valor = parseFloat(f.arrematante?.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0');
       return sum + valor;
     }, 0);
@@ -4661,7 +4614,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                 arrematante.valorEntrada) : 
                               valorTotal * 0.3;
                             // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-                            const valorPorParcelaBase = valorTotal / quantidadeParcelas;
+                            const _valorPorParcelaBase = valorTotal / quantidadeParcelas;
                             
                             // Calcular valor da entrada com juros se atrasada
                             const dataEntrada = loteComprado?.dataEntrada || auction.dataEntrada;
@@ -4675,8 +4628,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             }
                             
                             // Calcular quantas parcelas estão atrasadas
-                            let parcelasAtrasadas = 0;
-                            let parcelasPendentes = 0;
+                            let _parcelasAtrasadas2 = 0;
+                            let _parcelasPendentes2 = 0;
                             const mesInicio = arrematante?.mesInicioPagamento;
                             const diaVencimento = arrematante?.diaVencimentoMensal || 15;
                             const hoje = new Date();
@@ -4693,9 +4646,9 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                   dataVencimento.setHours(23, 59, 59, 999);
                                   
                                   if (hoje > dataVencimento) {
-                                    parcelasAtrasadas++;
+                                    _parcelasAtrasadas2++;
                                   } else {
-                                    parcelasPendentes++;
+                                    _parcelasPendentes2++;
                                   }
                                 }
                               } catch (error) {
@@ -4717,12 +4670,12 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             );
                           } else {
                             // Para parcelamento simples
-                            const valorPorParcelaBase = valorTotal / quantidadeParcelas;
+                            const _valorPorParcelaBase = valorTotal / quantidadeParcelas;
                             const percentualJuros = auction.arrematante?.percentualJurosAtraso || 0;
                             
                             // Calcular quantas parcelas estão atrasadas
-                            let parcelasAtrasadas = 0;
-                            let parcelasPendentes = 0;
+                            let _parcelasAtrasadas = 0;
+                            let _parcelasPendentes = 0;
                             const mesInicio = auction.arrematante?.mesInicioPagamento;
                             const diaVencimento = auction.arrematante?.diaVencimentoMensal || 15;
                             const hoje = new Date();
@@ -4736,9 +4689,9 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                                   dataVencimento.setHours(23, 59, 59, 999);
                                   
                                   if (hoje > dataVencimento) {
-                                    parcelasAtrasadas++;
+                                    _parcelasAtrasadas++;
                                   } else {
-                                    parcelasPendentes++;
+                                    _parcelasPendentes++;
                                   }
                                 }
                               } catch (error) {

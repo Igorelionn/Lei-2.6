@@ -2,8 +2,9 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { Auction, AuctionStatus, DocumentoInfo, MercadoriaInfo, LoteInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
-import { useToast } from "@/hooks/use-toast";
 import { logger } from "@/lib/logger";
+import { calcularValorTotal } from "@/lib/parcelamento-calculator";
+import { ParcelamentoPreview } from "@/components/ParcelamentoPreview";
 import { ProprietarioWizard } from "@/components/ProprietarioWizard";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -51,7 +52,9 @@ import {
   FileSpreadsheet,
   Plus,
   Pencil,
-  List
+  CreditCard,
+  List,
+  Calculator
 } from "lucide-react";
 
 export interface AuctionFormValues extends Omit<Auction, "id"> {
@@ -71,8 +74,7 @@ export function AuctionForm({
 }) {
   const [values, setValues] = useState<AuctionFormValues>(initial);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { logDocumentAction: _logDocumentAction } = useActivityLogger();
-  const { toast } = useToast();
+  const { logDocumentAction } = useActivityLogger();
   const [newNote, setNewNote] = useState("");
   const [editingMercadoria, setEditingMercadoria] = useState<string | null>(null);
   const [tempMercadoriaNome, setTempMercadoriaNome] = useState("");
@@ -97,7 +99,7 @@ export function AuctionForm({
   // 🔄 SINCRONIZAÇÃO: Escutar mudanças de lotes vindas da página de Lotes
   useEffect(() => {
     const handleLoteChanged = (event: CustomEvent) => {
-      const { auctionId, loteId: _loteId, lote: _lote, action: _action, allLotes } = event.detail;
+      const { auctionId, loteId, lote, action, allLotes } = event.detail;
       
       
       // Verificar se o lote pertence ao leilão atual
@@ -180,6 +182,8 @@ export function AuctionForm({
     } else {
       // Validar lotes
       values.lotes.forEach((lote, index) => {
+        const lotePrefix = `Lote ${lote.numero || index + 1}`;
+        
         if (!lote.numero?.trim()) missing.push(`Número do Lote ${index + 1}`);
         if (!lote.descricao?.trim()) missing.push(`Descrição do Lote ${index + 1}`);
         
@@ -267,7 +271,6 @@ export function AuctionForm({
 
     const maxFiles = 20;
     if (files.length > maxFiles) {
-      toast({ title: "Muitos arquivos", description: `Máximo ${maxFiles} por vez.`, variant: "destructive" });
       event.target.value = '';
       return;
     }
@@ -312,13 +315,10 @@ export function AuctionForm({
         update("documentos", atualizados);
       }
 
-      if (erros.length === 0) {
-        toast({ title: "Arquivos adicionados", description: `${novosDocumentos.length} arquivo(s) adicionado(s).` });
-      }
     }
 
     if (erros.length > 0) {
-      toast({ title: "Alguns arquivos rejeitados", description: erros.slice(0, 2).join('\n'), variant: "destructive" });
+      logger.warn('Alguns arquivos foram rejeitados:', erros);
     }
 
     event.target.value = '';
@@ -381,6 +381,15 @@ export function AuctionForm({
     update("historicoNotas", updatedNotes);
   };
 
+  const getLocalIcon = (local: string) => {
+    switch (local) {
+      case "presencial": return <Building className="h-4 w-4" />;
+      case "online": return <Globe className="h-4 w-4" />;
+      case "hibrido": return <Users className="h-4 w-4" />;
+      default: return <MapPin className="h-4 w-4" />;
+    }
+  };
+
   // Estado para controlar o valor digitado no campo de custos - SIMPLIFICADO
   const [costInputValue, setCostInputValue] = useState(() => {
     // Inicialização simples: prioriza texto, depois numérico formatado
@@ -412,6 +421,21 @@ export function AuctionForm({
     }
   }, [isCostDetailDialogOpen, values.detalheCustos]);
 
+  // Função para atualizar os itens de custo e recalcular o total
+  const updateCostItems = (items: ItemCustoInfo[]) => {
+    setCostItems(items);
+    
+    // Atualizar values de forma síncrona
+    const newValues = { ...values, detalheCustos: items };
+    setValues(newValues);
+    setHasUserChanges(true);
+    
+    // Notificar onChange se existir
+    if (onChange) {
+      onChange(newValues, "detalheCustos");
+    }
+  };
+
   // Estados para detalhamento de patrocínios
   const [isSponsorDetailDialogOpen, setIsSponsorDetailDialogOpen] = useState(false);
   const [sponsorItems, setSponsorItems] = useState<ItemPatrocinioInfo[]>(initial.detalhePatrocinios || []);
@@ -431,6 +455,20 @@ export function AuctionForm({
     }
   }, [isSponsorDetailDialogOpen, values.detalhePatrocinios]);
   
+  // Função para calcular e atualizar o total baseado nos itens
+  const calcularEAtualizarTotal = (items: ItemCustoInfo[]) => {
+    const total = items.reduce((sum, item) => sum + item.valorNumerico, 0);
+    
+    const totalFormatado = total.toLocaleString('pt-BR', { 
+      minimumFractionDigits: 2, 
+      maximumFractionDigits: 2 
+    });
+    
+    setCostInputValue(totalFormatado);
+    update("custos", totalFormatado);
+    update("custosNumerico", total);
+  };
+
   // Função para atualizar status automaticamente baseado na data
   const updateStatusBasedOnDate = useCallback((dataInicio: string, dataEncerramento?: string) => {
     if (!dataInicio) return;
@@ -1335,7 +1373,7 @@ export function AuctionForm({
                   </div>
                 )}
 
-                {(values.lotes || []).map((lote, _loteIndex) => (
+                {(values.lotes || []).map((lote, loteIndex) => (
                   <div 
                     key={lote.id} 
                     className="p-4 border border-gray-200 rounded-lg bg-white space-y-4"

@@ -6,7 +6,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { ChevronRight, Check, X, Upload, FileText, Trash2 } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 
 // Componente de bandeira (SVG)
 const FlagIcon = ({ countryCode, countryName }: { countryCode: string; countryName?: string }) => {
@@ -422,7 +421,6 @@ interface ProprietarioWizardProps {
 }
 
 export function ProprietarioWizard({ onSubmit, onCancel, initialData }: ProprietarioWizardProps) {
-  const { toast } = useToast();
   const [currentStep, setCurrentStep] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
   const [attemptedNext, setAttemptedNext] = useState(false); // Para mostrar erros de validação
@@ -461,11 +459,6 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
         reader.readAsDataURL(file);
       } catch (error) {
         logger.error("Erro ao processar arquivo:", error);
-        toast({
-          title: "Erro",
-          description: "Não foi possível processar o arquivo.",
-          variant: "destructive"
-        });
       }
     }
   };
@@ -490,10 +483,6 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
     logger.debug('Pode abrir?', canOpen);
     
     if (!canOpen) {
-      toast({
-        title: "Documento",
-        description: `Arquivo: ${doc.nome}`,
-      });
       return;
     }
 
@@ -549,11 +538,6 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
               }, 120000);
             } else {
               URL.revokeObjectURL(blobUrl);
-              toast({
-                title: "Pop-up bloqueado",
-                description: "Permita pop-ups para visualizar o documento.",
-                variant: "destructive"
-              });
             }
           } else {
             // Para outros tipos (imagens, DOC, etc), abrir diretamente
@@ -565,39 +549,17 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
               }, 120000);
             } else {
               URL.revokeObjectURL(blobUrl);
-              toast({
-                title: "Pop-up bloqueado",
-                description: "Permita pop-ups para visualizar o documento.",
-                variant: "destructive"
-              });
             }
           }
         } else {
           logger.error('❌ Formato base64 inválido');
-          toast({
-            title: "Erro",
-            description: "Formato de documento inválido.",
-            variant: "destructive"
-          });
         }
       } catch (error) {
         logger.error('❌ Erro ao abrir base64:', error);
-        toast({
-          title: "Erro",
-          description: `Não foi possível abrir o documento.`,
-          variant: "destructive"
-        });
       }
     } else {
       // Para URLs normais
-      const newWindow = window.open(doc.base64, '_blank');
-      if (!newWindow) {
-        toast({
-          title: "Pop-up bloqueado",
-          description: "Permita pop-ups para visualizar o documento.",
-          variant: "destructive"
-        });
-      }
+      window.open(doc.base64, '_blank');
     }
   };
 
