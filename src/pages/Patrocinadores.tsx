@@ -1,6 +1,7 @@
-﻿import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { logger } from "@/lib/logger";
 import { Handshake, Plus, Search, Eye, Edit, Archive, DollarSign, TrendingUp, Building2, Check, X, ChevronRight, AlertCircle, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
+import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";

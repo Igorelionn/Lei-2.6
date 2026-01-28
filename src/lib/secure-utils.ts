@@ -1,4 +1,6 @@
-﻿// 🔒 SEGURANÇA: Utilitários seguros para operações comuns
+// 🔒 SEGURANÇA: Utilitários seguros para operações comuns
+
+import { logger } from './logger';
 
 /**
  * 🔒 Gera ID único criptograficamente seguro
