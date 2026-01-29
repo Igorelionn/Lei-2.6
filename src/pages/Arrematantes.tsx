@@ -7,6 +7,8 @@ import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { supabase } from "@/lib/supabase";
+import { useQueryClient } from "@tanstack/react-query";
 import { ArrematanteInfo, DocumentoInfo, Auction, LoteInfo } from "@/lib/types";
 import html2pdf from 'html2pdf.js';
 import { obterValorTotalArrematante, descreverEstruturaParcelas, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
@@ -67,6 +69,7 @@ function Arrematantes() {
   const { guestLots } = useGuestLots(); // ✅ NOVO: Buscar lotes convidados
   const { logBidderAction, logPaymentAction, logReportAction } = useActivityLogger();
   const { enviarConfirmacao, enviarQuitacao } = useEmailNotifications();
+  const queryClient = useQueryClient(); // ✅ NOVO: Para invalidar cache de guest_lots
 
   // ✅ Funções auxiliares para cálculo de datas (ajuste automático para meses com menos dias)
   const calcularDataComAjuste = (ano: number, mes: number, diaVencimento: number): Date => {
@@ -4149,6 +4152,58 @@ function Arrematantes() {
                     arrematantes: arrematantesAtualizados
                   }
                 });
+
+                // ✅ ATUALIZAR STATUS DO GUEST_LOT (se aplicável)
+                if (data.loteId) {
+                  const lote = currentAuction.lotes?.find(l => l.id === data.loteId);
+                  logger.debug('📝 ARREMATANTES: Verificando lote', {
+                    loteId: data.loteId,
+                    lote,
+                    guestLotId: lote?.guestLotId,
+                    isConvidado: lote?.isConvidado,
+                    numero: lote?.numero
+                  });
+
+                  if (lote) {
+                    try {
+                      let guestLotIdParaAtualizar = lote.guestLotId;
+
+                      // Se não tem guestLotId mas é lote de convidado, buscar pelo número
+                      if (!guestLotIdParaAtualizar && lote.isConvidado && lote.numero) {
+                        logger.debug('🔍 ARREMATANTES: Buscando guest_lot pelo número', { numero: lote.numero });
+                        const { data: guestLots } = await supabase
+                          .from('guest_lots')
+                          .select('id')
+                          .eq('leilao_id', selectedArrematante.leilaoId)
+                          .eq('numero', lote.numero)
+                          .limit(1);
+
+                        if (guestLots && guestLots.length > 0) {
+                          guestLotIdParaAtualizar = guestLots[0].id;
+                          logger.info('✅ ARREMATANTES: Guest_lot encontrado', { guestLotId: guestLotIdParaAtualizar });
+                        }
+                      }
+
+                      if (guestLotIdParaAtualizar) {
+                        const { error: guestLotError } = await supabase
+                          .from('guest_lots')
+                          .update({ status: 'arrematado' })
+                          .eq('id', guestLotIdParaAtualizar);
+
+                        if (guestLotError) {
+                          logger.error('❌ ARREMATANTES: Erro ao atualizar guest_lot', { error: guestLotError });
+                        } else {
+                          logger.info('✅ ARREMATANTES: Status do guest_lot atualizado para arrematado');
+                          await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
+                        }
+                      } else {
+                        logger.debug('ℹ️ ARREMATANTES: Lote não é convidado ou guestLotId não encontrado');
+                      }
+                    } catch (error) {
+                      logger.error('❌ ARREMATANTES: Erro ao atualizar guest_lot', { error });
+                    }
+                  }
+                }
 
                 setIsEditModalOpen(false);
           setSelectedArrematante(null);

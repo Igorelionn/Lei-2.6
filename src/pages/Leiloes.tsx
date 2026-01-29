@@ -2520,21 +2520,53 @@ function Leiloes() {
               // ✅ ATUALIZAR STATUS DO LOTE DE CONVIDADO (se aplicável)
               if (loteId && outrosArrematantesDoLote.length === 0) {
                 const lote = addingArrematanteFor.lotes?.find(l => l.id === loteId);
-                if (lote && lote.guestLotId) {
+                logger.debug('🗑️ DELETE: Verificando se precisa atualizar guest_lot', { 
+                  loteId, 
+                  lote, 
+                  guestLotId: lote?.guestLotId,
+                  isConvidado: lote?.isConvidado,
+                  numero: lote?.numero
+                });
+                
+                if (lote) {
                   try {
-                    const { error: guestLotError } = await supabase
-                      .from('guest_lots')
-                      .update({ status: 'disponivel' })
-                      .eq('id', lote.guestLotId);
+                    let guestLotIdParaAtualizar = lote.guestLotId;
                     
-                    if (guestLotError) {
-                      logger.error('Erro ao atualizar status do lote de convidado', { error: guestLotError });
+                    // Se não tem guestLotId mas é lote de convidado, buscar pelo número
+                    if (!guestLotIdParaAtualizar && lote.isConvidado && lote.numero) {
+                      logger.debug('🔍 DELETE: Buscando guest_lot pelo número', { numero: lote.numero });
+                      const { data: guestLots } = await supabase
+                        .from('guest_lots')
+                        .select('id')
+                        .eq('leilao_id', addingArrematanteFor.id)
+                        .eq('numero', lote.numero)
+                        .limit(1);
+                      
+                      if (guestLots && guestLots.length > 0) {
+                        guestLotIdParaAtualizar = guestLots[0].id;
+                        logger.info('✅ DELETE: Guest_lot encontrado pelo número', { guestLotId: guestLotIdParaAtualizar });
+                      } else {
+                        logger.warn('⚠️ DELETE: Guest_lot NÃO encontrado pelo número', { numero: lote.numero });
+                      }
+                    }
+                    
+                    if (guestLotIdParaAtualizar) {
+                      const { error: guestLotError } = await supabase
+                        .from('guest_lots')
+                        .update({ status: 'disponivel' })
+                        .eq('id', guestLotIdParaAtualizar);
+                      
+                      if (guestLotError) {
+                        logger.error('❌ DELETE: Erro ao atualizar status do guest_lot', { error: guestLotError });
+                      } else {
+                        logger.info('✅ DELETE: Status do guest_lot atualizado para disponível');
+                        await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
+                      }
                     } else {
-                      logger.info('Status do lote de convidado atualizado para disponível');
-                      await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
+                      logger.warn('⚠️ DELETE: Lote não é convidado ou guestLotId não encontrado');
                     }
                   } catch (error) {
-                    logger.error('Erro ao atualizar lote de convidado', { error });
+                    logger.error('❌ DELETE: Erro ao atualizar guest_lot', { error });
                   }
                 }
               }
@@ -2585,11 +2617,28 @@ function Leiloes() {
               const isEditing = !!(data.id || realEditingId);
               const editId = data.id || realEditingId;
               
+              logger.debug('🔍 SAVE: Modo de operação', {
+                isEditing,
+                editId,
+                dataId: data.id,
+                realEditingId,
+                loteId: data.loteId,
+                arrematantesExistentesCount: arrematantesExistentes.length
+              });
+              
               // 🔄 Detectar se o lote foi alterado durante edição
               let loteAntigoId: string | undefined;
               if (isEditing) {
                 const arrematanteAntigo = arrematantesExistentes.find(a => a.id === editId);
                 loteAntigoId = arrematanteAntigo?.loteId;
+                logger.debug('🔄 EDIT: Detectando mudança de lote', {
+                  isEditing,
+                  editId,
+                  loteAntigoId,
+                  loteNovoId: data.loteId,
+                  mudouLote: loteAntigoId !== data.loteId,
+                  arrematanteAntigo
+                });
               }
               
               const arrematantesAtualizados = isEditing
@@ -2628,165 +2677,118 @@ function Leiloes() {
               });
               
               // ✅ ATUALIZAR STATUS DO LOTE DE CONVIDADO ANTIGO (se o lote foi alterado)
+              logger.debug('🔄 Verificando se deve atualizar lote antigo', {
+                isEditing,
+                loteAntigoId,
+                loteNovoId: data.loteId,
+                condicao: isEditing && loteAntigoId && loteAntigoId !== data.loteId
+              });
+              
               if (isEditing && loteAntigoId && loteAntigoId !== data.loteId) {
                 const loteAntigo = (addingArrematanteFor.lotes || []).find(l => l.id === loteAntigoId);
-                logger.debug('Verificando lote antigo', { loteAntigoId, loteAntigo, guestLotId: loteAntigo?.guestLotId });
+                logger.debug('🔄 EDIT-MUDOU: Verificando lote antigo', { 
+                  loteAntigoId, 
+                  loteAntigo, 
+                  guestLotId: loteAntigo?.guestLotId,
+                  isConvidado: loteAntigo?.isConvidado,
+                  numero: loteAntigo?.numero
+                });
                 
                 // Verificar se ainda há outros arrematantes para o lote antigo
                 const outrosArrematantesDoLoteAntigo = arrematantesAtualizados.filter(a => a.loteId === loteAntigoId);
                 
-                if (outrosArrematantesDoLoteAntigo.length === 0) {
-                  if (loteAntigo && loteAntigo.guestLotId) {
-                    try {
+                if (outrosArrematantesDoLoteAntigo.length === 0 && loteAntigo) {
+                  try {
+                    let guestLotIdParaAtualizar = loteAntigo.guestLotId;
+                    
+                    // Se não tem guestLotId mas é lote de convidado, buscar pelo número
+                    if (!guestLotIdParaAtualizar && loteAntigo.isConvidado && loteAntigo.numero) {
+                      logger.debug('🔍 EDIT-MUDOU: Buscando guest_lot antigo pelo número', { numero: loteAntigo.numero });
+                      const { data: guestLots } = await supabase
+                        .from('guest_lots')
+                        .select('id')
+                        .eq('leilao_id', addingArrematanteFor.id)
+                        .eq('numero', loteAntigo.numero)
+                        .limit(1);
+                      
+                      if (guestLots && guestLots.length > 0) {
+                        guestLotIdParaAtualizar = guestLots[0].id;
+                        logger.info('✅ EDIT-MUDOU: Guest_lot antigo encontrado pelo número', { guestLotId: guestLotIdParaAtualizar });
+                      } else {
+                        logger.warn('⚠️ EDIT-MUDOU: Guest_lot antigo NÃO encontrado', { numero: loteAntigo.numero });
+                      }
+                    }
+                    
+                    if (guestLotIdParaAtualizar) {
                       const { error: guestLotError } = await supabase
                         .from('guest_lots')
                         .update({ status: 'disponivel' })
-                        .eq('id', loteAntigo.guestLotId);
+                        .eq('id', guestLotIdParaAtualizar);
                       
                       if (guestLotError) {
-                        logger.error('Erro ao atualizar status do lote de convidado antigo', { error: guestLotError });
+                        logger.error('❌ EDIT-MUDOU: Erro ao atualizar status do guest_lot antigo', { error: guestLotError });
                       } else {
-                        logger.info('Status do lote de convidado antigo atualizado para disponível');
+                        logger.info('✅ EDIT-MUDOU: Status do guest_lot antigo atualizado para disponível');
+                        await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
                       }
-                    } catch (error) {
-                      logger.error('Erro ao atualizar lote de convidado antigo', { error });
+                    } else {
+                      logger.warn('⚠️ EDIT-MUDOU: Lote antigo não é convidado ou guestLotId não encontrado');
                     }
-                  } else if (loteAntigo && loteAntigo.isConvidado && !loteAntigo.guestLotId) {
-                    // 🔧 Lote antigo é convidado mas sem guestLotId - tentar encontrar pelo número
-                    logger.debug('Lote antigo é convidado mas sem guestLotId, buscando pelo número');
-                    const { data: guestLots } = await supabase
-                      .from('guest_lots')
-                      .select('id')
-                      .eq('leilao_id', addingArrematanteFor.id)
-                      .eq('numero', loteAntigo.numero)
-                      .limit(1);
-                    
-                    if (guestLots && guestLots.length > 0) {
-                      const guestLotId = guestLots[0].id;
-                      logger.info('Lote de convidado antigo encontrado pelo número', { guestLotId });
-                      
-                      const { error: guestLotError } = await supabase
-                        .from('guest_lots')
-                        .update({ status: 'disponivel' })
-                        .eq('id', guestLotId);
-                      
-                      if (!guestLotError) {
-                        logger.info('Status do lote de convidado antigo atualizado para disponível (via número)');
-                      }
-                    }
+                  } catch (error) {
+                    logger.error('❌ EDIT-MUDOU: Erro ao atualizar guest_lot antigo', { error });
                   }
                 }
               }
               
               // ✅ ATUALIZAR STATUS DO NOVO LOTE DE CONVIDADO (se aplicável)
               const loteArrematado = (addingArrematanteFor.lotes || []).find(l => l.id === data.loteId);
-              logger.debug('Verificando novo lote', { 
+              logger.debug('➕ ADD/EDIT: Verificando novo lote', { 
                 loteId: data.loteId, 
                 loteArrematado, 
                 guestLotId: loteArrematado?.guestLotId,
-                todosOsLotes: addingArrematanteFor.lotes?.map(l => ({ id: l.id, numero: l.numero, guestLotId: l.guestLotId }))
+                isConvidado: loteArrematado?.isConvidado,
+                numero: loteArrematado?.numero
               });
               
-              if (loteArrematado && loteArrematado.guestLotId) {
+              if (loteArrematado) {
                 try {
-                  const { error: guestLotError } = await supabase
-                    .from('guest_lots')
-                    .update({ status: 'arrematado' })
-                    .eq('id', loteArrematado.guestLotId);
+                  let guestLotIdParaAtualizar = loteArrematado.guestLotId;
                   
-                  if (guestLotError) {
-                    logger.error('Erro ao atualizar status do lote de convidado', { error: guestLotError });
-                  } else {
-                    logger.info('Status do lote de convidado atualizado para arrematado');
-                    // Invalidar cache dos lotes de convidados
-                    await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
-                  }
-                } catch (error) {
-                  logger.error('Erro ao atualizar lote de convidado', { error });
-                }
-              } else if (loteArrematado && !loteArrematado.guestLotId) {
-                // 🔍 Se não temos guestLotId no objeto, tentar buscar diretamente do banco
-                logger.warn('guestLotId não encontrado no objeto do lote, buscando no banco');
-                try {
-                  // Buscar o lote no banco para verificar se tem guestLotId
-                  const { data: auctionData, error: fetchError } = await supabase
-                    .from('auctions')
-                    .select('lotes')
-                    .eq('id', addingArrematanteFor.id)
-                    .single();
-                  
-                  if (!fetchError && auctionData && auctionData.lotes) {
-                    const loteNoBanco = (auctionData.lotes as unknown as LoteInfo[]).find(l => l.id === data.loteId);
-                    logger.debug('Lote encontrado no banco', { 
-                      loteNoBanco, 
-                      id: loteNoBanco?.id, 
-                      numero: loteNoBanco?.numero,
-                      guestLotId: loteNoBanco?.guestLotId,
-                      hasGuestLotId: !!loteNoBanco?.guestLotId,
-                      isConvidado: loteNoBanco?.isConvidado
-                    });
+                  // Se não tem guestLotId mas é lote de convidado, buscar pelo número
+                  if (!guestLotIdParaAtualizar && loteArrematado.isConvidado && loteArrematado.numero) {
+                    logger.debug('🔍 ADD/EDIT: Buscando guest_lot pelo número', { numero: loteArrematado.numero });
+                    const { data: guestLots } = await supabase
+                      .from('guest_lots')
+                      .select('id')
+                      .eq('leilao_id', addingArrematanteFor.id)
+                      .eq('numero', loteArrematado.numero)
+                      .limit(1);
                     
-                    if (loteNoBanco && loteNoBanco.guestLotId) {
-                      logger.debug('Atualizando guest_lots com ID', { guestLotId: loteNoBanco.guestLotId });
-                      const { error: guestLotError } = await supabase
-                        .from('guest_lots')
-                        .update({ status: 'arrematado' })
-                        .eq('id', loteNoBanco.guestLotId);
-                      
-                      if (guestLotError) {
-                        logger.error('Erro ao atualizar status do lote de convidado', { error: guestLotError });
-                      } else {
-                        logger.info('Status do lote de convidado atualizado para arrematado (via banco)');
-                        await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
-                      }
-                    } else if (loteNoBanco && loteNoBanco.isConvidado) {
-                      // 🔧 Lote marcado como convidado mas sem guestLotId - tentar encontrar pelo número
-                      logger.debug('Lote é convidado mas sem guestLotId, buscando pelo número');
-                      const { data: guestLots } = await supabase
-                        .from('guest_lots')
-                        .select('id')
-                        .eq('leilao_id', addingArrematanteFor.id)
-                        .eq('numero', loteNoBanco.numero)
-                        .limit(1);
-                      
-                      if (guestLots && guestLots.length > 0) {
-                        const guestLotId = guestLots[0].id;
-                        logger.info('Lote de convidado encontrado pelo número', { guestLotId });
-                        
-                        // Atualizar o status do lote de convidado
-                        const { error: guestLotError } = await supabase
-                          .from('guest_lots')
-                          .update({ status: 'arrematado' })
-                          .eq('id', guestLotId);
-                        
-                        if (!guestLotError) {
-                          logger.info('Status do lote de convidado atualizado para arrematado (via número)');
-                          
-                          // 🔧 IMPORTANTE: Atualizar o array de lotes para incluir o guestLotId
-                          const lotesAtualizadosComId = (auctionData.lotes as unknown as LoteInfo[]).map(l =>
-                            l.id === data.loteId ? { ...l, guestLotId } : l
-                          );
-                          
-                          await supabase
-                            .from('auctions')
-                            .update({ lotes: JSON.parse(JSON.stringify(lotesAtualizadosComId)) })
-                            .eq('id', addingArrematanteFor.id);
-                          
-                          logger.debug('guestLotId adicionado ao array de lotes');
-                          await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
-                          await queryClient.invalidateQueries({ queryKey: ['auctions'] });
-                        }
-                      } else {
-                        logger.warn('Nenhum lote de convidado encontrado com este número');
-                      }
+                    if (guestLots && guestLots.length > 0) {
+                      guestLotIdParaAtualizar = guestLots[0].id;
+                      logger.info('✅ ADD/EDIT: Guest_lot encontrado pelo número', { guestLotId: guestLotIdParaAtualizar });
                     } else {
-                      logger.warn('Lote não é um lote de convidado ou guestLotId não encontrado no banco');
+                      logger.warn('⚠️ ADD/EDIT: Guest_lot NÃO encontrado', { numero: loteArrematado.numero });
+                    }
+                  }
+                  
+                  if (guestLotIdParaAtualizar) {
+                    const { error: guestLotError } = await supabase
+                      .from('guest_lots')
+                      .update({ status: 'arrematado' })
+                      .eq('id', guestLotIdParaAtualizar);
+                    
+                    if (guestLotError) {
+                      logger.error('❌ ADD/EDIT: Erro ao atualizar status do guest_lot', { error: guestLotError });
+                    } else {
+                      logger.info('✅ ADD/EDIT: Status do guest_lot atualizado para arrematado');
+                      await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
                     }
                   } else {
-                    logger.error('Erro ao buscar lote no banco', { error: fetchError });
+                    logger.warn('⚠️ ADD/EDIT: Lote não é convidado ou guestLotId não encontrado');
                   }
                 } catch (error) {
-                  logger.error('Erro ao buscar lote no banco', { error });
+                  logger.error('❌ ADD/EDIT: Erro ao atualizar guest_lot', { error });
                 }
               }
               

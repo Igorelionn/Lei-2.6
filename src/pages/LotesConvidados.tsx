@@ -26,8 +26,10 @@ import { useGuestLots, GuestLot, GuestLotMerchandise, GuestLotArrematante } from
 import { LoteConvidadoFormData, ArrematanteInfo, LoteInfo, Auction } from "@/lib/types";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNavigate } from "react-router-dom";
 
 export default function LotesConvidados() {
+  const navigate = useNavigate();
   const { guestLots, isLoading, archiveGuestLot, unarchiveGuestLot, deleteGuestLot } = useGuestLots();
   const queryClient = useQueryClient();
   const [searchInputValue, setSearchInputValue] = useState("");
@@ -330,12 +332,27 @@ export default function LotesConvidados() {
       <Card className="border border-gray-200 shadow-sm h-[calc(100vh-320px)]">
         <CardHeader className="pb-4">
           <div className="space-y-4">
-            <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                {showArchived ? <Archive className="h-5 w-5 text-gray-600" /> : <Package className="h-5 w-5 text-gray-600" />}
-              </div>
-              {showArchived ? "Lotes Arquivados" : "Lotes de Convidados"}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
+                <div className="p-2 bg-gray-100 rounded-lg">
+                  {showArchived ? <Archive className="h-5 w-5 text-gray-600" /> : <Package className="h-5 w-5 text-gray-600" />}
+                </div>
+                {showArchived ? "Lotes Arquivados" : "Lotes de Convidados"}
+              </CardTitle>
+              
+              <button
+                onClick={() => navigate('/valores-convidados')}
+                className={`
+                  text-sm font-medium transition-all relative pb-1
+                  text-gray-600 hover:text-gray-900
+                  after:content-[''] after:absolute after:bottom-0 after:left-0 after:right-0 
+                  after:h-[1px] after:bg-gray-900 after:transition-all after:duration-300
+                  after:opacity-0 hover:after:opacity-100
+                `}
+              >
+                Exibir detalhes dos valores
+              </button>
+            </div>
 
             <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
               <div className="flex items-center gap-3 flex-1 min-w-0">

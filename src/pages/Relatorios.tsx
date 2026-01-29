@@ -2457,7 +2457,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                           
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                             {lote.mercadorias.map((mercadoria, mercIndex) => {
-                              const arrematante = auction.arrematantes?.find(arr => arr.mercadoriaId === mercadoria.id);
+                              // ✅ CORREÇÃO: Buscar arrematante pelo loteId, não mercadoriaId (deprecated)
+                              const arrematante = auction.arrematantes?.find(arr => arr.loteId === lote.id);
 
                               return (
                                 <div key={mercadoria.id || mercIndex} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '12px' }}>

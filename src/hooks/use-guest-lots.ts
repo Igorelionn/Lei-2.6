@@ -73,10 +73,10 @@ export function useGuestLots() {
   // Query para listar lotes de convidados
   const listQuery = useQuery({
     queryKey: GUEST_LOTS_KEY,
-    staleTime: 5 * 60 * 1000, // ⚡ OTIMIZAÇÃO: 5 minutos - dados frescos mas sem refetch excessivo
-    gcTime: 10 * 60 * 1000, // ⚡ OTIMIZAÇÃO: 10 minutos - mantém cache em memória
-    refetchOnWindowFocus: false, // ⚡ OTIMIZAÇÃO: Não refazer automaticamente ao focar
-    refetchOnMount: false, // ⚡ OTIMIZAÇÃO: Usar cache se disponível
+    staleTime: 30 * 1000, // ⚡ 30 segundos - dados frescos o suficiente para sincronização entre abas
+    gcTime: 5 * 60 * 1000, // ⚡ 5 minutos - mantém cache em memória
+    refetchOnWindowFocus: false, // ⚡ Não refazer automaticamente ao focar janela
+    refetchOnMount: true, // ✅ Refazer ao montar se dados estiverem stale (>30s)
     queryFn: async () => {
       const { data: lotsData, error: lotsError } = await supabaseClient
         .from('guest_lots')

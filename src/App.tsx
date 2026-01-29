@@ -20,6 +20,7 @@ const Leiloes = lazy(() => import("./pages/Leiloes"));
 const Arrematantes = lazy(() => import("./pages/Arrematantes"));
 const Lotes = lazy(() => import("./pages/Lotes"));
 const LotesConvidados = lazy(() => import("./pages/LotesConvidados"));
+const ValoresConvidados = lazy(() => import("./pages/ValoresConvidados"));
 const Patrocinadores = lazy(() => import("./pages/Patrocinadores"));
 const Faturas = lazy(() => import("./pages/Faturas"));
 const Relatorios = lazy(() => import("./pages/Relatorios"));
@@ -108,6 +109,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <Layout><LotesConvidados /></Layout>
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/valores-convidados"
+                element={
+                  <ProtectedRoute>
+                    <Layout><ValoresConvidados /></Layout>
                   </ProtectedRoute>
                 }
               />
