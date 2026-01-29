@@ -13,7 +13,7 @@ import {
   ChevronsLeft,
   ChevronsRight,
   LogOut,
-  Mail,
+  UserPlus,
   Handshake,
   History,
   LucideIcon,
@@ -37,7 +37,7 @@ const menuItems: MenuItem[] = [
     label: "Lotes", 
     path: "/lotes",
     subitems: [
-      { icon: Mail, label: "Lotes Convidados", path: "/lotes-convidados" }
+      { icon: UserPlus, label: "Lotes Convidados", path: "/lotes-convidados" }
     ]
   },
   { icon: Handshake, label: "Patrocinadores", path: "/patrocinadores" },
@@ -103,7 +103,7 @@ export function Sidebar() {
                 Home: "group-hover:scale-110 group-hover:rotate-[8deg] transition-all duration-300",
                 Gavel: "group-hover:rotate-[15deg] group-hover:scale-110 transition-all duration-300",
                 Package: "group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300",
-                Mail: "group-hover:scale-110 group-hover:-translate-y-1 group-hover:rotate-[5deg] transition-all duration-300",
+                UserPlus: "group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300",
                 Handshake: "group-hover:scale-110 group-hover:rotate-[-5deg] transition-all duration-300",
                 Users: "group-hover:scale-125 transition-all duration-300",
                 FileText: "group-hover:rotate-[10deg] group-hover:scale-110 transition-all duration-300",
