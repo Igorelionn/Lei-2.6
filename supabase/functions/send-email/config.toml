@@ -1,0 +1,7 @@
+# Configuração da Edge Function send-email
+# Desabilita verificação JWT para permitir acesso público
+# A segurança é garantida pela validação da chave API do Resend
+
+[function.send-email]
+verify_jwt = false
+

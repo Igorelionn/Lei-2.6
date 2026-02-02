@@ -1,0 +1,141 @@
+{
+  "techStack": {
+    "frontend": {
+      "framework": "React 18.3.1",
+      "language": "TypeScript 5.8.3",
+      "buildTool": "Vite 7.3.1",
+      "styling": "Tailwind CSS 3.4.17",
+      "uiLibrary": "Radix UI (shadcn/ui)",
+      "stateManagement": "React Query 5.83.0",
+      "routing": "React Router DOM 6.30.1",
+      "formHandling": "React Hook Form 7.61.1 + Zod 3.25.76",
+      "charts": "Recharts 2.15.4",
+      "pdf": "jsPDF 4.0.0 + html2pdf.js 0.14.0",
+      "excel": "xlsx 0.18.5 + docx 9.5.1",
+      "email": "EmailJS 4.4.1"
+    },
+    "backend": {
+      "database": "Supabase (PostgreSQL)",
+      "auth": "Supabase Auth",
+      "storage": "Supabase Storage",
+      "realtime": "Supabase Realtime",
+      "functions": "Supabase Edge Functions"
+    },
+    "deployment": {
+      "platform": "Vercel",
+      "analytics": "Vercel Analytics 1.5.0"
+    }
+  },
+  "features": [
+    "Sistema completo de gestão de leilões",
+    "Autenticação de usuários com RLS (Row Level Security)",
+    "CRUD de leilões, lotes, arrematantes e patrocinadores",
+    "Gestão de faturas com parcelas e cálculo de juros",
+    "Geração de relatórios em PDF/Excel",
+    "Sistema de email automatizado",
+    "Upload de imagens e documentos",
+    "Dashboard com estatísticas em tempo real",
+    "Histórico de atividades",
+    "Controle de inadimplência",
+    "Lotes convidados",
+    "Sistema de parcelamento (triplo, duplo, simples)",
+    "Cálculo de comissão e fator multiplicador",
+    "Validação de arquivos (MIME type, size, magic bytes)",
+    "Sanitização de dados (XSS prevention)",
+    "Logger estruturado",
+    "Code splitting e lazy loading",
+    "Manual vendor chunking"
+  ],
+  "projectStructure": {
+    "src/pages": "16 páginas principais da aplicação",
+    "src/components": "Componentes reutilizáveis e wizards",
+    "src/hooks": "Custom hooks para lógica de negócio",
+    "src/lib": "Utilitários, tipos, e configurações",
+    "supabase": "Configurações e scripts de database"
+  },
+  "keyFiles": {
+    "pages": [
+      "Dashboard.tsx",
+      "Leiloes.tsx",
+      "Arrematantes.tsx",
+      "Lotes.tsx",
+      "LotesConvidados.tsx",
+      "Patrocinadores.tsx",
+      "Faturas.tsx",
+      "Relatorios.tsx",
+      "Inadimplencia.tsx",
+      "Historico.tsx",
+      "Configuracoes.tsx",
+      "Email.tsx",
+      "Login.tsx"
+    ],
+    "hooks": [
+      "use-supabase-auctions.ts (1521 linhas - hook principal)",
+      "use-auth.tsx",
+      "use-realtime-sync.ts",
+      "use-email-notifications.ts",
+      "use-auto-email-notifications.ts",
+      "use-guest-lots.ts",
+      "use-dashboard-stats.ts"
+    ],
+    "lib": [
+      "supabase-client.ts",
+      "database.types.ts",
+      "types.ts",
+      "storage.ts",
+      "secure-utils.ts",
+      "file-validation.ts",
+      "logger.ts",
+      "migrate-to-supabase.ts",
+      "parcelamento-calculator.ts"
+    ]
+  },
+  "databaseTables": [
+    "auctions",
+    "bidders",
+    "lots",
+    "merchandise",
+    "invoices",
+    "documents",
+    "users",
+    "sponsors",
+    "guest_lots",
+    "activity_logs",
+    "email_logs",
+    "payments",
+    "profiles"
+  ],
+  "routes": [
+    "/",
+    "/leiloes",
+    "/arrematantes",
+    "/lotes",
+    "/lotes-convidados",
+    "/patrocinadores",
+    "/faturas",
+    "/relatorios",
+    "/inadimplencia",
+    "/historico",
+    "/configuracoes",
+    "/email",
+    "/login"
+  ],
+  "securityFeatures": [
+    "Row Level Security (RLS) em todas as tabelas",
+    "Sanitização de strings (escapeHtml, sanitizeString)",
+    "Validação de arquivos (extensão, MIME, size, magic bytes)",
+    "UUID seguro (crypto.randomUUID)",
+    "Secure URL validation",
+    "Session management com localStorage",
+    "Custom RPC para verificação de senha (SECURITY DEFINER)",
+    "Logger para auditoria"
+  ],
+  "performanceOptimizations": [
+    "Lazy loading de 14 páginas",
+    "Manual code splitting (8 vendor chunks)",
+    "React Query cache (30s staleTime, 5min gcTime)",
+    "Bundle size reduzido 68% (2.5MB → 800KB)",
+    "Debounce em searches",
+    "Memory leak fixes (useRef patterns)"
+  ]
+}

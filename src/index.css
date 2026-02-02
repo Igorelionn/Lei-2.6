@@ -1,0 +1,647 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
+All colors MUST be HSL.
+*/
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 217 91% 60%;
+    --primary-foreground: 0 0% 98%;
+
+    --secondary: 220 14% 96%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 220 14% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 217 91% 60%;
+    --accent-foreground: 0 0% 98%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 217 91% 60%;
+
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 98%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 98%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 98%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 0 0% 98%;
+
+    --sidebar-foreground: 240 5.3% 26.1%;
+
+    --sidebar-primary: 240 5.9% 10%;
+
+    --sidebar-primary-foreground: 0 0% 98%;
+
+    --sidebar-accent: 240 4.8% 95.9%;
+
+    --sidebar-accent-foreground: 240 5.9% 10%;
+
+    --sidebar-border: 220 13% 91%;
+
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+    --sidebar-background: 240 5.9% 10%;
+    --sidebar-foreground: 240 4.8% 95.9%;
+    --sidebar-primary: 224.3 76.3% 48%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 3.7% 15.9%;
+    --sidebar-accent-foreground: 240 4.8% 95.9%;
+    --sidebar-border: 240 3.7% 15.9%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom Scrollbar Styles */
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 4px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: #f1f5f9;
+    border-radius: 2px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 2px;
+  }
+  
+  .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+    background: #94a3b8;
+  }
+}
+
+/* Custom Loading Animation */
+@layer utilities {
+  .animate-pulse-slow {
+    animation: pulse-slow 2.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  @keyframes pulse-slow {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.4;
+    }
+  }
+  
+  .animate-shimmer {
+    animation: shimmer 2s linear infinite;
+    background: linear-gradient(90deg, #f3f4f6 25%, #e5e7eb 50%, #f3f4f6 75%);
+    background-size: 200% 100%;
+  }
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  
+  .fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+  
+  .fade-out {
+    animation: fadeOut 0.5s ease-in forwards;
+  }
+  
+  @keyframes fadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(20px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Animação suave para wizard de leilão */
+  @keyframes wizardFadeIn {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+
+  /* Animação para campos de input do wizard */
+  .wizard-input {
+    position: relative;
+    transition: border-bottom-color 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    color: #111827 !important;
+    caret-color: #111827 !important;
+  }
+
+  .wizard-input::before {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    width: 100%;
+    height: 2px;
+    background-color: #1f2937;
+    transform: translateX(-50%) scaleX(0);
+    transform-origin: center;
+    transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .wizard-input:focus::before {
+    transform: translateX(-50%) scaleX(1);
+  }
+  
+  @keyframes fadeOut {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+  }
+  
+  /* Animações únicas para cada aba - Sutis, Profissionais e Discretas */
+  
+  /* Leilões - Slide sutil da esquerda */
+  .slide-in-left {
+    animation: slideInLeft 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  
+  @keyframes slideInLeft {
+    0% {
+      opacity: 0;
+      transform: translateX(-12px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* Lotes - Slide sutil da direita */
+  .slide-in-right {
+    animation: slideInRight 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  
+  @keyframes slideInRight {
+    0% {
+      opacity: 0;
+      transform: translateX(12px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateX(0);
+    }
+  }
+  
+  /* Arrematantes - Fade profissional */
+  .fade-simple {
+    animation: fadeSimple 0.4s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  @keyframes fadeSimple {
+    0% {
+      opacity: 0;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  
+  /* Faturas - Zoom muito sutil */
+  .zoom-in-subtle {
+    animation: zoomInSubtle 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  
+  @keyframes zoomInSubtle {
+    0% {
+      opacity: 0;
+      transform: scale(0.985);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+  
+  /* Dashboard - Slide discreto de cima */
+  .slide-in-top {
+    animation: slideInTop 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  
+  @keyframes slideInTop {
+    0% {
+      opacity: 0;
+      transform: translateY(-10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Relatórios - Slide discreto de baixo */
+  .slide-in-bottom {
+    animation: slideInBottom 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  
+  @keyframes slideInBottom {
+    0% {
+      opacity: 0;
+      transform: translateY(10px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  /* Configurações - Fade suave sem blur */
+  .blur-fade {
+    animation: blurFade 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  @keyframes blurFade {
+    0% {
+      opacity: 0;
+      filter: blur(1px);
+    }
+    100% {
+      opacity: 1;
+      filter: blur(0);
+    }
+  }
+  
+  /* Inadimplência - Escala muito sutil */
+  .scale-fade {
+    animation: scaleFade 0.45s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  }
+  
+  @keyframes scaleFade {
+    0% {
+      opacity: 0;
+      transform: scale(0.99) translateY(5px);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1) translateY(0);
+    }
+  }
+  
+  /* Animação de clique para botões de salvar - Sutil e Profissional */
+  .btn-save-click {
+    transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .btn-save-click:active:not(:disabled) {
+    transform: scale(0.97);
+  }
+  
+  @keyframes successPulse {
+    0% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4);
+    }
+    50% {
+      transform: scale(1.02);
+      box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+    }
+  }
+  
+  .btn-save-success {
+    animation: successPulse 0.6s ease-out;
+  }
+  
+  /* Animação de clique para botões de download - Efeito de descida */
+  .btn-download-click {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .btn-download-click:active:not(:disabled) {
+    transform: translateY(3px);
+  }
+  
+  @keyframes downloadBounce {
+    0% {
+      transform: translateY(0);
+    }
+    40% {
+      transform: translateY(-4px);
+    }
+    60% {
+      transform: translateY(2px);
+    }
+    80% {
+      transform: translateY(-1px);
+    }
+    100% {
+      transform: translateY(0);
+    }
+  }
+  
+  .btn-download-success {
+    animation: downloadBounce 0.5s ease-out;
+  }
+  
+  /* Animação de clique para botões de ação - Efeito de pulso sutil */
+  .btn-action-click {
+    transition: all 0.12s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .btn-action-click:active:not(:disabled) {
+    transform: scale(0.92);
+  }
+  
+  @keyframes actionPulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(0.95);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+  
+  .btn-action-pulse {
+    animation: actionPulse 0.3s ease-out;
+  }
+  
+  /* Classe para remover todos os contornos de foco */
+  .no-focus-outline {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  .no-focus-outline:focus {
+    outline: none !important;
+    box-shadow: none !important;
+    border-color: #000000 !important;
+  }
+
+  .no-focus-outline:focus-visible {
+    outline: none !important;
+    box-shadow: none !important;
+  }
+
+  /* Animação suave para chevron do select */
+  .chevron-smooth {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+  
+  .chevron-pulse {
+    animation: chevron-pulse 0.6s ease-in-out;
+  }
+  
+  @keyframes chevron-pulse {
+    0% {
+      transform: scale(1);
+    }
+    50% {
+      transform: scale(1.1);
+    }
+    100% {
+      transform: scale(1);
+    }
+  }
+
+  /* Força o hover dos SelectItems para branco escuro */
+  [data-radix-select-item]:hover,
+  [data-radix-select-item][data-highlighted],
+  [data-radix-select-item]:focus {
+    background-color: #f3f4f6 !important; /* gray-100 */
+    color: #111827 !important; /* gray-900 */
+  }
+
+  [data-radix-select-item][data-state="checked"] {
+    background-color: #f3f4f6 !important; /* gray-100 */
+    color: #111827 !important; /* gray-900 */
+  }
+
+  /* Animação profissional de email - movimento suave horizontal */
+  .animate-mail-bounce {
+    animation: mailSlide 2s ease-in-out infinite;
+  }
+  
+  @keyframes mailSlide {
+    0%, 100% {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    50% {
+      transform: translateX(3px);
+      opacity: 0.85;
+    }
+  }
+
+  /* Animação ultra suave e minimalista para submenu da sidebar */
+  .submenu-fade-in {
+    animation: submenuFadeIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  .submenu-fade-out {
+    animation: submenuFadeOut 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  }
+  
+  @keyframes submenuFadeIn {
+    0% {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  
+  @keyframes submenuFadeOut {
+    0% {
+      opacity: 1;
+      transform: translateY(0);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-2px);
+    }
+  }
+}
+
+/* CORREÇÃO CRÍTICA: Estilos para inputs do wizard - FORA do @layer para maior especificidade */
+input.wizard-input,
+.wizard-input input,
+.wizard-input {
+  color: #111827 !important;
+  caret-color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+input.wizard-input:focus,
+.wizard-input input:focus,
+.wizard-input:focus {
+  color: #111827 !important;
+  caret-color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+}
+
+input.wizard-input::placeholder,
+.wizard-input input::placeholder,
+.wizard-input::placeholder {
+  color: #9ca3af !important;
+  -webkit-text-fill-color: #9ca3af !important;
+}
+
+/* Fix para autofill do navegador */
+input.wizard-input:-webkit-autofill,
+input.wizard-input:-webkit-autofill:hover,
+input.wizard-input:-webkit-autofill:focus,
+input.wizard-input:-webkit-autofill:active {
+  -webkit-text-fill-color: #111827 !important;
+  -webkit-box-shadow: 0 0 0 30px white inset !important;
+  box-shadow: 0 0 0 30px white inset !important;
+  caret-color: #111827 !important;
+}
+
+/* Garantir visibilidade em qualquer estado */
+input[type="text"].wizard-input,
+input[type="email"].wizard-input,
+input[type="number"].wizard-input,
+input[type="tel"].wizard-input {
+  color: #111827 !important;
+  -webkit-text-fill-color: #111827 !important;
+  opacity: 1 !important;
+}
+
+/* ========================================
+   REMOVER TODOS OS CONTORNOS/OUTLINES
+   ======================================== */
+
+/* Remover outline de TODOS os elementos ao focar */
+*:focus,
+*:focus-visible,
+*:active {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remover outline especificamente de elementos de formulário */
+input:focus,
+input:focus-visible,
+textarea:focus,
+textarea:focus-visible,
+select:focus,
+select:focus-visible,
+button:focus,
+button:focus-visible,
+[role="button"]:focus,
+[role="button"]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+  ring: 0 !important;
+  ring-offset: 0 !important;
+}
+
+/* Remover ring do Tailwind */
+input,
+textarea,
+select,
+button,
+[role="button"],
+[role="combobox"],
+[role="option"],
+[role="menuitem"] {
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
+}
+
+/* Remover outline de elementos Radix UI */
+[data-radix-select-trigger]:focus,
+[data-radix-select-trigger]:focus-visible,
+[data-radix-select-content]:focus,
+[data-radix-select-content]:focus-visible,
+[data-radix-select-item]:focus,
+[data-radix-select-item]:focus-visible,
+[data-radix-dialog-trigger]:focus,
+[data-radix-dialog-trigger]:focus-visible,
+[data-radix-dropdown-menu-trigger]:focus,
+[data-radix-dropdown-menu-trigger]:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
