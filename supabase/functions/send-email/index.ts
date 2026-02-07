@@ -1,10 +1,13 @@
 // Supabase Edge Function para enviar emails via Resend
 // Esta função atua como intermediário seguro entre o frontend e o Resend API
-// Configuração: verify_jwt = false (permite acesso público com chave API)
+// A API key do Resend deve estar configurada como secret: RESEND_API_KEY
 
 // Declaração de tipo para Deno (disponível no runtime do Supabase Edge Functions)
 declare const Deno: {
   serve: (handler: (req: Request) => Response | Promise<Response>) => void;
+  env: {
+    get: (key: string) => string | undefined;
+  };
 };
 
 const corsHeaders = {
@@ -17,7 +20,6 @@ interface EmailRequest {
   subject: string
   html: string
   from?: string
-  resendApiKey?: string
 }
 
 Deno.serve(async (req) => {
@@ -27,7 +29,7 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { to, subject, html, from, resendApiKey }: EmailRequest = await req.json()
+    const { to, subject, html, from }: EmailRequest = await req.json()
 
     // Validar dados obrigatórios
     if (!to || !subject || !html) {
@@ -42,34 +44,22 @@ Deno.serve(async (req) => {
       )
     }
 
-    // Validar que a chave API do Resend foi fornecida
-    // Esta é a nossa camada de segurança já que verify_jwt está desabilitado
+    // 🔒 SEGURANÇA: Obter a chave API do Resend das variáveis de ambiente (Secrets)
+    // Configure em: Supabase Dashboard > Edge Functions > Secrets > RESEND_API_KEY
+    const resendApiKey = Deno.env.get('RESEND_API_KEY')
+    
     if (!resendApiKey) {
+      console.error('RESEND_API_KEY não configurada nas secrets')
       return new Response(
         JSON.stringify({ 
-          error: 'Chave API do Resend é obrigatória' 
+          error: 'Serviço de email não configurado. Entre em contato com o suporte.' 
         }),
         { 
-          status: 401, 
+          status: 500, 
           headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
         }
       )
     }
-
-    // Validar formato básico da chave Resend (deve começar com re_)
-    if (!resendApiKey.startsWith('re_')) {
-      return new Response(
-        JSON.stringify({ 
-          error: 'Chave API do Resend inválida' 
-        }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    const apiKey = resendApiKey
 
     // Email remetente padrão (domínio verificado)
     const fromEmail = from || 'Arthur Lira Leilões <notificacoes@grupoliraleiloes.com>'
@@ -81,7 +71,7 @@ Deno.serve(async (req) => {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${resendApiKey}`,
       },
       body: JSON.stringify({
         from: fromEmail,

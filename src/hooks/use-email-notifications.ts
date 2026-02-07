@@ -9,7 +9,6 @@ import { obterValorTotalArrematante } from '@/lib/parcelamento-calculator';
 import { fetchWithTimeout } from '@/lib/secure-utils'; // 🔒 SEGURANÇA: Fetch com timeout para prevenir travamentos
 
 interface EmailConfig {
-  resendApiKey?: string;
   emailRemetente: string;
   diasAntesLembrete: number;
   diasDepoisCobranca: number;
@@ -27,9 +26,8 @@ interface EmailLog {
   erro?: string;
 }
 
-// 🔒 SEGURANÇA: Chave API deve vir de variável de ambiente
+// 🔒 SEGURANÇA: API key do Resend está configurada como secret na Edge Function
 const DEFAULT_CONFIG: EmailConfig = {
-  resendApiKey: import.meta.env.VITE_RESEND_API_KEY || undefined, // Remover hardcoded!
   emailRemetente: 'notificacoes@grupoliraleiloes.com',
   diasAntesLembrete: 3,
   diasDepoisCobranca: 1,
@@ -137,13 +135,6 @@ export function useEmailNotifications() {
     assunto: string,
     htmlContent: string
   ): Promise<{ success: boolean; error?: string }> => {
-    if (!config.resendApiKey) {
-      return {
-        success: false,
-        error: 'Chave API do Resend não configurada. Configure em Configurações > Notificações por Email.',
-      };
-    }
-
     try {
       // 🔒 SEGURANÇA: Usar apenas variáveis de ambiente
       const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -156,6 +147,7 @@ export function useEmailNotifications() {
       const edgeFunctionUrl = `${supabaseUrl}/functions/v1/send-email`;
 
       // 🔒 SEGURANÇA: Fetch com timeout de 30s para prevenir travamentos
+      // A API key do Resend está configurada como secret na Edge Function
       const response = await fetchWithTimeout(edgeFunctionUrl, {
         method: 'POST',
         headers: {
@@ -168,9 +160,6 @@ export function useEmailNotifications() {
           subject: assunto,
           html: htmlContent,
           from: `Arthur Lira Leilões <${config.emailRemetente}>`,
-          // 🔒 SEGURANÇA: API key do Resend NUNCA deve vir do cliente!
-          // Deve estar configurada como secret na Edge Function do Supabase
-          // Configure: Settings > Edge Functions > Secrets > RESEND_API_KEY
         }),
       }, 30000); // 30 segundos de timeout
 

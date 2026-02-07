@@ -24,7 +24,6 @@ export function EmailNotificationSettings() {
   const { config, saveConfig, carregarLogs, emailLogs, limparHistorico } = useEmailNotifications();
   const { user } = useAuth();
   const [localConfig, setLocalConfig] = useState({
-    resendApiKey: '', // 🔒 SEGURANÇA: API Key não deve estar no frontend - usar Edge Function
     emailRemetente: 'notificacoes@grupoliraleiloes.com', // Email remetente padrão fixo
     diasAntesLembrete: config.diasAntesLembrete,
     diasDepoisCobranca: config.diasDepoisCobranca,
