@@ -1,4 +1,4 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, Component, ReactNode } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -13,6 +13,24 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { MigrationNotification } from "@/components/MigrationNotification";
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
+
+// Error boundary para componentes de analytics que podem falhar em mobile (ad blockers, etc.)
+class SafeAnalytics extends Component<{ children: ReactNode }, { hasError: boolean }> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  componentDidCatch() {
+    // Silenciar erros de analytics - não devem impedir o uso do app
+  }
+  render() {
+    if (this.state.hasError) return null;
+    return this.props.children;
+  }
+}
 
 // ⚡ PERFORMANCE: Lazy loading de páginas para reduzir bundle inicial
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -67,8 +85,10 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <SpeedInsights />
-      <Analytics />
+      <SafeAnalytics>
+        <SpeedInsights />
+        <Analytics />
+      </SafeAnalytics>
       <AuthProvider>
               <AppWithRealtime>
                 <MigrationNotification />

@@ -20,6 +20,8 @@ export default defineConfig(({ mode }) => ({
   },
   // ⚡ PERFORMANCE: Otimizações de build
   build: {
+    // Garantir compatibilidade com navegadores mobile
+    target: ['es2020', 'chrome80', 'safari14', 'firefox80'],
     // Aumentar aviso de tamanho de chunk para 1MB (padrão é 500KB)
     chunkSizeWarningLimit: 1000,
     rollupOptions: {

@@ -4,16 +4,6 @@
 
 /* ===== MOBILE RESPONSIVENESS ===== */
 
-/* Safe area para dispositivos com notch (iPhone X+) */
-@supports (padding: env(safe-area-inset-top)) {
-  body {
-    padding-top: env(safe-area-inset-top);
-    padding-bottom: env(safe-area-inset-bottom);
-    padding-left: env(safe-area-inset-left);
-    padding-right: env(safe-area-inset-right);
-  }
-}
-
 /* Prevenir zoom ao focar em inputs no iOS (fonte < 16px causa zoom) */
 @media screen and (max-width: 767px) {
   input[type="text"],
@@ -27,16 +17,6 @@
   textarea,
   select {
     font-size: 16px !important;
-  }
-}
-
-/* Touch targets mínimos para mobile (44px) */
-@media screen and (max-width: 639px) {
-  button:not(.no-min-touch),
-  [role="button"]:not(.no-min-touch),
-  a[role="button"]:not(.no-min-touch) {
-    min-height: 40px;
-    min-width: 40px;
   }
 }
 
@@ -663,8 +643,8 @@ button:focus-visible,
 [role="button"]:focus-visible {
   outline: none !important;
   box-shadow: none !important;
-  ring: 0 !important;
-  ring-offset: 0 !important;
+  --tw-ring-shadow: 0 0 #0000 !important;
+  --tw-ring-offset-shadow: 0 0 #0000 !important;
 }
 
 /* Remover ring do Tailwind */

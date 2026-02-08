@@ -5,10 +5,21 @@ import { logger } from './logger';
 /**
  * 🔒 Gera ID único criptograficamente seguro
  * Substitui Math.random() que não é seguro para IDs
+ * Inclui fallback para navegadores mobile que não suportam crypto.randomUUID()
  */
 export function generateSecureId(prefix: string = ''): string {
-  // Usar crypto.randomUUID() (mais seguro que Math.random)
-  const uuid = crypto.randomUUID();
+  let uuid: string;
+  try {
+    // Tentar usar crypto.randomUUID() (mais seguro)
+    uuid = crypto.randomUUID();
+  } catch {
+    // Fallback para navegadores que não suportam randomUUID
+    uuid = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+      const r = (Math.random() * 16) | 0;
+      const v = c === 'x' ? r : (r & 0x3) | 0x8;
+      return v.toString(16);
+    });
+  }
   return prefix ? `${prefix}_${uuid}` : uuid;
 }
 
