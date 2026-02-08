@@ -969,23 +969,23 @@ function Relatorios() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8 slide-in-bottom">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8 slide-in-bottom">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-gray-900">Central de Relatórios</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-gray-900">Central de Relatórios</h1>
             <p className="text-muted-foreground mt-2">Gere relatórios detalhados e análises profissionais dos seus leilões</p>
           </div>
         </div>
 
-        <div className="space-y-6">
+        <div className="space-y-4 sm:space-y-6">
           <div>
             <div className="h-7 bg-gray-200 rounded animate-pulse w-48 mb-2"></div>
             <div className="h-4 bg-gray-200 rounded animate-pulse w-80"></div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
             {[...Array(4)].map((_, i) => (
-              <div key={i} className="relative p-8 animate-pulse">
+              <div key={i} className="relative p-4 sm:p-6 lg:p-8 animate-pulse">
                 <div className="absolute -top-1 -left-1 w-3 h-3 border-l-2 border-t-2 border-gray-300 border-dashed"></div>
                 <div className="absolute -top-1 -right-1 w-3 h-3 border-r-2 border-t-2 border-gray-300 border-dashed"></div>
                 <div className="absolute -bottom-1 -left-1 w-3 h-3 border-l-2 border-b-2 border-gray-300 border-dashed"></div>
@@ -1012,11 +1012,11 @@ function Relatorios() {
   }
 
   return (
-    <div className="space-y-8 slide-in-bottom">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8 slide-in-bottom">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Central de Relatórios</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-gray-900">Central de Relatórios</h1>
           <p className="text-muted-foreground mt-2">Gere relatórios detalhados e análises profissionais dos seus leilões</p>
         </div>
       </div>
@@ -1035,9 +1035,9 @@ function Relatorios() {
           </div>
         </div>
         
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
             {/* Card Relatório de Leilões */}
-            <div className="relative p-8 hover:bg-gray-50/50 transition-colors group">
+            <div className="relative p-4 sm:p-6 lg:p-8 hover:bg-gray-50/50 transition-colors group">
               {/* Pontos nos cantos */}
               <div className="absolute -top-1 -left-1 w-3 h-3 border-l-2 border-t-2 border-gray-400 border-dashed"></div>
               <div className="absolute -top-1 -right-1 w-3 h-3 border-r-2 border-t-2 border-gray-400 border-dashed"></div>
@@ -1065,7 +1065,7 @@ function Relatorios() {
             </div>
 
             {/* Card Relatório de Inadimplência */}
-            <div className="relative p-8 hover:bg-gray-50/50 transition-colors group">
+            <div className="relative p-4 sm:p-6 lg:p-8 hover:bg-gray-50/50 transition-colors group">
               {/* Pontos nos cantos */}
               <div className="absolute -top-1 -left-1 w-3 h-3 border-l-2 border-t-2 border-gray-400 border-dashed"></div>
               <div className="absolute -top-1 -right-1 w-3 h-3 border-r-2 border-t-2 border-gray-400 border-dashed"></div>
@@ -1093,7 +1093,7 @@ function Relatorios() {
             </div>
 
             {/* Card Relatório de Histórico */}
-            <div className="relative p-8 hover:bg-gray-50/50 transition-colors group">
+            <div className="relative p-4 sm:p-6 lg:p-8 hover:bg-gray-50/50 transition-colors group">
               {/* Pontos nos cantos */}
               <div className="absolute -top-1 -left-1 w-3 h-3 border-l-2 border-t-2 border-gray-400 border-dashed"></div>
               <div className="absolute -top-1 -right-1 w-3 h-3 border-r-2 border-t-2 border-gray-400 border-dashed"></div>
@@ -1121,7 +1121,7 @@ function Relatorios() {
             </div>
 
             {/* Card Relatório de Faturas */}
-            <div className="relative p-8 hover:bg-gray-50/50 transition-colors group">
+            <div className="relative p-4 sm:p-6 lg:p-8 hover:bg-gray-50/50 transition-colors group">
               {/* Pontos nos cantos */}
               <div className="absolute -top-1 -left-1 w-3 h-3 border-l-2 border-t-2 border-gray-400 border-dashed"></div>
               <div className="absolute -top-1 -right-1 w-3 h-3 border-r-2 border-t-2 border-gray-400 border-dashed"></div>
@@ -1154,12 +1154,12 @@ function Relatorios() {
         {/* Dashboard de Análise */}
         <div>
           <Card className="min-h-[480px]">
-            <CardContent className="p-8">
+            <CardContent className="p-4 sm:p-6 lg:p-8">
               <div>
                 {/* Gráfico */}
                 <div>
                   <div className="bg-white p-4 h-full">
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <h3 className="text-xl font-medium text-gray-900 flex items-center" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', height: '40px' }}>
                         {config.periodo.inicio === 'trimestral' ? 'Faturamento & Despesas por Trimestre' : 
                          config.periodo.inicio === 'anual' ? 'Faturamento & Despesas' : 
@@ -1264,7 +1264,7 @@ function Relatorios() {
                 </div>
 
                 {/* Legenda */}
-                <div className="flex items-center gap-6 mt-3 mb-2">
+                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mt-3 mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
                     <span className="text-sm text-gray-600 font-medium">Faturamento</span>
@@ -1276,8 +1276,9 @@ function Relatorios() {
                 </div>
 
                 
-                    <div className="h-96 mt-4">
-                      <svg width="100%" height="100%" viewBox="0 0 1400 420" style={{ cursor: 'crosshair' }}>
+                    <div className="h-96 mt-4 overflow-x-auto">
+                      <div className="min-w-full">
+                        <svg width="100%" height="100%" viewBox="0 0 1400 420" style={{ cursor: 'crosshair', minWidth: '100%' }}>
                         {/* Grid horizontal - linhas sutis */}
                         {[0, 1, 2, 3, 4, 5, 6, 7].map((line) => (
                           <line
@@ -1986,6 +1987,7 @@ function Relatorios() {
                           );
                         })()}
                       </svg>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -2006,7 +2008,7 @@ function Relatorios() {
             </p>
           </DialogHeader>
           
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Tipo de Relatório */}
             <div>
               <Label htmlFor="report-type">Tipo de Relatório</Label>
@@ -3047,7 +3049,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
 
         {/* Lista Detalhada de Inadimplentes */}
         {inadimplentes.length > 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="pb-3 mb-4" style={{ borderBottom: '1px solid #cbd5e1', pageBreakAfter: 'avoid' }}>
               <h2 className="text-lg font-medium text-slate-900 tracking-tight">
                 Análise Detalhada dos Casos
@@ -3286,13 +3288,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             : null;
                           return loteComprado ? (
                             <div className="flex items-start">
-                              <span className="text-slate-500 min-w-[110px]">Lote:</span>
+                              <span className="text-slate-500 min-w-0 sm:min-w-[110px]">Lote:</span>
                               <span className="text-slate-900">#{loteComprado.numero} - {loteComprado.descricao || 'Sem descrição'}</span>
                             </div>
                           ) : null;
                         })()}
                         <div className="flex items-start">
-                          <span className="text-slate-500 min-w-[110px]">Modalidade:</span>
+                          <span className="text-slate-500 min-w-0 sm:min-w-[110px]">Modalidade:</span>
                           <span className="text-slate-900">
                           {(() => {
                             const loteComprado = auction.arrematante?.loteId 
@@ -3317,7 +3319,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                       Análise da Inadimplência
                     </h4>
                     <div className="p-4" style={{ background: 'linear-gradient(to bottom, #fef2f2, #ffffff)', border: '1px solid #fecaca', borderRadius: '8px' }}>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm mb-3">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 text-sm mb-3">
                         <div>
                           <div className="text-xs text-slate-500 uppercase tracking-wider mb-1" style={{ fontWeight: 500 }}>Valor em Atraso</div>
                           <div className="text-lg font-medium text-red-700">
@@ -3486,7 +3488,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             <h5 className="text-sm font-medium text-slate-800 mb-3 border-b border-slate-200 pb-1" style={{ pageBreakAfter: 'avoid' }}>
                               Status das Parcelas (após entrada)
                             </h5>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 text-sm">
                               <div className="space-y-3">
                                 <div className="flex">
                                   <span className="text-slate-500 w-32">Valor por Parcela:</span>
@@ -3562,7 +3564,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             Status do Parcelamento
                           </h4>
                           <div className="p-4" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e5e7eb', borderRadius: '8px', pageBreakInside: 'avoid' }}>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 text-sm">
                               <div className="space-y-3">
                                 <div className="flex"><span className="text-slate-500 w-32">Valor por Parcela:</span> <span className="text-slate-900 font-medium">{formatCurrency(auction.detalhesInadimplencia?.valorParcela)}</span></div>
                                 <div className="flex"><span className="text-slate-500 w-32">Parcelas Pagas:</span> <span className="text-slate-900">{auction.arrematante?.parcelasPagas || 0} de {auction.arrematante?.quantidadeParcelas || 0}</span></div>
@@ -3586,7 +3588,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             ))}
             
             {inadimplentes.length > 3 && (
-              <div className="text-center p-8" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+              <div className="text-center p-4 sm:p-6 lg:p-8" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
                 <div className="text-lg font-medium text-slate-900 tracking-tight">
                   Documento Completo - Análise Detalhada
                 </div>
@@ -3666,13 +3668,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         {/* Cabeçalho Minimalista Corporativo */}
         <div className="text-center pb-6" style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '40px', pageBreakAfter: 'avoid' }}>
           <div className="mb-4">
-            <h1 className="text-3xl font-light text-slate-900 tracking-tight mb-2" style={{ letterSpacing: '0.02em' }}>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-light text-slate-900 tracking-tight mb-2" style={{ letterSpacing: '0.02em' }}>
               Relatório de Histórico
           </h1>
             <div className="h-px bg-slate-300 w-24 mx-auto"></div>
             </div>
           <div className="text-sm text-slate-600 space-y-1" style={{ fontWeight: 300 }}>
-            <div className="flex items-center justify-center gap-6 text-xs uppercase tracking-wider">
+            <div className="flex items-center justify-center gap-3 sm:gap-4 lg:gap-6 text-xs uppercase tracking-wider">
               <span>Data: {new Date().toLocaleDateString('pt-BR')}</span>
               <span>•</span>
               <span>Horário: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -3685,7 +3687,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
 
         {/* Histórico de Transações */}
         {comHistorico.length > 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="pb-3 mb-4" style={{ borderBottom: '1px solid #cbd5e1', pageBreakAfter: 'avoid' }}>
               <h2 className="text-lg font-medium text-slate-900 tracking-tight">
                 Registros de Transações
@@ -3733,29 +3735,29 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm" style={{ fontWeight: 300 }}>
                         <div className="space-y-2">
                           <div className="flex items-start">
-                            <span className="text-slate-500 min-w-[130px]">Nome Completo:</span>
+                            <span className="text-slate-500 min-w-0 sm:min-w-[130px]">Nome Completo:</span>
                             <span className="text-slate-900 font-medium">{auction.arrematante?.nome || 'Não informado'}</span>
                         </div>
                           <div className="flex items-start">
-                            <span className="text-slate-500 min-w-[130px]">Documento:</span>
+                            <span className="text-slate-500 min-w-0 sm:min-w-[130px]">Documento:</span>
                             <span className="text-slate-900">{auction.arrematante?.documento || 'Não informado'}</span>
                         </div>
                           <div className="flex items-start">
-                            <span className="text-slate-500 min-w-[130px]">Email:</span>
+                            <span className="text-slate-500 min-w-0 sm:min-w-[130px]">Email:</span>
                             <span className="text-slate-900">{auction.arrematante?.email || 'Não informado'}</span>
                           </div>
                         </div>
                         <div className="space-y-2">
                           <div className="flex items-start">
-                            <span className="text-slate-500 min-w-[130px]">Telefone:</span>
+                            <span className="text-slate-500 min-w-0 sm:min-w-[130px]">Telefone:</span>
                             <span className="text-slate-900">{auction.arrematante?.telefone || 'Não informado'}</span>
                           </div>
                           <div className="flex items-start">
-                            <span className="text-slate-500 min-w-[130px]">Total de Contratos:</span>
+                            <span className="text-slate-500 min-w-0 sm:min-w-[130px]">Total de Contratos:</span>
                             <span className="text-slate-900">1</span>
                           </div>
                           <div className="flex items-start">
-                            <span className="text-slate-500 min-w-[130px]">Valor Total:</span>
+                            <span className="text-slate-500 min-w-0 sm:min-w-[130px]">Valor Total:</span>
                             <span className="text-slate-900 font-medium">
                             {(() => {
                               const valorComJuros = calcularValorTotalComJuros(auction.arrematante, auction);
@@ -4386,7 +4388,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             ))}
             
             {comHistorico.length > 3 && (
-              <div className="text-center bg-slate-50 border-2 border-slate-300 p-8 font-sans">
+              <div className="text-center bg-slate-50 border-2 border-slate-300 p-4 sm:p-6 lg:p-8 font-sans">
                 <div className="text-lg font-light text-slate-900 tracking-wide">
                   Documento Completo
                 </div>
@@ -4408,7 +4410,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         )}
 
         {/* Logos Elionx e Arthur Lira */}
-        <div className="mt-8 flex justify-center items-center -ml-20">
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20">
           <img 
             src="/logo-elionx-softwares.png" 
             alt="Elionx Softwares" 
@@ -4462,13 +4464,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         {/* Cabeçalho Minimalista Corporativo */}
         <div className="text-center pb-6" style={{ borderBottom: '1px solid #e5e7eb', marginBottom: '40px', pageBreakAfter: 'avoid' }}>
           <div className="mb-4">
-            <h1 className="text-3xl font-light text-slate-900 tracking-tight mb-2" style={{ letterSpacing: '0.02em' }}>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-light text-slate-900 tracking-tight mb-2" style={{ letterSpacing: '0.02em' }}>
             Relatório Financeiro
           </h1>
             <div className="h-px bg-slate-300 w-24 mx-auto"></div>
             </div>
           <div className="text-sm text-slate-600 space-y-1" style={{ fontWeight: 300 }}>
-            <div className="flex items-center justify-center gap-6 text-xs uppercase tracking-wider">
+            <div className="flex items-center justify-center gap-3 sm:gap-4 lg:gap-6 text-xs uppercase tracking-wider">
               <span>Data: {new Date().toLocaleDateString('pt-BR')}</span>
               <span>•</span>
               <span>Horário: {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -4481,7 +4483,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
 
         {/* Controle de Faturas */}
         {todasFaturas.length > 0 ? (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="pb-3 mb-4" style={{ borderBottom: '1px solid #cbd5e1', pageBreakAfter: 'avoid' }}>
               <h2 className="text-lg font-medium text-slate-900 tracking-tight">
                 Controle de Recebíveis
@@ -4523,12 +4525,12 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                   </div>
                 </div>
                 
-                <div className="px-8 py-6 space-y-6">
+                <div className="px-8 py-6 space-y-4 sm:space-y-6">
                   <div style={{ pageBreakInside: 'avoid' }}>
                     <h4 className="text-sm font-light text-slate-700 uppercase tracking-wider mb-4 border-b border-slate-200 pb-2">
                       Dados da Obrigação
                     </h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm font-light">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6 text-sm font-light">
                       <div className="space-y-3">
                         <div className="flex"><span className="text-slate-500 w-24">Cliente:</span> <span className="text-slate-900">{arrematante?.nome || 'Não informado'}</span></div>
                         <div className="flex"><span className="text-slate-500 w-24">Documento:</span> <span className="text-slate-900">{arrematante?.documento || 'Não informado'}</span></div>
@@ -4892,7 +4894,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             ))}
             
             {todasFaturas.length > 10 && (
-              <div className="text-center bg-slate-50 border-2 border-slate-300 p-8 font-sans">
+              <div className="text-center bg-slate-50 border-2 border-slate-300 p-4 sm:p-6 lg:p-8 font-sans">
                 <div className="text-lg font-light text-slate-900 tracking-wide">
                   Documento Completo
                 </div>
@@ -4914,7 +4916,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         )}
 
         {/* Logos Elionx e Arthur Lira */}
-        <div className="mt-8 flex justify-center items-center -ml-20">
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20">
           <img 
             src="/logo-elionx-softwares.png" 
             alt="Elionx Softwares" 

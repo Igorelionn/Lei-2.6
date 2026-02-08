@@ -1488,24 +1488,24 @@ function Lotes() {
   };
 
   return (
-    <div className="space-y-6 p-6 slide-in-right">
+    <div className="space-y-4 sm:space-y-6 p-6 slide-in-right">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestão de Lotes</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Gestão de Lotes</h1>
           <p className="text-gray-600 mt-1">Gerencie os lotes dos leilões cadastrados</p>
         </div>
       </div>
 
       {/* Indicadores Gerais - Lotes */}
-      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total de Lotes</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.total}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.total}</p>
             <p className="text-sm text-gray-600 font-medium">Cadastrados</p>
           </div>
 
@@ -1514,7 +1514,7 @@ function Lotes() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Disponíveis</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.disponiveis}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.disponiveis}</p>
             <p className="text-sm text-gray-600 font-medium">Para leilão</p>
           </div>
 
@@ -1523,7 +1523,7 @@ function Lotes() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Arrematados</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.arrematados}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.arrematados}</p>
             <p className="text-sm text-gray-600 font-medium">Vendidos</p>
           </div>
 
@@ -1532,7 +1532,7 @@ function Lotes() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Mercadorias</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.totalMercadorias}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsLotes.totalMercadorias}</p>
             <p className="text-sm text-gray-600 font-medium">Cadastradas</p>
           </div>
         </div>
@@ -1549,7 +1549,7 @@ function Lotes() {
               {showArchivedLotes ? "Lotes Arquivados" : "Lotes Cadastrados"}
             </CardTitle>
 
-              <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+              <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
                 <div className="flex items-center gap-3 flex-1 min-w-0">
 
                 <div className="relative flex-1 min-w-0 max-w-md">
@@ -1632,7 +1632,7 @@ function Lotes() {
               {[...Array(3)].map((_, index) => (
                 <div key={index} className="animate-pulse-slow transform-none">
                   <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm transition-none transform-none">
-                    <div className="flex items-center justify-between">
+                    <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-center space-x-4 flex-1">
                         <div className="w-12 h-12 bg-gray-200 rounded-full animate-shimmer"></div>
                         <div className="flex-1 space-y-2">
@@ -1650,7 +1650,7 @@ function Lotes() {
                         </div>
                       </div>
                     </div>
-                    <div className="mt-4 flex items-center justify-between">
+                    <div className="mt-4 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex space-x-6">
                         <div className="h-3 rounded w-24 animate-shimmer" style={{animationDelay: `${index * 0.9}s`}}></div>
                         <div className="h-3 rounded w-20 animate-shimmer" style={{animationDelay: `${index * 1.0}s`}}></div>
@@ -1690,14 +1690,15 @@ function Lotes() {
             </div>
           ) : (
             <div className={`transition-opacity duration-300 ${isTransitioningLotes ? 'opacity-0' : 'opacity-100'}`}>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-gray-200">
                     <TableHead className="font-semibold text-gray-700">Número do lote</TableHead>
                     <TableHead className="font-semibold text-gray-700">Descrição do lote</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Mercadorias</TableHead>
-                    <TableHead className="font-semibold text-gray-700 text-center">Qtd. Mercadorias</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Leilão</TableHead>
+                    <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Mercadorias</TableHead>
+                    <TableHead className="hidden sm:table-cell font-semibold text-gray-700 text-center">Qtd. Mercadorias</TableHead>
+                    <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Leilão</TableHead>
                     <TableHead className="font-semibold text-gray-700">Status</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-center">Ações</TableHead>
                   </TableRow>
@@ -1713,10 +1714,10 @@ function Lotes() {
                           <p className="font-medium text-gray-900 truncate">{lote.descricao}</p>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {lote.mercadorias && lote.mercadorias.length > 0 ? (
                           <Select defaultValue={lote.mercadorias[0].id || "0"}>
-                            <SelectTrigger className="w-auto min-w-[180px] max-w-[300px] h-8 border-0 shadow-none focus:ring-0 focus:ring-offset-0 hover:bg-gray-50 [&>svg]:h-4 [&>svg]:w-4">
+                            <SelectTrigger className="w-auto min-w-0 sm:min-w-[180px] max-w-[300px] h-8 border-0 shadow-none focus:ring-0 focus:ring-offset-0 hover:bg-gray-50 [&>svg]:h-4 [&>svg]:w-4">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent className="z-[100000]">
@@ -1737,12 +1738,12 @@ function Lotes() {
                           <span className="text-gray-400">Sem mercadorias</span>
                         )}
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="hidden sm:table-cell text-center">
                         <span className="font-semibold text-gray-900">
                           {lote.mercadorias?.length || 0}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <span className="text-sm text-gray-600">{lote.leilaoNome}</span>
                       </TableCell>
                       <TableCell>
@@ -1757,7 +1758,7 @@ function Lotes() {
                               setSelectedLote(lote);
                               setIsViewLoteModalOpen(true);
                             }}
-                            className="h-8 w-8 p-0 text-black hover:bg-gray-100 hover:text-black btn-action-click"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-black hover:bg-gray-100 hover:text-black btn-action-click"
                             title="Ver detalhes"
                           >
                             <Eye className="h-4 w-4" />
@@ -1766,7 +1767,7 @@ function Lotes() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleViewPhotos(lote)}
-                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 btn-action-click"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 btn-action-click"
                             title="Ver todas as fotos do lote e mercadoria"
                           >
                             <Image className="h-4 w-4" />
@@ -1776,7 +1777,7 @@ function Lotes() {
                             size="sm"
                             onClick={() => handleEditLote(lote)}
                             disabled={isLoadingLoteData}
-                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 btn-action-click"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 disabled:opacity-50 btn-action-click"
                             title="Editar"
                           >
                             {isLoadingLoteData ? (
@@ -1790,7 +1791,7 @@ function Lotes() {
                                <Button
                                  variant="ghost"
                                  size="sm"
-                                 className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                 className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                  title={showArchivedLotes ? "Desarquivar" : "Arquivar"}
                                >
                                  <Archive className="h-4 w-4" />
@@ -1825,7 +1826,7 @@ function Lotes() {
                                <Button
                                  variant="ghost"
                                  size="sm"
-                                 className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                                 className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900"
                                  title="Mais opções"
                                >
                                  <MoreVertical className="h-4 w-4" />
@@ -1874,6 +1875,7 @@ function Lotes() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
               {/* ⚡ PERFORMANCE: Paginação */}
               {filteredLotes.length > 0 && (
@@ -1899,8 +1901,8 @@ function Lotes() {
             </DialogTitle>
           </DialogHeader>
           {selectedLote && (
-            <div className="space-y-6">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-4 sm:space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Número do Lote</Label>
                   <p className="mt-1 text-sm font-semibold text-gray-900">#{selectedLote.numero}</p>
@@ -1928,7 +1930,7 @@ function Lotes() {
                   </Label>
                   {selectedLote.mercadorias.length === 1 ? (
                     <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-                      <div className="grid grid-cols-2 gap-4 mb-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-3">
                           <div>
                           <Label className="text-xs font-medium text-gray-600">Título</Label>
                           <p className="text-sm font-medium text-gray-900">
@@ -2026,8 +2028,8 @@ function Lotes() {
               {isEditingLote ? "Editar Lote" : "Novo Lote"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="numero">Número do Lote</Label>
                 <Input
@@ -2293,7 +2295,7 @@ function Lotes() {
                     {isEditingLote ? "Salvando..." : "Criando..."}
                   </>
                 ) : (
-                  isEditingLote ? "Salvar Alterações" : "Criar Lote"
+                  isEditingLote ? <><span className="hidden sm:inline">Salvar Alterações</span><span className="sm:hidden">Salvar</span></> : "Criar Lote"
                 )}
               </Button>
             </div>
@@ -2477,7 +2479,7 @@ function Lotes() {
 
                 {/* Título da Lista - Só aparece quando há busca ou showAllAuctions */}
                 {(auctionSearchTerm || showAllAuctions) && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                     <h2 className="text-2xl font-normal text-gray-900">
                       {isLoading ? (
                         <>
@@ -2538,7 +2540,7 @@ function Lotes() {
                           onClick={() => handleSelectAuction(auction.id)}
                           className="group p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex-1 min-w-0">
                               <h3 className="text-lg font-medium text-gray-900 truncate group-hover:text-gray-950">
                                 {auction.nome}

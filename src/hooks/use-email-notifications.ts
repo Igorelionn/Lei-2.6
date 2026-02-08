@@ -3,7 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { Auction } from '@/lib/types';
 import { logger } from '@/lib/logger';
 import { getLembreteEmailTemplate, getCobrancaEmailTemplate, getConfirmacaoPagamentoEmailTemplate, getQuitacaoCompletaEmailTemplate } from '@/lib/email-templates';
-import { format, parseISO, differenceInDays } from 'date-fns';
+import { format, parseISO, differenceInDays, addDays, getDaysInMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { obterValorTotalArrematante } from '@/lib/parcelamento-calculator';
 import { fetchWithTimeout } from '@/lib/secure-utils'; // 🔒 SEGURANÇA: Fetch com timeout para prevenir travamentos
@@ -60,12 +60,24 @@ export function useEmailNotifications() {
   const jaEnviouEmail = async (
     auctionId: string,
     tipoEmail: 'lembrete' | 'cobranca' | 'confirmacao',
-    parcelaNumero?: number
+    parcelaNumero?: number,
+    periodo: 'dia' | 'mes' = 'dia'
   ): Promise<boolean> => {
-    const hoje = new Date().toISOString().split('T')[0];
+    const agora = new Date();
     
-    // Se foi especificada uma parcela, verificar se já enviou email para essa parcela específica hoje
-    // Caso contrário, verificar se já enviou qualquer email desse tipo hoje
+    // Determinar data de início do período de verificação
+    let dataInicio: string;
+    if (periodo === 'mes') {
+      // Verificar se já enviou neste mês (para cobranças mensais)
+      const ano = agora.getFullYear();
+      const mes = String(agora.getMonth() + 1).padStart(2, '0');
+      dataInicio = `${ano}-${mes}-01`;
+    } else {
+      // Verificar se já enviou hoje (para lembretes e confirmações)
+      dataInicio = agora.toISOString().split('T')[0];
+    }
+    
+    // Construir identificador do log
     const logIdentifier = parcelaNumero !== undefined 
       ? `${auctionId}-${tipoEmail}-parcela-${parcelaNumero}`
       : `${auctionId}-${tipoEmail}`;
@@ -75,7 +87,7 @@ export function useEmailNotifications() {
       .select('id')
       .eq('auction_id', logIdentifier)
       .eq('tipo_email', tipoEmail)
-      .gte('data_envio', hoje)
+      .gte('data_envio', dataInicio)
       .eq('sucesso', true)
       .limit(1);
 
@@ -643,12 +655,31 @@ export function useEmailNotifications() {
     };
   };
 
+  /**
+   * Verifica se hoje é dia de enviar cobrança mensal para uma parcela específica.
+   * 
+   * A cobrança é enviada no dia (vencimento + diasDepoisCobranca) de cada mês.
+   * Ex: Vencimento dia 20, diasDepoisCobranca=1 → cobrança dia 21 de cada mês.
+   * Se não pagar, receberá novamente no dia 21 do mês seguinte, e assim por diante.
+   */
+  const ehDiaDeCobrancaMensal = (dataVencimento: Date, diasDepoisCobranca: number, hoje: Date): boolean => {
+    const primeiraCobranca = addDays(dataVencimento, diasDepoisCobranca);
+    if (hoje < primeiraCobranca) return false;
+    
+    const diaCobranca = primeiraCobranca.getDate();
+    const diasNoMes = getDaysInMonth(hoje);
+    const diaEfetivo = Math.min(diaCobranca, diasNoMes);
+    
+    return hoje.getDate() >= diaEfetivo;
+  };
+
   const verificarEEnviarAutomatico = async (auctions: Auction[]) => {
     if (!config.enviarAutomatico) return;
 
     setLoading(true);
     
     const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
     const resultados = {
       lembretes: 0,
       cobrancas: 0,
@@ -672,32 +703,26 @@ export function useEmailNotifications() {
         
         const dateStr = lote?.dataVencimentoVista || auction.dataVencimentoVista || '';
         const [year, month, day] = dateStr.split('-').map(Number);
-        const dataVencimento = new Date(year, month - 1, day, 23, 59, 59);
+        const dataVencimento = new Date(year, month - 1, day, 0, 0, 0);
         const diasDiferenca = differenceInDays(dataVencimento, hoje);
 
-        // Lembrete
+        // Lembrete (verificação diária)
         if (diasDiferenca > 0 && diasDiferenca <= config.diasAntesLembrete) {
           const jaEnviou = await jaEnviouEmail(auction.id, 'lembrete', 1);
           if (!jaEnviou) {
             const result = await enviarLembrete(auction);
-            if (result.success) {
-              resultados.lembretes++;
-            } else {
-              resultados.erros++;
-            }
+            if (result.success) resultados.lembretes++;
+            else resultados.erros++;
           }
         }
 
-        // Cobrança
-        if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= config.diasDepoisCobranca) {
-          const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', 1);
+        // Cobrança mensal (no dia correto de cada mês)
+        if (diasDiferenca < 0 && ehDiaDeCobrancaMensal(dataVencimento, config.diasDepoisCobranca, hoje)) {
+          const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', 1, 'mes');
           if (!jaEnviou) {
             const result = await enviarCobranca(auction, 1);
-            if (result.success) {
-              resultados.cobrancas++;
-            } else {
-              resultados.erros++;
-            }
+            if (result.success) resultados.cobrancas++;
+            else resultados.erros++;
           }
         }
       }
@@ -717,8 +742,8 @@ export function useEmailNotifications() {
             }
           }
 
-          if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= config.diasDepoisCobranca) {
-            const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', 1);
+          if (diasDiferenca < 0 && ehDiaDeCobrancaMensal(dataVencimento, config.diasDepoisCobranca, hoje)) {
+            const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', 1, 'mes');
             if (!jaEnviou) {
               const result = await enviarCobranca(auction, 1);
               if (result.success) resultados.cobrancas++;
@@ -731,15 +756,14 @@ export function useEmailNotifications() {
         if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
           const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
           
-          // Iterar por todas as parcelas não pagas
           for (let i = Math.max(1, parcelasPagas); i < totalParcelas; i++) {
-            const numParcela = i + 1; // Número da parcela (2, 3, 4...)
-            const parcelaIndex = i - 1; // Índice 0-based para calcular data
-            const dataVencimento = new Date(startYear, startMonth - 1 + parcelaIndex, arrematante.diaVencimentoMensal, 23, 59, 59);
+            const numParcela = i + 1;
+            const parcelaIndex = i - 1;
+            const dataVencimento = new Date(startYear, startMonth - 1 + parcelaIndex, arrematante.diaVencimentoMensal, 0, 0, 0);
             const diasDiferenca = differenceInDays(dataVencimento, hoje);
 
-            // Lembrete
-            if (diasDiferenca > 0 && diasDiferenca <= config.diasAntesLembrete && i === parcelasPagas) {
+            // Lembrete - apenas para a próxima parcela não paga
+            if (diasDiferenca > 0 && diasDiferenca <= config.diasAntesLembrete && i === Math.max(1, parcelasPagas)) {
               const jaEnviou = await jaEnviouEmail(auction.id, 'lembrete', numParcela);
               if (!jaEnviou) {
                 const result = await enviarLembrete(auction);
@@ -748,11 +772,11 @@ export function useEmailNotifications() {
               }
             }
 
-            // Cobrança - enviar para TODAS as parcelas atrasadas
-            if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= config.diasDepoisCobranca) {
-              const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', numParcela);
+            // Cobrança mensal - para CADA parcela em atraso
+            if (diasDiferenca < 0 && ehDiaDeCobrancaMensal(dataVencimento, config.diasDepoisCobranca, hoje)) {
+              const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', numParcela, 'mes');
               if (!jaEnviou) {
-                logger.debug(`📧 Enviando cobrança da parcela ${numParcela}/${totalParcelas} (${Math.abs(diasDiferenca)} dias de atraso)`);
+                logger.debug(`📧 Enviando cobrança mensal da parcela ${numParcela}/${totalParcelas}`);
                 const result = await enviarCobranca(auction, numParcela);
                 if (result.success) {
                   resultados.cobrancas++;
@@ -772,10 +796,9 @@ export function useEmailNotifications() {
         
         const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
         
-        // Iterar por todas as parcelas não pagas
         for (let i = parcelasPagas; i < totalParcelas; i++) {
-          const numParcela = i + 1; // Número da parcela (1, 2, 3...)
-          const dataVencimento = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+          const numParcela = i + 1;
+          const dataVencimento = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 0, 0, 0);
           const diasDiferenca = differenceInDays(dataVencimento, hoje);
 
           // Lembrete - apenas para a próxima parcela não paga
@@ -788,11 +811,11 @@ export function useEmailNotifications() {
             }
           }
 
-          // Cobrança - enviar para TODAS as parcelas atrasadas
-          if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= config.diasDepoisCobranca) {
-            const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', numParcela);
+          // Cobrança mensal - para CADA parcela em atraso
+          if (diasDiferenca < 0 && ehDiaDeCobrancaMensal(dataVencimento, config.diasDepoisCobranca, hoje)) {
+            const jaEnviou = await jaEnviouEmail(auction.id, 'cobranca', numParcela, 'mes');
             if (!jaEnviou) {
-              logger.debug(`📧 Enviando cobrança da parcela ${numParcela}/${totalParcelas} (${Math.abs(diasDiferenca)} dias de atraso)`);
+              logger.debug(`📧 Enviando cobrança mensal da parcela ${numParcela}/${totalParcelas}`);
               const result = await enviarCobranca(auction, numParcela);
               if (result.success) {
                 resultados.cobrancas++;
@@ -829,24 +852,52 @@ export function useEmailNotifications() {
 
   const limparHistorico = async (): Promise<{ success: boolean; message: string }> => {
     try {
-      const { error } = await supabase
+      // Usar função RPC (SECURITY DEFINER) para contornar RLS
+      const { error: rpcError } = await supabase.rpc('limpar_email_logs');
+      
+      if (!rpcError) {
+        logger.info('Histórico limpo via RPC com sucesso');
+        setEmailLogs([]);
+        return {
+          success: true,
+          message: 'Histórico limpo com sucesso'
+        };
+      }
+
+      // Fallback: tentar DELETE direto (pode falhar se RLS não permitir)
+      logger.warn('RPC falhou, tentando DELETE direto:', rpcError);
+      
+      const { error: deleteError } = await supabase
         .from('email_logs')
         .delete()
         .neq('id', '00000000-0000-0000-0000-000000000000');
 
-      if (error) {
-        logger.error('Erro ao limpar histórico:', error);
+      if (deleteError) {
+        logger.error('Erro ao limpar histórico:', deleteError);
         return {
           success: false,
-          message: 'Erro ao limpar histórico de comunicações'
+          message: 'Erro ao limpar histórico. Verifique as permissões no Supabase.'
+        };
+      }
+
+      // Verificar se realmente deletou
+      const { data: remaining } = await supabase
+        .from('email_logs')
+        .select('id')
+        .limit(1);
+
+      if (remaining && remaining.length > 0) {
+        logger.error('DELETE executou mas não removeu registros (RLS bloqueando)');
+        return {
+          success: false,
+          message: 'Não foi possível limpar. Execute o SQL no Supabase: SELECT limpar_email_logs();'
         };
       }
 
       setEmailLogs([]);
-
       return {
         success: true,
-        message: 'Histórico de comunicações limpo com sucesso'
+        message: 'Histórico limpo com sucesso'
       };
     } catch (error) {
       logger.error('Erro ao limpar histórico:', error);

@@ -645,24 +645,24 @@ export default function Patrocinadores() {
   };
 
   return (
-    <div className="space-y-6 p-6 slide-in-right">
+    <div className="space-y-4 sm:space-y-6 p-6 slide-in-right">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Patrocinadores</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Patrocinadores</h1>
           <p className="text-gray-600 mt-1">Gerencie empresas e organizações que apoiam seus leilões</p>
         </div>
       </div>
 
       {/* Indicadores Gerais */}
-      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total de Patrocinadores</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.total}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.total}</p>
             <p className="text-sm text-gray-600 font-medium">Empresas cadastradas</p>
           </div>
 
@@ -671,7 +671,7 @@ export default function Patrocinadores() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total Recebido</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
               {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(stats.totalRecebido)}
             </p>
             <p className="text-sm text-gray-600 font-medium">Patrocínios confirmados</p>
@@ -682,7 +682,7 @@ export default function Patrocinadores() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total Investido</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
               {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(stats.totalInvestido)}
             </p>
             <p className="text-sm text-gray-600 font-medium">Em patrocínios</p>
@@ -693,7 +693,7 @@ export default function Patrocinadores() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Valor Médio Investido</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
               {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(stats.valorMedioGeral)}
             </p>
             <p className="text-sm text-gray-600 font-medium">Por leilão</p>
@@ -712,7 +712,7 @@ export default function Patrocinadores() {
               {showArchived ? "Patrocinadores Arquivados" : "Patrocinadores Cadastrados"}
             </CardTitle>
 
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="relative flex-1 min-w-0 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -822,7 +822,7 @@ export default function Patrocinadores() {
                   <TableRow className="bg-gray-50/50 border-gray-200">
                     <TableHead className="font-semibold text-gray-700">Patrocinador</TableHead>
                     <TableHead className="font-semibold text-gray-700">Total Investido</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Próximo Vencimento</TableHead>
+                    <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Próximo Vencimento</TableHead>
                     <TableHead className="font-semibold text-gray-700">Status de Pagamento</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-center">Ações</TableHead>
                   </TableRow>
@@ -845,7 +845,7 @@ export default function Patrocinadores() {
                           {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(patrocinador.totalInvestido)}
                         </span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {patrocinador.proximoVencimento ? (
                           <div className="flex flex-col">
                             <span className="text-sm font-medium text-gray-900">{patrocinador.proximoVencimento}</span>
@@ -881,7 +881,7 @@ export default function Patrocinadores() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleConfirmReceipt(patrocinador)}
-                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+                              className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
                               title="Confirmar recebimento"
                             >
                               <Check className="h-4 w-4" />
@@ -892,7 +892,7 @@ export default function Patrocinadores() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleUnconfirmReceipt(patrocinador)}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                               title="Desmarcar recebimento"
                             >
                               <X className="h-4 w-4" />
@@ -902,7 +902,7 @@ export default function Patrocinadores() {
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewingPatrocinador(patrocinador)}
-                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                             title="Ver detalhes"
                           >
                             <Eye className="h-4 w-4" />
@@ -911,7 +911,7 @@ export default function Patrocinadores() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditPatrocinador(patrocinador)}
-                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                             title="Editar"
                           >
                             <Edit className="h-4 w-4" />
@@ -919,7 +919,7 @@ export default function Patrocinadores() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                             title={showArchived ? "Desarquivar" : "Arquivar"}
                           >
                             <Archive className="h-4 w-4" />
@@ -958,14 +958,14 @@ export default function Patrocinadores() {
           {/* Conteúdo com Scroll */}
           <div className="overflow-y-auto max-h-[calc(90vh-80px)] scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300">
             {viewingPatrocinador && (
-              <div className="p-6 space-y-6">
+              <div className="p-6 space-y-4 sm:space-y-6">
                 {/* Informações Gerais */}
                 <div className="bg-white border border-gray-200 rounded-lg p-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
                     <Building2 className="h-5 w-5 text-gray-600" />
                     Informações Gerais
                   </h3>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                     <div>
                       <p className="text-sm font-medium text-gray-600">Nome do Patrocinador</p>
                       <p className="text-base text-gray-900 mt-1">{viewingPatrocinador.empresa}</p>
@@ -1010,7 +1010,7 @@ export default function Patrocinadores() {
                   <div className="space-y-4">
                     {viewingPatrocinador.patrocinios.map((patrocinio, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                        <div className="flex items-center justify-between mb-3">
+                        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
                           <div className="flex-1">
                             <h4 className="text-base font-semibold text-gray-900">{patrocinio.leilaoNome}</h4>
                             {patrocinio.dataVencimento && (
@@ -1272,7 +1272,7 @@ export default function Patrocinadores() {
 
                 {/* Título da Lista - Só aparece quando há busca ou showAllAuctions */}
                 {(auctionSearchTerm || showAllAuctions) && (
-                  <div className="flex items-center justify-between">
+                  <div className="flex flex-wrap items-center justify-between gap-4">
                     <h2 className="text-2xl font-normal text-gray-900">
                       {isLoading ? (
                         <>
@@ -1334,7 +1334,7 @@ export default function Patrocinadores() {
                           onClick={() => handleSelectAuction(auction.id)}
                           className="group p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
                         >
-                          <div className="flex items-center justify-between">
+                          <div className="flex flex-wrap items-center justify-between gap-4">
                             <div className="flex-1 min-w-0">
                               <h3 className="text-lg font-medium text-gray-900 truncate group-hover:text-gray-950">
                                 {auction.nome}

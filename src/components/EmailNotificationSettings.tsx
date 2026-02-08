@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
@@ -8,6 +8,7 @@ import { useAuth } from '@/hooks/use-auth';
 import { Mail, CheckCircle, Check, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { logger } from '@/lib/logger';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,44 +25,46 @@ export function EmailNotificationSettings() {
   const { config, saveConfig, carregarLogs, emailLogs, limparHistorico } = useEmailNotifications();
   const { user } = useAuth();
   const [localConfig, setLocalConfig] = useState({
-    emailRemetente: 'notificacoes@grupoliraleiloes.com', // Email remetente padrão fixo
+    emailRemetente: 'notificacoes@grupoliraleiloes.com',
     diasAntesLembrete: config.diasAntesLembrete,
     diasDepoisCobranca: config.diasDepoisCobranca,
-    enviarAutomatico: true, // Sempre automático
+    enviarAutomatico: true,
   });
+
+  // Controle para pausar o recarregamento automático após limpar
+  const pauseAutoRefreshRef = useRef(false);
 
   // Carregar logs ao montar e periodicamente
   useEffect(() => {
-    // Carregar imediatamente
     carregarLogs(20);
 
-    // Recarregar a cada 10 segundos
     const interval = setInterval(() => {
-      carregarLogs(20);
+      // Não recarregar se o auto-refresh estiver pausado (após limpar)
+      if (!pauseAutoRefreshRef.current) {
+        carregarLogs(20);
+      }
     }, 10000);
 
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Intencionalmente vazio: queremos apenas UM interval, criado na montagem
+  }, []);
 
   const [isSaving, setIsSaving] = useState(false);
   const [isSaved, setIsSaved] = useState(false);
   const [isClearing, setIsClearing] = useState(false);
+  const [clearMessage, setClearMessage] = useState<{ success: boolean; text: string } | null>(null);
 
   // Verificar se usuário é administrador
   const isAdmin = user?.role === 'admin' || user?.permissions?.can_manage_users === true;
 
   const handleSaveConfig = () => {
-    // Fase 1: Carregamento
     setIsSaving(true);
     saveConfig(localConfig);
     
-    // Fase 2: Confirmação (após 800ms)
     setTimeout(() => {
       setIsSaving(false);
       setIsSaved(true);
       
-      // Fase 3: Volta ao normal (após mais 1.5s)
       setTimeout(() => {
         setIsSaved(false);
       }, 1500);
@@ -70,11 +73,27 @@ export function EmailNotificationSettings() {
 
   const handleLimparHistorico = async () => {
     setIsClearing(true);
+    setClearMessage(null);
+    
+    // Pausar auto-refresh para não recarregar os dados do banco
+    pauseAutoRefreshRef.current = true;
     
     const result = await limparHistorico();
     
-    if (!result.success) {
+    if (result.success) {
+      setClearMessage({ success: true, text: result.message });
+      // Recarregar após 3 segundos para confirmar que foi limpo
+      setTimeout(() => {
+        pauseAutoRefreshRef.current = false;
+        carregarLogs(20);
+        setClearMessage(null);
+      }, 3000);
+    } else {
       logger.error('Erro ao limpar histórico:', result.message);
+      setClearMessage({ success: false, text: result.message });
+      pauseAutoRefreshRef.current = false;
+      // Limpar mensagem de erro após 5 segundos
+      setTimeout(() => setClearMessage(null), 5000);
     }
     
     setIsClearing(false);
@@ -222,6 +241,18 @@ export function EmailNotificationSettings() {
           </div>
         </CardHeader>
         <CardContent className="pt-6">
+          {/* Mensagem de feedback após limpar */}
+          {clearMessage && (
+            <div className={`mb-4 p-4 rounded-lg border ${
+              clearMessage.success 
+                ? 'bg-green-50 border-green-200 text-green-800' 
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}>
+              <p className="text-sm font-medium">
+                {clearMessage.success ? '✅' : '❌'} {clearMessage.text}
+              </p>
+            </div>
+          )}
           {emailLogs.length === 0 ? (
             <div className="text-center text-gray-500 py-16 bg-gray-50 rounded-lg">
               <div className="p-4 bg-white rounded-full w-20 h-20 mx-auto mb-4 flex items-center justify-center shadow-sm">
@@ -235,9 +266,9 @@ export function EmailNotificationSettings() {
               {emailLogs.map((log) => (
                 <div
                   key={log.id}
-                  className="flex items-center justify-between p-5 rounded-lg border bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
+                  className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-5 gap-2 sm:gap-3 rounded-lg border bg-white border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all"
                 >
-                  <div className="flex items-center gap-3 flex-1">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
                     <CheckCircle className="h-4 w-4 text-green-600 flex-shrink-0" />
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-medium text-gray-900 truncate">
@@ -248,9 +279,9 @@ export function EmailNotificationSettings() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0 ml-6 sm:ml-0">
                     <span
-                      className={`px-3 py-1 rounded text-xs font-semibold uppercase tracking-wide ${
+                      className={`px-2 sm:px-3 py-1 rounded text-xs font-semibold uppercase tracking-wide ${
                         log.tipo_email === 'lembrete'
                           ? 'bg-blue-100 text-blue-800'
                           : log.tipo_email === 'cobranca'

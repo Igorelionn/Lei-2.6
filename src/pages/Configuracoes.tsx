@@ -1407,11 +1407,11 @@ export default function Configuracoes() {
           transform: translateY(-2px);
         }
       `}</style>
-      <div className="space-y-8 pt-6 blur-fade">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8 pt-6 blur-fade">
       {/* Header com botão Salvar */}
-      <div className="flex items-start justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Configurações</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Configurações</h1>
           <p className="text-muted-foreground">
             Gerencie suas preferências e configurações do sistema
           </p>
@@ -1438,7 +1438,7 @@ export default function Configuracoes() {
                 <ArrowUp 
                   className={`w-4 h-4 mr-2 arrow-up-hover ${isSaving ? 'arrow-up-animate' : ''}`} 
                 />
-            Salvar Alterações
+            <span className="hidden sm:inline">Salvar Alterações</span><span className="sm:hidden">Salvar</span>
               </>
             )}
           </Button>
@@ -1446,7 +1446,7 @@ export default function Configuracoes() {
       </div>
 
       {/* Imagem de Perfil Centralizada */}
-      <div className="flex flex-col items-center space-y-4 mb-8">
+      <div className="flex flex-col items-center space-y-4 mb-4 sm:mb-6 lg:mb-8">
         <div className="relative group cursor-pointer">
           <div 
             className="w-28 h-28 rounded-full overflow-hidden border-3 border-gray-200 shadow-md focus:outline-none focus:ring-0"
@@ -1478,9 +1478,9 @@ export default function Configuracoes() {
         />
       </div>
 
-      <Tabs defaultValue="profile" className="space-y-6">
-        <TabsContent value="profile" className="space-y-6">
-          <div className="space-y-6">
+      <Tabs defaultValue="profile" className="space-y-4 sm:space-y-6">
+        <TabsContent value="profile" className="space-y-4 sm:space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             <div className="space-y-4">
               <h3 className="text-lg font-medium flex items-center gap-2">
                 <User className="h-5 w-5" />
@@ -1584,8 +1584,8 @@ export default function Configuracoes() {
             </div>
 
             {/* Seção Administração da Equipe */}
-            <div className="space-y-4 mt-8 pt-8 border-t border-gray-200">
-              <div className="flex items-center justify-between">
+            <div className="space-y-4 mt-4 sm:mt-6 lg:mt-8 pt-4 sm:pt-6 lg:pt-8 border-t border-gray-200">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
                 <div className="flex items-center gap-4">
                   <h3 className="text-lg font-medium flex items-center gap-2">
                     <Users className="h-5 w-5" />
@@ -1627,7 +1627,7 @@ export default function Configuracoes() {
                 <div className="bg-white">
                   {/* Cabeçalho da tabela */}
                   <div className="px-4 py-3 border-b border-gray-200">
-                    <div className="grid grid-cols-12 gap-6 text-sm font-medium text-gray-600">
+                    <div className="grid grid-cols-12 gap-3 sm:gap-4 lg:gap-6 text-sm font-medium text-gray-600">
                       <div className="col-span-3">Membro</div>
                       <div className="col-span-2">Último Acesso</div>
                       <div className="col-span-2">Data de Entrada</div>
@@ -1641,7 +1641,7 @@ export default function Configuracoes() {
                   <div className="divide-y divide-gray-200">
                     {teamUsers.map((member) => (
                       <div key={member.id} className="px-4 py-4 hover:bg-gray-50 transition-colors">
-                        <div className="grid grid-cols-12 gap-6 items-center">
+                        <div className="grid grid-cols-12 gap-3 sm:gap-4 lg:gap-6 items-center">
                           {/* Membro */}
                           <div className="col-span-3">
                             <div className="flex items-center gap-3">
@@ -2054,7 +2054,7 @@ export default function Configuracoes() {
                         {getActivityIcon(activity.action_type)}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
+                        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                           <div className="flex-1">
                             <p className="font-medium text-gray-900 leading-tight">
                               {getActivityTitle(activity.action_description)}
@@ -2065,7 +2065,7 @@ export default function Configuracoes() {
                               </p>
                             )}
                   </div>
-                          <span className="text-xs text-gray-500 whitespace-nowrap ml-2">
+                          <span className="text-xs text-gray-500 whitespace-nowrap sm:ml-2">
                             {new Date(activity.created_at).toLocaleDateString('pt-BR')} às{' '}
                             {new Date(activity.created_at).toLocaleTimeString('pt-BR', { 
                               hour: '2-digit', 
@@ -2217,7 +2217,7 @@ export default function Configuracoes() {
                 isProcessingAction || 
                 confirmText !== `Eu confirmo que quero desativar ${selectedUserForAction?.full_name || selectedUserForAction?.name}`
               }
-              className="bg-red-600 hover:bg-red-700 text-white min-w-[120px]"
+              className="bg-red-600 hover:bg-red-700 text-white min-w-0 sm:min-w-[120px]"
             >
               {isProcessingAction ? (
                 <>
@@ -2288,7 +2288,7 @@ export default function Configuracoes() {
                 isProcessingAction || 
                 confirmText !== `Eu confirmo que quero excluir ${selectedUserForAction?.full_name || selectedUserForAction?.name}`
               }
-              className="bg-red-700 hover:bg-red-800 text-white min-w-[120px]"
+              className="bg-red-700 hover:bg-red-800 text-white min-w-0 sm:min-w-[120px]"
             >
               {isProcessingAction ? (
                 <>
@@ -2340,7 +2340,7 @@ export default function Configuracoes() {
             <Button
               onClick={confirmClearHistory}
               disabled={isClearingHistory}
-              className="bg-red-600 hover:bg-red-700 text-white min-w-[140px]"
+              className="bg-red-600 hover:bg-red-700 text-white min-w-0 sm:min-w-[140px]"
             >
               {isClearingHistory ? (
                 <>
@@ -2372,7 +2372,7 @@ export default function Configuracoes() {
           </DialogHeader>
           
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="user-name" className="text-sm font-medium text-gray-700">
                   Nome de Login
@@ -2417,7 +2417,7 @@ export default function Configuracoes() {
                   />
                 </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="user-phone" className="text-sm font-medium text-gray-700">
                   Telefone
@@ -2573,7 +2573,7 @@ export default function Configuracoes() {
             <Button
               onClick={confirmAddUser}
               disabled={isAddingUser}
-              className="bg-black hover:bg-gray-800 text-white min-w-[140px]"
+              className="bg-black hover:bg-gray-800 text-white min-w-0 sm:min-w-[140px]"
             >
               {isAddingUser ? (
                 <>
@@ -2660,7 +2660,7 @@ export default function Configuracoes() {
             <Button
               onClick={confirmPromotionChange}
               disabled={isProcessingPromotion}
-              className={`min-w-[140px] ${
+              className={`min-w-0 sm:min-w-[140px] ${
                 promotionAction === 'promote' 
                   ? 'bg-blue-600 hover:bg-blue-700' 
                   : 'bg-blue-600 hover:bg-blue-700'
@@ -2767,7 +2767,7 @@ export default function Configuracoes() {
             <Button
               onClick={handleAdminPasswordConfirmation}
               disabled={!adminPasswordForConfirm || isVerifyingAdminPassword}
-              className="bg-black hover:bg-gray-800 text-white min-w-[120px] btn-save-click"
+              className="bg-black hover:bg-gray-800 text-white min-w-0 sm:min-w-[120px] btn-save-click"
             >
               {isVerifyingAdminPassword ? (
                 <>
@@ -2953,7 +2953,7 @@ export default function Configuracoes() {
                 !confirmNewUserPassword || 
                 newUserPassword !== confirmNewUserPassword
               }
-              className="bg-black hover:bg-gray-800 text-white min-w-[140px] btn-save-click"
+              className="bg-black hover:bg-gray-800 text-white min-w-0 sm:min-w-[140px] btn-save-click"
             >
               {isChangingPassword ? (
                 <>

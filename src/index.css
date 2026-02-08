@@ -2,6 +2,55 @@
 @tailwind components;
 @tailwind utilities;
 
+/* ===== MOBILE RESPONSIVENESS ===== */
+
+/* Safe area para dispositivos com notch (iPhone X+) */
+@supports (padding: env(safe-area-inset-top)) {
+  body {
+    padding-top: env(safe-area-inset-top);
+    padding-bottom: env(safe-area-inset-bottom);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Prevenir zoom ao focar em inputs no iOS (fonte < 16px causa zoom) */
+@media screen and (max-width: 767px) {
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="number"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="date"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* Touch targets mínimos para mobile (44px) */
+@media screen and (max-width: 639px) {
+  button:not(.no-min-touch),
+  [role="button"]:not(.no-min-touch),
+  a[role="button"]:not(.no-min-touch) {
+    min-height: 40px;
+    min-width: 40px;
+  }
+}
+
+/* Melhor scroll no mobile */
+@media screen and (max-width: 767px) {
+  .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none; /* Firefox */
+  }
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none; /* Chrome/Safari */
+  }
+}
+
 /* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
 All colors MUST be HSL.
 */

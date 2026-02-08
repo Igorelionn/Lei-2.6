@@ -354,10 +354,10 @@ export default function Historico() {
     const historicoAtrasos = analisarAtrasos(selectedArrematante);
 
     return (
-      <div className="p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
+      <div className="p-4 sm:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto space-y-4 sm:space-y-6 lg:space-y-8">
           {/* Botões de Ação */}
-          <div className="flex items-center justify-between">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <Button
               variant="ghost"
               onClick={() => setSelectedArrematante(null)}
@@ -387,10 +387,10 @@ export default function Historico() {
           </div>
 
           {/* Conteúdo para PDF */}
-          <div id="historico-content" className="space-y-8">
+          <div id="historico-content" className="space-y-4 sm:space-y-6 lg:space-y-8">
             {/* Cabeçalho com Nome */}
             <div className="border-b border-gray-200 pb-6">
-              <h1 className="text-3xl font-light text-gray-900 mb-2">
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-light text-gray-900 mb-2">
                 {selectedArrematante.nome}
               </h1>
               <p className="text-sm text-gray-500">
@@ -437,7 +437,7 @@ export default function Historico() {
           <div className="border-b border-gray-200 pb-8">
             <h2 className="text-base font-medium text-gray-900 mb-6">Resumo Financeiro</h2>
             
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-8">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-8">
               {/* Total de Leilões */}
               <div>
                 <p className="text-xs text-gray-500 mb-2">Total de Leilões</p>
@@ -594,7 +594,7 @@ export default function Historico() {
               </p>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {selectedArrematante.leiloes.map((leilao, index) => {
                 const valorTotal = leilao.valorPagarNumerico || 0;
                 const isPago = leilao.pago;
@@ -621,7 +621,7 @@ export default function Historico() {
                     className="border-b border-gray-200 pb-6"
                   >
                     {/* Cabeçalho */}
-                    <div className="flex items-start justify-between mb-4">
+                    <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between mb-4">
                       <div className="flex-1">
                         <div className="flex items-center gap-3 mb-2">
                           {leilao.leilaoIdentificacao && (
@@ -686,7 +686,7 @@ export default function Historico() {
           </div>
 
           {/* Considerações Finais */}
-          <div className="border-t border-gray-200 pt-8">
+          <div className="border-t border-gray-200 pt-4 sm:pt-6 lg:pt-8">
             <h2 className="text-base font-medium text-gray-900 mb-4">Considerações Finais</h2>
             <div className="space-y-4 text-sm text-gray-700 leading-relaxed">
               <p>
@@ -724,8 +724,8 @@ export default function Historico() {
       <div className="w-full max-w-2xl space-y-12">
         {/* Título */}
         <div>
-          <div className="flex items-center gap-4">
-            <h1 className="text-3xl md:text-4xl font-normal text-gray-900 leading-tight">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-normal text-gray-900 leading-tight">
               Buscar Histórico
             </h1>
             <div className="flex items-center gap-2">
@@ -818,8 +818,8 @@ export default function Historico() {
         </div>
 
         {/* Título dos Resultados */}
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-normal text-gray-900">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <h2 className="text-xl sm:text-2xl lg:text-3xl font-normal text-gray-900">
             {isTyping ? (
               <>
                 Buscando Arrematante
@@ -844,7 +844,7 @@ export default function Historico() {
                 onClick={() => setSelectedArrematante(arrematante)}
                 className="group p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex-1 min-w-0">
                     <h3 className="text-lg font-medium text-gray-900 truncate group-hover:text-gray-950">{arrematante.nome}</h3>
                     <div className="mt-2 space-y-1">

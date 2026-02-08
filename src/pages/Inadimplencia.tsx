@@ -1915,10 +1915,10 @@ Arthur Lira Leilões`;
 
   return (
     <HoverContext.Provider value={{ isRowHovered, setIsRowHovered }}>
-    <div className="space-y-8 scale-fade">
-      <div className="flex items-center justify-between">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8 scale-fade">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Gestão de Inadimplência</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight">Gestão de Inadimplência</h1>
           <p className="text-muted-foreground">
             Acompanhe e gerencie os pagamentos em atraso
           </p>
@@ -1936,47 +1936,47 @@ Arthur Lira Leilões`;
       </div>
 
       {/* Indicadores de Inadimplência */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total Inadimplente</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalOverdue}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalOverdue}</p>
             <p className="text-sm text-gray-600 font-medium">arrematantes em atraso</p>
           </div>
         </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Valor Total</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(stats.totalAmount)}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(stats.totalAmount)}</p>
             <p className="text-sm text-gray-600 font-medium">em pagamentos atrasados</p>
           </div>
         </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Parcelas Atrasadas</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalOverdueInstallments}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalOverdueInstallments}</p>
             <p className="text-sm text-gray-600 font-medium">parcelas em atraso</p>
           </div>
       </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Críticos</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.criticalSeverity}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.criticalSeverity}</p>
             <p className="text-sm text-gray-600 font-medium">mais de 30 dias</p>
           </div>
         </div>
@@ -2048,11 +2048,12 @@ Arthur Lira Leilões`;
               <p className="text-sm">Todos os pagamentos estão em dia ou não há filtros correspondentes.</p>
             </div>
           ) : (
+            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow className="border-gray-200">
                   <TableHead className="font-semibold text-gray-700">Arrematante</TableHead>
-                  <TableHead className="font-semibold text-gray-700">Leilão</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Leilão</TableHead>
                   <TableHead className="font-semibold text-gray-700">
                     {(() => {
                       // Verificar se há algum pagamento à vista na lista filtrada
@@ -2088,8 +2089,8 @@ Arthur Lira Leilões`;
                       }
                     })()}
                   </TableHead>
-                  <TableHead className="font-semibold text-gray-700">Vencimento</TableHead>
-                   <TableHead className="font-semibold text-gray-700">
+                  <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Vencimento</TableHead>
+                   <TableHead className="hidden sm:table-cell font-semibold text-gray-700">
                      {(() => {
                        // Verificar se há casos de ambos atrasados
                        const hasAmbosAtrasados = filteredOverdueAuctions.some(auction => auction.ambosAtrasados);
@@ -2107,7 +2108,7 @@ Arthur Lira Leilões`;
                        }
                      })()}
                    </TableHead>
-                  <TableHead className="font-semibold text-gray-700">Contato</TableHead>
+                  <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Contato</TableHead>
                   <TableHead className="font-semibold text-gray-700">Atraso</TableHead>
                 </TableRow>
               </TableHeader>
@@ -2127,7 +2128,7 @@ Arthur Lira Leilões`;
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleOpenHistory(auction)}
-                                className="h-6 w-6 p-0 hover:bg-blue-100"
+                                className="h-10 w-10 sm:h-6 sm:w-6 p-0 hover:bg-blue-100"
                                 title="Ver relatório do arrematante"
                               >
                                 <History className="h-4 w-4 text-blue-900" />
@@ -2136,7 +2137,7 @@ Arthur Lira Leilões`;
                                 size="sm"
                                 variant="ghost"
                                 onClick={() => handleTestEmailSend(auction)}
-                                className="h-6 w-6 p-0 hover:bg-amber-100"
+                                className="h-10 w-10 sm:h-6 sm:w-6 p-0 hover:bg-amber-100"
                                 title="Testar envio de cobrança"
                                 disabled={!auction.arrematante?.email}
                               >
@@ -2150,7 +2151,7 @@ Arthur Lira Leilões`;
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div>
                         <p className="font-medium text-gray-900">{auction.nome}</p>
                         <p className="text-sm text-gray-500">
@@ -2208,7 +2209,7 @@ Arthur Lira Leilões`;
                         })()}
                       </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       {auction.ambosAtrasados ? (
                         <HoverTransitionDate
                           auction={auction}
@@ -2249,7 +2250,7 @@ Arthur Lira Leilões`;
                   </div>
                       )}
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="flex flex-col">
                         {(() => {
                           const arrematante = auction.arrematante;
@@ -2332,7 +2333,7 @@ Arthur Lira Leilões`;
                         })()}
                     </div>
                     </TableCell>
-                    <TableCell>
+                    <TableCell className="hidden sm:table-cell">
                       <div className="flex flex-col gap-1 text-sm">
                         {auction.arrematante?.telefone && (
                           <div className="flex items-center gap-1 text-gray-600">
@@ -2362,6 +2363,7 @@ Arthur Lira Leilões`;
               ))}
               </TableBody>
             </Table>
+            </div>
           )}
         </CardContent>
       </Card>
@@ -2393,7 +2395,7 @@ Arthur Lira Leilões`;
             
             return (
               <>
-                <div id="credit-analysis-report" className="space-y-6 pt-6">
+                <div id="credit-analysis-report" className="space-y-4 sm:space-y-6 pt-6">
                    
                    {/* Registros de Transações */}
                    <div className="bg-white rounded-lg border border-gray-200 no-page-break">
@@ -2402,13 +2404,13 @@ Arthur Lira Leilões`;
                        <p className="text-sm text-gray-600">Histórico cronológico de arrematações realizadas</p>
                      </div>
                      
-                     <div className="p-6 space-y-6">
+                     <div className="p-6 space-y-4 sm:space-y-6">
                        {/* Processo e Situação */}
-                       <div className="flex items-center justify-between border-b border-gray-100 pb-4">
+                       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-gray-100 pb-4 gap-3">
                          <div>
                            <h4 className="text-lg font-semibold text-gray-900">Processo Nº {selectedArrematante.identificacao}</h4>
                          </div>
-                         <div className="text-right">
+                         <div className="text-left sm:text-right">
                            <div className="text-sm text-gray-600 mb-1">Situação</div>
                            <Badge variant="destructive">
                              ATRASADO
@@ -2419,7 +2421,7 @@ Arthur Lira Leilões`;
                        {/* Identificação do Arrematante */}
                        <div className="bg-gray-50 rounded-lg p-6">
                          <h4 className="text-lg font-semibold text-gray-900 mb-4">Identificação do Arrematante</h4>
-                         <div className="grid grid-cols-2 gap-4 text-sm">
+                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="font-medium text-gray-600">Nome Completo:</span>
                              <div className="text-gray-900 font-medium">{selectedArrematante.arrematante?.nome}</div>
@@ -2480,7 +2482,7 @@ Arthur Lira Leilões`;
                             
                             return (
                               <div key={idx} className="border border-gray-200 rounded-lg p-4 bg-gray-50">
-                                <div className="flex items-center justify-between mb-3 pb-2 border-b border-gray-200">
+                                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-3 pb-2 border-b border-gray-200 gap-2">
                                   <h5 className="font-semibold text-gray-900">{contrato.leilaoNome}</h5>
                                   <Badge variant={
                                     contrato.status === 'Quitado' ? 'success' :
@@ -2491,7 +2493,7 @@ Arthur Lira Leilões`;
                                   </Badge>
                                 </div>
                                 
-                                <div className="grid grid-cols-2 gap-3 text-sm">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm">
                                   <div>
                                     <span className="font-medium text-gray-600">Código:</span>
                                     <div className="text-gray-900">{contrato.leilaoId}</div>
@@ -2559,7 +2561,7 @@ Arthur Lira Leilões`;
 
                 {/* Perfil de Risco */}
                        <div className="bg-white border border-gray-200 rounded-lg p-6">
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4 gap-2">
                            <h4 className="text-lg font-semibold text-gray-900">Perfil de Risco</h4>
                            <Badge variant="destructive" className="text-sm font-bold px-4 py-2">
                              RISCO ALTO
@@ -2766,7 +2768,7 @@ Arthur Lira Leilões`;
                 </div>
 
                 {/* Logos Elionx e Arthur Lira */}
-                <div className="mt-8 flex justify-center items-center -ml-20">
+                <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20">
                   <img 
                     src="/logo-elionx-softwares.png" 
                     alt="Elionx Softwares" 
@@ -2895,7 +2897,7 @@ Arthur Lira Leilões`;
           </DialogHeader>
 
           {selectedDebtor && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Informações do Devedor */}
               <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
                 <div className="flex items-start justify-between">
@@ -2942,7 +2944,7 @@ Arthur Lira Leilões`;
                 {attachments.length > 0 && (
                   <div className="space-y-2">
                     {attachments.map((file, index) => (
-                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded-md">
+                      <div key={index} className="flex flex-col sm:flex-row items-start sm:items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded-md gap-2">
                         <div className="flex items-center gap-2">
                           <ImageIcon className="h-4 w-4 text-blue-600" />
                           <span className="text-sm font-medium text-gray-900">{file.name}</span>
@@ -2955,7 +2957,7 @@ Arthur Lira Leilões`;
                           variant="ghost"
                           size="sm"
                           onClick={() => removeAttachment(index)}
-                          className="h-6 w-6 p-0 text-red-500 hover:bg-red-50"
+                          className="h-10 w-10 sm:h-6 sm:w-6 p-0 text-red-500 hover:bg-red-50"
                         >
                           <X className="h-3 w-3" />
                         </Button>
@@ -3134,7 +3136,7 @@ function InadimplenciaReportPDF({
   if (!reportData) return null;
 
   return (
-    <div id="inadimplencia-export-report" className="space-y-6 bg-white p-6 font-sans">
+    <div id="inadimplencia-export-report" className="space-y-4 sm:space-y-6 bg-white p-6 font-sans">
       {/* Cabeçalho */}
       <div className="text-center border-b border-gray-200 pb-6 no-page-break">
         <h1 className="text-2xl font-semibold text-gray-900 mb-4">
@@ -3240,7 +3242,7 @@ function InadimplenciaReportPDF({
       </div>
 
       {/* Logos Elionx e Arthur Lira */}
-      <div className="mt-8 flex justify-center items-center -ml-20 no-page-break">
+      <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20 no-page-break">
         <img 
           src="/logo-elionx-softwares.png" 
           alt="Elionx Softwares" 

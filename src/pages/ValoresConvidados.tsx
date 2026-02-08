@@ -192,25 +192,25 @@ export default function ValoresConvidados() {
     <div className="min-h-screen bg-white">
       {/* Header fixo */}
       <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
-        <div className="max-w-4xl mx-auto px-6 py-4">
-          <div className="flex items-center gap-4 mb-2">
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-2">
             {/* Botão de voltar estilo wizard */}
             <Button
               variant="ghost"
               size="icon"
               onClick={() => selectedLeilao ? setSelectedLeilao(null) : navigate('/lotes-convidados')}
-              className="rounded-full w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-700"
+              className="rounded-full w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-700 self-start"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-2xl font-light text-gray-900">
+            <h1 className="text-xl sm:text-2xl font-light text-gray-900">
               {selectedLeilao ? leilaoSelecionado?.nome : 'Detalhes dos Valores'}
             </h1>
           </div>
         </div>
       </div>
 
-      <div className="max-w-4xl mx-auto px-6 py-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-6 py-8">
         {/* Lista de Leilões */}
         {!selectedLeilao && (
           <div className="space-y-2">
@@ -240,9 +240,9 @@ export default function ValoresConvidados() {
                   <button
                     key={id}
                     onClick={() => setSelectedLeilao(id)}
-                    className="w-full text-left px-6 py-4 hover:bg-gray-50 border-b border-gray-100 transition-colors group"
+                    className="w-full text-left px-3 sm:px-4 lg:px-6 py-4 hover:bg-gray-50 border-b border-gray-100 transition-colors group"
                   >
-                    <div className="flex items-center justify-between">
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex-1">
                         <h3 className="text-base font-medium text-gray-900 mb-1">
                           {leilao.nome}
@@ -262,13 +262,13 @@ export default function ValoresConvidados() {
 
         {/* Detalhes do Leilão */}
         {selectedLeilao && leilaoSelecionado && totaisLeilao && (
-          <div className="space-y-6">
+          <div className="space-y-3 sm:space-y-4 lg:space-y-6">
             {/* Lista de Lotes e Arrematantes - Design Clean */}
             <div className="space-y-4">
               {leilaoSelecionado.lotes.map((lote) => (
                 <div key={lote.id} className="bg-white border border-gray-200 rounded-lg">
                   {/* Header do Lote */}
-                  <div className="px-6 py-3 border-b border-gray-100">
+                  <div className="px-3 sm:px-4 lg:px-6 py-3 border-b border-gray-100">
                     <span className="text-sm text-gray-900">
                       <span className="font-medium">Lote #{lote.numero}</span>
                       <span className="text-gray-400 mx-2">•</span>
@@ -279,7 +279,7 @@ export default function ValoresConvidados() {
                   {/* Arrematantes do Lote */}
                   <div className="divide-y divide-gray-100">
                     {lote.arrematantes.length === 0 ? (
-                      <div className="px-6 py-6 text-center">
+                      <div className="px-4 sm:px-6 py-6 text-center">
                         <p className="text-sm text-gray-500 mb-2">Nenhum arrematante cadastrado</p>
                         <p className="text-xs text-gray-400">
                           Vá em <span className="font-medium">Lotes Convidados</span> → Clique no ícone 👤 para cadastrar
@@ -287,10 +287,10 @@ export default function ValoresConvidados() {
                       </div>
                     ) : (
                       lote.arrematantes.map((arr) => (
-                        <div key={arr.id} className="px-6 py-4">
-                          <div className="flex items-center justify-between">
+                        <div key={arr.id} className="px-3 sm:px-4 lg:px-6 py-4">
+                          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                             <div className="flex items-center gap-3">
-                              <div className="h-8 w-8 rounded-full bg-gray-100 flex items-center justify-center">
+                              <div className="h-10 w-10 sm:h-8 sm:w-8 rounded-full bg-gray-100 flex items-center justify-center">
                                 <span className="text-xs font-medium text-gray-600">
                                   {arr.nome.charAt(0).toUpperCase()}
                                 </span>
@@ -302,7 +302,7 @@ export default function ValoresConvidados() {
                                 </p>
                               </div>
                             </div>
-                            <div className="text-right">
+                            <div className="text-left sm:text-right">
                               <p className="text-sm font-medium text-gray-900 mb-1">
                                 {formatCurrency(arr.valorTotal)}
                               </p>
@@ -323,17 +323,17 @@ export default function ValoresConvidados() {
 
             {/* Resumo dos Valores - Design Clean (EMBAIXO) */}
             <div className="bg-white border border-gray-200 rounded-lg divide-y divide-gray-100">
-              <div className="px-6 py-4">
+              <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
                 <p className="text-sm text-gray-600 mb-1">Total a Receber</p>
-                <p className="text-2xl font-light text-gray-900">{formatCurrency(totaisLeilao.totalReceber)}</p>
+                <p className="text-xl sm:text-2xl font-light text-gray-900">{formatCurrency(totaisLeilao.totalReceber)}</p>
               </div>
-              <div className="px-6 py-4">
+              <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
                 <p className="text-sm text-gray-600 mb-1">Comissão para o Anfitrião ({leilaoSelecionado.percentualComissao}%)</p>
-                <p className="text-2xl font-light text-gray-900">{formatCurrency(totaisLeilao.totalComissao)}</p>
+                <p className="text-xl sm:text-2xl font-light text-gray-900">{formatCurrency(totaisLeilao.totalComissao)}</p>
               </div>
-              <div className="px-6 py-4">
+              <div className="px-3 sm:px-4 lg:px-6 py-3 sm:py-4 lg:py-6">
                 <p className="text-sm text-gray-600 mb-1">Repasse ao Dono do Lote</p>
-                <p className="text-2xl font-light text-gray-900">{formatCurrency(totaisLeilao.totalDono)}</p>
+                <p className="text-xl sm:text-2xl font-light text-gray-900">{formatCurrency(totaisLeilao.totalDono)}</p>
               </div>
             </div>
           </div>

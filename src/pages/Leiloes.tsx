@@ -1704,11 +1704,11 @@ function Leiloes() {
 }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 sm:space-y-6">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-gray-900">Gestão de Leilões</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold tracking-tight text-gray-900">Gestão de Leilões</h1>
           <p className="text-muted-foreground">
             Gerencie e monitore todos os leilões da plataforma
           </p>
@@ -1746,8 +1746,8 @@ function Leiloes() {
 
              {/* Painel de Indicadores */}
        <div className="bg-white border border-gray-200 rounded-lg shadow-sm">
-         <div className="px-8 py-7">
-           <div className="flex items-center justify-between mb-8">
+         <div className="px-4 sm:px-6 lg:px-8 py-5 sm:py-7">
+           <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between mb-6 xl:mb-8">
              <div>
                <h2 className="text-xl font-semibold text-gray-900 tracking-tight">Indicadores Gerais</h2>
                <p className="text-sm text-gray-600 mt-1">Visão geral dos leilões cadastrados</p>
@@ -1764,44 +1764,44 @@ function Leiloes() {
              </div>
            </div>
            
-           <div className="grid grid-cols-4 divide-x divide-gray-200">
-             <div className="text-center px-6">
-               <div className="mb-4">
-                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total de Leilões</p>
-                 <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
+           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-0 xl:divide-x xl:divide-gray-200">
+             <div className="text-center px-4 xl:px-6">
+               <div className="mb-3 xl:mb-4">
+                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Total de Leilões</p>
+                 <div className="h-px w-16 xl:w-20 bg-gray-300 mx-auto mb-3 xl:mb-4"></div>
                </div>
-               <p className="text-4xl font-extralight text-gray-900 mb-2 tracking-tight">{auctions.length}</p>
-               <p className="text-sm text-gray-600 font-medium">Eventos Cadastrados</p>
+               <p className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">{auctions.length}</p>
+               <p className="text-xs xl:text-sm text-gray-600 font-medium">Eventos Cadastrados</p>
              </div>
              
-             <div className="text-center px-6">
-               <div className="mb-4">
-                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Em Andamento</p>
-                 <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
+             <div className="text-center px-4 xl:px-6">
+               <div className="mb-3 xl:mb-4">
+                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Em Andamento</p>
+                 <div className="h-px w-16 xl:w-20 bg-gray-300 mx-auto mb-3 xl:mb-4"></div>
                </div>
-               <p className="text-4xl font-extralight text-gray-900 mb-2 tracking-tight">
+               <p className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">
                  {auctions.filter(a => a.status === "em_andamento").length}
                </p>
-               <p className="text-sm text-gray-600 font-medium">Leilões Ativos</p>
+               <p className="text-xs xl:text-sm text-gray-600 font-medium">Leilões Ativos</p>
              </div>
              
-             <div className="text-center px-6">
-               <div className="mb-4">
-                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Programados</p>
-                 <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
+             <div className="text-center px-4 xl:px-6">
+               <div className="mb-3 xl:mb-4">
+                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Programados</p>
+                 <div className="h-px w-16 xl:w-20 bg-gray-300 mx-auto mb-3 xl:mb-4"></div>
                </div>
-               <p className="text-4xl font-extralight text-gray-900 mb-2 tracking-tight">
+               <p className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">
                  {auctions.filter(a => a.status === "agendado").length}
                </p>
-               <p className="text-sm text-gray-600 font-medium">Eventos Futuros</p>
+               <p className="text-xs xl:text-sm text-gray-600 font-medium">Eventos Futuros</p>
              </div>
              
-             <div className="text-center px-6">
-               <div className="mb-4">
-                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Investimento</p>
-                 <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
+             <div className="text-center px-4 xl:px-6">
+               <div className="mb-3 xl:mb-4">
+                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Investimento</p>
+                 <div className="h-px w-16 xl:w-20 bg-gray-300 mx-auto mb-3 xl:mb-4"></div>
                </div>
-               <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
+               <p className="text-lg sm:text-xl xl:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
                  {formatCurrency(auctions.reduce((sum, a) => {
                    if (a.custosNumerico !== undefined) {
                      return sum + a.custosNumerico;
@@ -1813,7 +1813,7 @@ function Leiloes() {
                    return sum;
                  }, 0))}
                </p>
-               <p className="text-sm text-gray-600 font-medium">Custos Totais</p>
+               <p className="text-xs xl:text-sm text-gray-600 font-medium">Custos Totais</p>
              </div>
            </div>
          </div>
@@ -1832,7 +1832,7 @@ function Leiloes() {
               </div>
               <Button 
                 variant="outline" 
-                className="gap-2 h-11 px-4 min-w-[120px] hover:bg-gray-100 hover:text-gray-900"
+                className="gap-2 h-11 px-4 min-w-0 sm:min-w-[120px] hover:bg-gray-100 hover:text-gray-900"
                 onClick={() => setIsExportModalOpen(true)}
               >
                  <Download className="h-4 w-4" />
@@ -1841,9 +1841,9 @@ function Leiloes() {
             </div>
             
                          {/* Controles de Filtro */}
-             <div className="flex items-center justify-between gap-4">
+             <div className="flex flex-col sm:flex-row gap-3 sm:items-center sm:justify-between">
                {/* Barra de Pesquisa */}
-               <div className="relative flex-1 max-w-md">
+               <div className="relative flex-1 min-w-0 max-w-md">
                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                  <Input
                    placeholder="Buscar leilões..."
@@ -1934,7 +1934,7 @@ function Leiloes() {
              {/* Skeleton Cards */}
              {[...Array(3)].map((_, index) => (
                <div key={index} className="animate-pulse-slow transform-none">
-                 <div className="bg-white border border-gray-200 rounded-lg p-6 shadow-sm transition-none transform-none">
+                 <div className="bg-white border border-gray-200 rounded-lg p-3 sm:p-4 lg:p-6 shadow-sm transition-none transform-none">
                    <div className="flex items-center justify-between">
                      <div className="flex items-center space-x-4 flex-1">
                        {/* Avatar skeleton */}
@@ -1997,16 +1997,17 @@ function Leiloes() {
            </div>
           ) : (
                         <div className={`${!isLoadingResults ? 'fade-in' : ''} overflow-y-auto max-h-full custom-scrollbar`}>
+              <div className="overflow-x-auto">
               <Table>
                <TableHeader className="sticky top-0 bg-white z-10">
                  <TableRow className="bg-muted/30">
-                   <TableHead className="font-semibold text-gray-700">Nome do Evento</TableHead>
-                   <TableHead className="font-semibold text-gray-700">Identificação</TableHead>
-                   <TableHead className="font-semibold text-gray-700">Status</TableHead>
-                   <TableHead className="font-semibold text-gray-700">Modalidade</TableHead>
-                   <TableHead className="font-semibold text-gray-700">Data de Início</TableHead>
-                   <TableHead className="font-semibold text-gray-700">Custos</TableHead>
-                   <TableHead className="font-semibold text-gray-700 text-center">Ações</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Nome do Evento</TableHead>
+                  <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Identificação</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Status</TableHead>
+                  <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Modalidade</TableHead>
+                  <TableHead className="font-semibold text-gray-700">Data de Início</TableHead>
+                  <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Custos</TableHead>
+                  <TableHead className="font-semibold text-gray-700 text-center">Ações</TableHead>
                  </TableRow>
                </TableHeader>
                 <TableBody>
@@ -2023,7 +2024,7 @@ function Leiloes() {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         {auction.identificacao ? (
                           <code className="text-xs bg-muted px-2 py-1 rounded font-mono">
                             {auction.identificacao}
@@ -2033,7 +2034,7 @@ function Leiloes() {
                         )}
                       </TableCell>
                       <TableCell>{getStatusBadge(auction.status)}</TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Badge variant="outline" className="capitalize">
                           {auction.local}
                         </Badge>
@@ -2044,7 +2045,7 @@ function Leiloes() {
                           <span className="text-sm font-medium">{formatDate(auction.dataInicio)}</span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <span className="font-semibold text-black">
                           {(() => {
                             // Priorizar custosNumerico se disponível
@@ -2088,7 +2089,7 @@ function Leiloes() {
                                         setEditingArrematanteId('__NEW__'); // ✅ Flag especial para indicar "adicionar novo"
                                         setShowArrematanteSelector(false);
                                       }}
-                                      className="h-8 w-8 p-0 hover:bg-gray-100 btn-action-click"
+                                      className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 btn-action-click"
                                       title="Adicionar Arrematante"
                                     >
                                       <UserPlus className="h-4 w-4 text-gray-600" />
@@ -2113,7 +2114,7 @@ function Leiloes() {
                                           setShowArrematanteSelector(false); // ✅ Não abrir popup - ir direto pro wizard
                                           setEditingArrematanteId(null); // ✅ Não pré-selecionar - wizard mostrará etapa de seleção
                                         }}
-                                        className="h-8 w-8 p-0 hover:bg-gray-100 relative btn-action-click"
+                                        className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 relative btn-action-click"
                                         title={`Ver/Editar Arrematantes (${arrematantesCount})`}
                                       >
                                    <UserCheck className="h-4 w-4 text-gray-600" />
@@ -2137,7 +2138,7 @@ function Leiloes() {
                                           setEditingArrematanteId('__NEW__'); // ✅ Flag especial para indicar "adicionar novo"
                                           setShowArrematanteSelector(false);
                                         }}
-                                        className="h-8 w-8 p-0 hover:bg-gray-100 btn-action-click"
+                                        className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 btn-action-click"
                                         title="Adicionar Novo Arrematante"
                                       >
                                    <UserPlus className="h-4 w-4 text-gray-600" />
@@ -2155,7 +2156,7 @@ function Leiloes() {
                                    setViewingAuction(auction);
                                    setViewingVersion(prev => prev + 1);
                                  }}
-                                 className="h-8 w-8 p-0 hover:bg-gray-100 btn-action-click"
+                                 className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 btn-action-click"
                                  title="Ver detalhes"
                                >
                                  <Eye className="h-4 w-4 text-black" />
@@ -2165,7 +2166,7 @@ function Leiloes() {
                                  variant="ghost"
                                  size="sm"
                                  onClick={() => startEditingAuction(auction)}
-                                 className="h-8 w-8 p-0 hover:bg-gray-100 btn-action-click"
+                                 className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 btn-action-click"
                                  title="Editar"
                                >
                                  <Edit className="h-4 w-4 text-gray-600" />
@@ -2173,7 +2174,7 @@ function Leiloes() {
                           
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
-                              <Button variant="ghost" size="sm" className="h-8 w-8 p-0 hover:bg-gray-100">
+                              <Button variant="ghost" size="sm" className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100">
                                 <MoreVertical className="h-4 w-4 text-gray-600" />
                               </Button>
                             </DropdownMenuTrigger>
@@ -2251,6 +2252,7 @@ function Leiloes() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
               {/* ⚡ PERFORMANCE: Paginação */}
               {filteredAuctions.length > 0 && (
@@ -2344,7 +2346,7 @@ function Leiloes() {
           {/* Conteúdo com Scroll */}
           <div className="overflow-y-auto max-h-[calc(90vh-80px)] scrollbar-thin scrollbar-track-gray-100 scrollbar-thumb-gray-300">
           {viewingAuction && (
-              <div className="p-6">
+              <div className="p-3 sm:p-4 lg:p-6">
             <AuctionDetails 
               key={`auction-details-${viewingAuction.id}-${viewingVersion}`}
               auction={viewingAuction} 
@@ -3078,7 +3080,7 @@ function Leiloes() {
                                     }
                                   }
                                 }}
-                                className="h-8 w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                                className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                                 title="Visualizar arquivo"
                               >
                                 <Eye className="h-4 w-4" />
@@ -3828,7 +3830,7 @@ function Leiloes() {
                 
                 {/* Área de upload */}
                 <div 
-                  className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors"
+                  className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 lg:p-6 hover:border-gray-400 transition-colors"
                   onDragOver={handleDragOver}
                   onDrop={handleDrop}
                 >

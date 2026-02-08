@@ -1,19 +1,31 @@
 import { useEffect, useRef } from 'react';
 import { useEmailNotifications } from './use-email-notifications';
 import { useSupabaseAuctions } from './use-supabase-auctions';
-import { parseISO, differenceInDays, isAfter, isBefore } from 'date-fns';
+import { parseISO, differenceInDays, addDays, getDaysInMonth } from 'date-fns';
 import { logger } from '@/lib/logger';
 
 /**
  * Hook para envio automático de emails de lembretes e cobranças
  * 
- * Funcionalidades:
- * - Envia lembretes X dias antes do vencimento (configurável)
- * - Envia cobranças X dias após o vencimento (configurável)
- * - Só envia para arrematantes que NÃO pagaram
- * - Respeita configurações da aba Configurações
- * - Previne envios duplicados no mesmo dia
- * - Executa verificação a cada 5 minutos
+ * Lógica de envio:
+ * 
+ * LEMBRETE (preventivo):
+ * - Enviado X dias antes do vencimento da próxima parcela não paga
+ * - Verificação diária (1x por dia por parcela)
+ * - Padrão: 3 dias antes do vencimento
+ * 
+ * COBRANÇA (inadimplência):
+ * - Enviado MENSALMENTE no dia correto: (dia do vencimento + diasDepoisCobranca)
+ * - Exemplo: Vencimento dia 20, diasDepoisCobranca=1 → cobrança dia 21 de cada mês
+ * - Se não pagar em fevereiro, receberá novamente dia 21 de março, abril, etc.
+ * - Enviado para CADA parcela em atraso individualmente
+ * - Verificação mensal (1x por mês por parcela)
+ * 
+ * CONFIRMAÇÃO DE PAGAMENTO:
+ * - Enviada automaticamente ao confirmar pagamento (via tela de Arrematantes)
+ * - NÃO é processada por este hook (é acionada manualmente pelo usuário)
+ * 
+ * Executa verificação a cada 5 minutos
  */
 export function useAutoEmailNotifications() {
   const { auctions } = useSupabaseAuctions();
@@ -29,21 +41,46 @@ export function useAutoEmailNotifications() {
   const jaEnviouEmailRef = useRef(jaEnviouEmail);
   
   // Atualizar refs quando valores mudarem
-  useEffect(() => {
-    auctionsRef.current = auctions;
-  }, [auctions]);
-  
-  useEffect(() => {
-    configRef.current = config;
-  }, [config]);
-  
+  useEffect(() => { auctionsRef.current = auctions; }, [auctions]);
+  useEffect(() => { configRef.current = config; }, [config]);
   useEffect(() => {
     enviarLembreteRef.current = enviarLembrete;
     enviarCobrancaRef.current = enviarCobranca;
     jaEnviouEmailRef.current = jaEnviouEmail;
   }, [enviarLembrete, enviarCobranca, jaEnviouEmail]);
 
-  // Função para verificar e enviar emails automáticos
+  /**
+   * Verifica se hoje é dia de enviar cobrança mensal para uma parcela específica.
+   * 
+   * A cobrança é enviada no dia (vencimento + diasDepoisCobranca) de cada mês.
+   * Se o mês atual tem menos dias, ajusta para o último dia do mês.
+   * Se o sistema estiver offline no dia exato, envia ao voltar (se ainda no mesmo mês).
+   * 
+   * Exemplo com vencimento dia 20 e diasDepoisCobranca=1:
+   * - Fev 21: envia ✓
+   * - Fev 22: já enviou em fev → pula ✓
+   * - Mar 21: envia ✓ (novo mês)
+   * - Mar 22: já enviou em mar → pula ✓
+   */
+  const ehDiaDeCobrancaMensal = (dataVencimento: Date, diasDepoisCobranca: number, hoje: Date): boolean => {
+    // Calcular a primeira data de cobrança
+    const primeiraCobranca = addDays(dataVencimento, diasDepoisCobranca);
+    
+    // Se ainda não chegou na primeira data de cobrança, não enviar
+    if (hoje < primeiraCobranca) return false;
+    
+    // Dia do mês em que a cobrança deve ser enviada
+    const diaCobranca = primeiraCobranca.getDate();
+    
+    // Ajustar para meses com menos dias (ex: fev tem 28 dias, dia 31 → dia 28)
+    const diasNoMes = getDaysInMonth(hoje);
+    const diaEfetivo = Math.min(diaCobranca, diasNoMes);
+    
+    // Verificar se hoje é o dia de cobrança ou posterior (caso sistema estivesse offline)
+    return hoje.getDate() >= diaEfetivo;
+  };
+
+  // Função principal de verificação
   const verificarEEnviarEmails = async () => {
     // 🔒 Usar valores das refs (sempre atualizados)
     const currentConfig = configRef.current;
@@ -64,75 +101,33 @@ export function useAutoEmailNotifications() {
     }
     ultimaVerificacaoRef.current = agora;
 
-    logger.info('Verificando pagamentos para envio automático de emails');
+    logger.info('🔍 Verificando pagamentos para envio automático de emails');
 
     const hoje = new Date();
+    hoje.setHours(0, 0, 0, 0);
     let lembretesEnviados = 0;
     let cobrancasEnviadas = 0;
 
     for (const auction of currentAuctions) {
       // Pular se já está arquivado
-      if (auction.arquivado) {
-        continue;
-      }
+      if (auction.arquivado) continue;
 
       // Obter todos os arrematantes (compatibilidade com estrutura antiga e nova)
       const arrematantes = auction.arrematantes || (auction.arrematante ? [auction.arrematante] : []);
-      
-      // Pular se não tem arrematantes
-      if (arrematantes.length === 0) {
-        continue;
-      }
+      if (arrematantes.length === 0) continue;
 
       // Processar cada arrematante do leilão
       for (const arrematante of arrematantes) {
-        // Pular se não tem email
-        if (!arrematante.email) {
-          continue;
-        }
+        // Pular se não tem email ou já pagou tudo
+        if (!arrematante.email || arrematante.pago) continue;
 
-        // Pular se já pagou
-        if (arrematante.pago) {
-          continue;
-        }
-
-        // Encontrar o lote arrematado para verificar o tipo de pagamento
-        const loteArrematado = arrematante.loteId 
-          ? auction.lotes?.find(lote => lote.id === arrematante.loteId)
+        // Encontrar o lote arrematado
+        const lote = arrematante.loteId 
+          ? auction.lotes?.find(l => l.id === arrematante.loteId) 
           : null;
-        
-        // Usar tipo de pagamento do lote ou do leilão
-        const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
-
-        // Determinar data de vencimento
-        let dataVencimento: Date | null = null;
-
-        // Para pagamento à vista
-        if (tipoPagamento === 'a_vista') {
-          const dataVista = loteArrematado?.dataVencimentoVista || auction.dataVencimentoVista;
-          if (dataVista) {
-            dataVencimento = parseISO(dataVista);
-          }
-        }
-        // Para pagamento com entrada
-        else if (tipoPagamento === 'entrada_parcelamento') {
-          const dataEntrada = loteArrematado?.dataEntrada || arrematante.dataEntrada;
-          if (dataEntrada) {
-            dataVencimento = parseISO(dataEntrada);
-          }
-        }
-        // Para parcelamento
-        else if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
-          const [ano, mes] = arrematante.mesInicioPagamento.split('-');
-          dataVencimento = new Date(parseInt(ano), parseInt(mes) - 1, arrematante.diaVencimentoMensal);
-        }
-
-        // Se não tem data de vencimento, pular
-        if (!dataVencimento) {
-          continue;
-        }
-
-        const diasDiferenca = differenceInDays(dataVencimento, hoje);
+        const tipoPagamento = lote?.tipoPagamento || auction.tipoPagamento;
+        const parcelasPagas = arrematante.parcelasPagas || 0;
+        const totalParcelas = arrematante.quantidadeParcelas || lote?.parcelasPadrao || 0;
 
         // Criar um objeto auction com o arrematante específico para os emails
         const auctionComArrematante = {
@@ -140,54 +135,179 @@ export function useAutoEmailNotifications() {
           arrematante: arrematante
         };
 
-        // LEMBRETE: Enviar X dias antes do vencimento
-        if (diasDiferenca > 0 && diasDiferenca <= currentConfig.diasAntesLembrete) {
-          // Verificar se já enviou lembrete hoje (usar ID do arrematante se disponível)
-          const emailId = arrematante.id ? `${auction.id}_${arrematante.id}` : auction.id;
-          const jaEnviou = await currentJaEnviouEmail(emailId, 'lembrete');
+        // ==========================================
+        // PAGAMENTO À VISTA
+        // ==========================================
+        if (tipoPagamento === 'a_vista') {
+          const dataStr = lote?.dataVencimentoVista || auction.dataVencimentoVista;
+          if (!dataStr) continue;
           
-          if (jaEnviou) {
-            logger.debug('Lembrete já enviado hoje, pulando', { nome: arrematante.nome });
-            continue;
+          const [year, month, day] = dataStr.split('-').map(Number);
+          const dataVencimento = new Date(year, month - 1, day, 0, 0, 0);
+          const diasDiferenca = differenceInDays(dataVencimento, hoje);
+
+          // LEMBRETE: X dias antes do vencimento (verificação diária)
+          if (diasDiferenca > 0 && diasDiferenca <= currentConfig.diasAntesLembrete) {
+            const jaEnviou = await currentJaEnviouEmail(auction.id, 'lembrete', 1);
+            if (!jaEnviou) {
+              logger.info('📨 Enviando lembrete (à vista)', { 
+                nome: arrematante.nome, 
+                diasRestantes: diasDiferenca 
+              });
+              const resultado = await currentEnviarLembrete(auctionComArrematante);
+              if (resultado.success) lembretesEnviados++;
+            }
           }
-          
-          logger.info('Enviando lembrete', { nome: arrematante.nome, diasRestantes: diasDiferenca });
-          
-          const resultado = await currentEnviarLembrete(auctionComArrematante);
-          if (resultado.success) {
-            lembretesEnviados++;
-            logger.info('Lembrete enviado com sucesso', { nome: arrematante.nome });
-          } else {
-            logger.error('Erro ao enviar lembrete', { nome: arrematante.nome, erro: resultado.message });
+
+          // COBRANÇA MENSAL: No dia correto de cada mês (verificação mensal)
+          if (diasDiferenca < 0 && ehDiaDeCobrancaMensal(dataVencimento, currentConfig.diasDepoisCobranca, hoje)) {
+            const jaEnviou = await currentJaEnviouEmail(auction.id, 'cobranca', 1, 'mes');
+            if (!jaEnviou) {
+              logger.warn('📨 Enviando cobrança mensal (à vista)', { 
+                nome: arrematante.nome, 
+                diasAtraso: Math.abs(diasDiferenca)
+              });
+              const resultado = await currentEnviarCobranca(auctionComArrematante, 1);
+              if (resultado.success) cobrancasEnviadas++;
+            }
           }
         }
+        // ==========================================
+        // ENTRADA + PARCELAMENTO
+        // ==========================================
+        else if (tipoPagamento === 'entrada_parcelamento') {
+          // --- ENTRADA (parcela 1) ---
+          if (parcelasPagas === 0 && arrematante.dataEntrada) {
+            const dataVencEntrada = parseISO(arrematante.dataEntrada);
+            const diasDiferenca = differenceInDays(dataVencEntrada, hoje);
 
-        // COBRANÇA: Enviar X dias após o vencimento
-        if (diasDiferenca < 0 && Math.abs(diasDiferenca) >= currentConfig.diasDepoisCobranca) {
-          // Verificar se já enviou cobrança hoje (usar ID do arrematante se disponível)
-          const emailId = arrematante.id ? `${auction.id}_${arrematante.id}` : auction.id;
-          const jaEnviou = await currentJaEnviouEmail(emailId, 'cobranca');
-          
-          if (jaEnviou) {
-            logger.debug('Cobrança já enviada hoje, pulando', { nome: arrematante.nome });
-            continue;
+            // Lembrete para entrada
+            if (diasDiferenca > 0 && diasDiferenca <= currentConfig.diasAntesLembrete) {
+              const jaEnviou = await currentJaEnviouEmail(auction.id, 'lembrete', 1);
+              if (!jaEnviou) {
+                logger.info('📨 Enviando lembrete (entrada)', { 
+                  nome: arrematante.nome, 
+                  diasRestantes: diasDiferenca 
+                });
+                const resultado = await currentEnviarLembrete(auctionComArrematante);
+                if (resultado.success) lembretesEnviados++;
+              }
+            }
+
+            // Cobrança mensal para entrada
+            if (diasDiferenca < 0 && ehDiaDeCobrancaMensal(dataVencEntrada, currentConfig.diasDepoisCobranca, hoje)) {
+              const jaEnviou = await currentJaEnviouEmail(auction.id, 'cobranca', 1, 'mes');
+              if (!jaEnviou) {
+                logger.warn('📨 Enviando cobrança mensal (entrada)', { 
+                  nome: arrematante.nome, 
+                  diasAtraso: Math.abs(diasDiferenca) 
+                });
+                const resultado = await currentEnviarCobranca(auctionComArrematante, 1);
+                if (resultado.success) cobrancasEnviadas++;
+              }
+            }
           }
+
+          // --- PARCELAS após entrada (parcela 2, 3, 4...) ---
+          if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
+            const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
+            
+            for (let i = Math.max(1, parcelasPagas); i < totalParcelas; i++) {
+              const numParcela = i + 1; // Número da parcela (2, 3, 4...)
+              const parcelaIndex = i - 1; // Índice 0-based para calcular data
+              const dataVencimento = new Date(
+                startYear, 
+                startMonth - 1 + parcelaIndex, 
+                arrematante.diaVencimentoMensal, 
+                0, 0, 0
+              );
+              const diasDiferenca = differenceInDays(dataVencimento, hoje);
+
+              // LEMBRETE - Apenas para a PRÓXIMA parcela não paga
+              if (i === Math.max(1, parcelasPagas) && diasDiferenca > 0 && diasDiferenca <= currentConfig.diasAntesLembrete) {
+                const jaEnviou = await currentJaEnviouEmail(auction.id, 'lembrete', numParcela);
+                if (!jaEnviou) {
+                  logger.info('📨 Enviando lembrete (parcela)', { 
+                    nome: arrematante.nome, 
+                    parcela: `${numParcela}/${totalParcelas}`,
+                    diasRestantes: diasDiferenca 
+                  });
+                  const resultado = await currentEnviarLembrete(auctionComArrematante);
+                  if (resultado.success) lembretesEnviados++;
+                }
+              }
+
+              // COBRANÇA MENSAL - Para CADA parcela em atraso
+              if (diasDiferenca < 0 && ehDiaDeCobrancaMensal(dataVencimento, currentConfig.diasDepoisCobranca, hoje)) {
+                const jaEnviou = await currentJaEnviouEmail(auction.id, 'cobranca', numParcela, 'mes');
+                if (!jaEnviou) {
+                  logger.warn('📨 Enviando cobrança mensal', { 
+                    nome: arrematante.nome, 
+                    parcela: `${numParcela}/${totalParcelas}`,
+                    diasAtraso: Math.abs(diasDiferenca)
+                  });
+                  const resultado = await currentEnviarCobranca(auctionComArrematante, numParcela);
+                  if (resultado.success) cobrancasEnviadas++;
+                }
+              }
+            }
+          }
+        }
+        // ==========================================
+        // PARCELAMENTO SIMPLES
+        // ==========================================
+        else {
+          if (!arrematante.mesInicioPagamento || !arrematante.diaVencimentoMensal) continue;
           
-          logger.warn('Enviando cobrança', { nome: arrematante.nome, diasAtraso: Math.abs(diasDiferenca) });
+          const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
           
-          const resultado = await currentEnviarCobranca(auctionComArrematante);
-          if (resultado.success) {
-            cobrancasEnviadas++;
-            logger.info('Cobrança enviada com sucesso', { nome: arrematante.nome });
-          } else {
-            logger.error('Erro ao enviar cobrança', { nome: arrematante.nome, erro: resultado.message });
+          for (let i = parcelasPagas; i < totalParcelas; i++) {
+            const numParcela = i + 1; // Parcela 1, 2, 3...
+            const dataVencimento = new Date(
+              startYear, 
+              startMonth - 1 + i, 
+              arrematante.diaVencimentoMensal, 
+              0, 0, 0
+            );
+            const diasDiferenca = differenceInDays(dataVencimento, hoje);
+
+            // LEMBRETE - Apenas para a PRÓXIMA parcela não paga
+            if (i === parcelasPagas && diasDiferenca > 0 && diasDiferenca <= currentConfig.diasAntesLembrete) {
+              const jaEnviou = await currentJaEnviouEmail(auction.id, 'lembrete', numParcela);
+              if (!jaEnviou) {
+                logger.info('📨 Enviando lembrete (parcela)', { 
+                  nome: arrematante.nome, 
+                  parcela: `${numParcela}/${totalParcelas}`,
+                  diasRestantes: diasDiferenca 
+                });
+                const resultado = await currentEnviarLembrete(auctionComArrematante);
+                if (resultado.success) lembretesEnviados++;
+              }
+            }
+
+            // COBRANÇA MENSAL - Para CADA parcela em atraso
+            if (diasDiferenca < 0 && ehDiaDeCobrancaMensal(dataVencimento, currentConfig.diasDepoisCobranca, hoje)) {
+              const jaEnviou = await currentJaEnviouEmail(auction.id, 'cobranca', numParcela, 'mes');
+              if (!jaEnviou) {
+                logger.warn('📨 Enviando cobrança mensal', { 
+                  nome: arrematante.nome, 
+                  parcela: `${numParcela}/${totalParcelas}`,
+                  diasAtraso: Math.abs(diasDiferenca)
+                });
+                const resultado = await currentEnviarCobranca(auctionComArrematante, numParcela);
+                if (resultado.success) cobrancasEnviadas++;
+              }
+            }
           }
         }
       }
     }
 
     if (lembretesEnviados > 0 || cobrancasEnviadas > 0) {
-      logger.info('Emails enviados automaticamente', { lembretes: lembretesEnviados, cobrancas: cobrancasEnviadas });
+      logger.info('✅ Emails enviados automaticamente', { 
+        lembretes: lembretesEnviados, 
+        cobrancas: cobrancasEnviadas 
+      });
     } else {
       logger.debug('Nenhum email precisou ser enviado neste momento');
     }
@@ -207,10 +327,11 @@ export function useAutoEmailNotifications() {
       return;
     }
 
-    logger.info('Sistema de envio automático de emails ATIVADO', {
+    logger.info('✅ Sistema de envio automático de emails ATIVADO', {
       intervalo: '5 minutos',
       diasAntesLembrete: config.diasAntesLembrete,
-      diasDepoisCobranca: config.diasDepoisCobranca
+      diasDepoisCobranca: config.diasDepoisCobranca,
+      logica: `Lembrete: ${config.diasAntesLembrete} dia(s) antes | Cobrança: dia ${config.diasDepoisCobranca} após vencimento, mensalmente`
     });
 
     // Executar imediatamente
@@ -234,4 +355,3 @@ export function useAutoEmailNotifications() {
     verificando: config.enviarAutomatico,
   };
 }
-

@@ -2842,12 +2842,12 @@ function Arrematantes() {
   };
 
   return (
-    <div className="space-y-8 p-6 fade-simple">
+    <div className="space-y-4 sm:space-y-6 lg:space-y-8 p-6 fade-simple">
       {/* Header */}
       <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestão de Arrematantes</h1>
+            <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Gestão de Arrematantes</h1>
             <p className="text-gray-600 mt-1">Gerencie todos os arrematantes e seus pagamentos</p>
           </div>
           <Button 
@@ -2861,49 +2861,49 @@ function Arrematantes() {
       </div>
 
       {/* Estatísticas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Arrematantes</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.total}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.total}</p>
             <p className="text-sm text-gray-600 font-medium">Cadastrados</p>
           </div>
         </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Pagamentos</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalPagamentosRealizados}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalPagamentosRealizados}</p>
             <p className="text-sm text-gray-600 font-medium mb-2">pagamentos realizados</p>
             <p className="text-lg font-light text-gray-800">{formatCurrency(stats.totalReceita)}</p>
           </div>
         </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Pendentes</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-             <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalParcelasPendentes}</p>
+             <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalParcelasPendentes}</p>
              <p className="text-sm text-gray-600 font-medium mb-2">parcelas pendentes</p>
              <p className="text-lg font-light text-gray-800">{formatCurrency(stats.totalPendente)}</p>
           </div>
         </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Atrasados</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.atrasado}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.atrasado}</p>
             <p className="text-sm text-gray-600 font-medium mb-2">Em Atraso</p>
             <p className="text-lg font-light text-gray-800">{formatCurrency(stats.totalAtrasado)}</p>
           </div>
@@ -2914,7 +2914,7 @@ function Arrematantes() {
       <Card className="border-0 shadow-sm h-[calc(100vh-380px)]">
         <CardHeader className="pb-4">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
             <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
               <div className="p-2 bg-gray-100 rounded-lg">
                 {showArchived ? <Archive className="h-5 w-5 text-gray-600" /> : <Users className="h-5 w-5 text-gray-600" />}
@@ -2938,7 +2938,7 @@ function Arrematantes() {
               </button>
             </div>
             
-            <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               {/* Barra de pesquisa à esquerda */}
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -3010,7 +3010,7 @@ function Arrematantes() {
                     index === 2 ? 'animate-delay-200' : 'animate-delay-300'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
+                  <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex">
                     <div className="flex items-center gap-3 flex-1">
                       <div className="p-2 rounded-full bg-gray-200 w-10 h-10"></div>
                       <div className="flex-1">
@@ -3063,14 +3063,15 @@ function Arrematantes() {
             </div>
           ) : (
             <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-gray-200">
                     <TableHead className="font-semibold text-gray-700">Arrematante</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Leilão</TableHead>
+                    <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Leilão</TableHead>
                     <TableHead className="font-semibold text-gray-700">Valor</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Vencimento</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Situação</TableHead>
+                    <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Vencimento</TableHead>
+                    <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Situação</TableHead>
                     <TableHead className="font-semibold text-gray-700">Status</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-center">Ações</TableHead>
                   </TableRow>
@@ -3099,7 +3100,7 @@ function Arrematantes() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div>
                           <p className="font-medium text-gray-900">{arrematante.leilaoNome}</p>
                           <p className="text-sm text-gray-500">
@@ -3342,7 +3343,7 @@ function Arrematantes() {
                           })()}
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-gray-400" />
                           <span className={`text-sm font-medium ${(() => {
@@ -3485,7 +3486,7 @@ function Arrematantes() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div className="flex flex-col">
                           {(() => {
                             // Obter leilão e lote para verificar tipo de pagamento
@@ -3627,7 +3628,7 @@ function Arrematantes() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleConfirmPayment(arrematante)}
-                              className="h-8 w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 btn-action-click"
+                              className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-green-600 hover:text-green-700 hover:bg-green-50 btn-action-click"
                               title="Confirmar pagamento"
                             >
                               <Check className="h-4 w-4" />
@@ -3638,7 +3639,7 @@ function Arrematantes() {
                               variant="ghost"
                               size="sm"
                               onClick={() => handleUnconfirmPayment(arrematante)}
-                              className="h-8 w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
+                              className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-red-600 hover:text-red-700 hover:bg-red-50"
                               title="Desconfirmar pagamento"
                             >
                               <X className="h-4 w-4" />
@@ -3650,7 +3651,7 @@ function Arrematantes() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleViewArrematante(arrematante)}
-                            className="h-8 w-8 p-0 text-gray-600 hover:text-black hover:bg-gray-100 btn-action-click"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:text-black hover:bg-gray-100 btn-action-click"
                             title="Ver detalhes"
                           >
                             <Eye className="h-4 w-4" />
@@ -3661,7 +3662,7 @@ function Arrematantes() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEditArrematante(arrematante)}
-                            className="h-8 w-8 p-0 text-gray-600 hover:text-black hover:bg-gray-100 btn-action-click"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:text-black hover:bg-gray-100 btn-action-click"
                             title="Editar"
                           >
                             <Edit className="h-4 w-4" />
@@ -3673,7 +3674,7 @@ function Arrematantes() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0 text-gray-600 hover:text-black hover:bg-gray-100"
+                                className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:text-black hover:bg-gray-100"
                                 title="Mais ações"
                               >
                                 <MoreVertical className="h-4 w-4" />
@@ -3755,6 +3756,7 @@ function Arrematantes() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
 
               {/* ⚡ PERFORMANCE: Paginação */}
               {filteredArrematantes.length > 0 && (
@@ -3783,7 +3785,7 @@ function Arrematantes() {
           </DialogHeader>
 
           {selectedArrematante && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {(() => {
                 // Obter o leilão e lote para verificar tipo de pagamento
                 const auction = auctions.find(a => a.id === selectedArrematante.leilaoId);
@@ -3793,7 +3795,7 @@ function Arrematantes() {
                 return (
                   <>
                     {/* Informações básicas */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Nome do Arrematante</Label>
                         <p className="mt-1 p-3 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium">
@@ -3999,7 +4001,7 @@ function Arrematantes() {
                                   }
                                 }
                               }}
-                              className="h-8 w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                              className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                               title="Visualizar arquivo"
                             >
                               <Eye className="h-4 w-4" />
@@ -4233,9 +4235,9 @@ function Arrematantes() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Formulário de edição */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
               <div>
                 <Label htmlFor="edit-nome" className="text-sm font-medium text-gray-700">
                   Nome do Arrematante
@@ -4485,7 +4487,7 @@ function Arrematantes() {
                 onDrop={handleDrop}
               >
                 <div className="text-center">
-                  <Paperclip className="mx-auto h-8 w-8 text-gray-400 mb-2" />
+                  <Paperclip className="mx-auto h-10 w-10 sm:h-8 sm:w-8 text-gray-400 mb-2" />
                   <p className="text-sm font-medium text-gray-900 mb-1">Adicionar documentos</p>
                   <p className="text-xs text-gray-500 mb-3">
                     Arraste arquivos aqui ou clique para selecionar
@@ -4539,7 +4541,7 @@ function Arrematantes() {
                     Salvando...
                   </>
                 ) : (
-                  "Salvar Alterações"
+                  <><span className="hidden sm:inline">Salvar Alterações</span><span className="sm:hidden">Salvar</span></>
                 )}
               </Button>
             </div>
@@ -4594,7 +4596,7 @@ function Arrematantes() {
                   <div className="max-h-72 overflow-y-auto">
                     {paymentMonths.map((month, index) => (
                       <div key={index} 
-                           className={`flex items-center justify-between p-3 border-b border-gray-100 last:border-b-0 ${
+                           className={`flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex p-3 border-b border-gray-100 last:border-b-0 ${
                              month.paid ? 'bg-gray-50' : 'bg-white'
                            }`}
                       >
@@ -5476,7 +5478,7 @@ function Arrematantes() {
                                   }
                                 }
                               }}
-                              className="h-8 w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                              className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
                               title="Visualizar documento"
                             >
                               <Eye className="h-4 w-4" />
@@ -5486,7 +5488,7 @@ function Arrematantes() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleRemoveFullEditDocument(doc.id)}
-                            className="h-8 w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-800"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-red-600 hover:bg-red-50 hover:text-red-800"
                             title="Remover documento"
                           >
                             <X className="h-4 w-4" />
@@ -5543,7 +5545,7 @@ function Arrematantes() {
                       Salvando...
                     </div>
                   ) : (
-                    "Salvar Alterações"
+                    <><span className="hidden sm:inline">Salvar Alterações</span><span className="sm:hidden">Salvar</span></>
                   )}
                 </Button>
               </div>
@@ -5725,7 +5727,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
         <div className="inline-block px-4 py-1 bg-gray-100 rounded-full mb-4">
           <span className="text-xs font-medium text-gray-600 uppercase tracking-wider">Relatório de Arrematante</span>
         </div>
-        <h1 className="text-3xl font-light text-gray-900 mb-2 break-after-avoid" style={{ pageBreakAfter: 'avoid', fontWeight: '300' }}>
+        <h1 className="text-xl sm:text-2xl lg:text-3xl font-light text-gray-900 mb-2 break-after-avoid" style={{ pageBreakAfter: 'avoid', fontWeight: '300' }}>
             {arrematante.nome}
         </h1>
         <p className="text-sm text-gray-400 mt-3">
@@ -5739,7 +5741,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
           Dados Pessoais
         </h2>
         <div className="bg-gray-50 rounded-lg p-6" style={{ border: '1px solid #f3f4f6' }}>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
           <div>
               <div className="text-xs text-gray-500 mb-1">Nome Completo</div>
               <div className="font-light text-gray-900">{arrematante.nome || 'Não informado'}</div>
@@ -5770,7 +5772,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
           Dados do Leilão
         </h2>
         <div className="bg-gray-50 rounded-lg p-6" style={{ border: '1px solid #f3f4f6' }}>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
           <div>
               <div className="text-xs text-gray-500 mb-1">Nome do Leilão</div>
               <div className="font-light text-gray-900">{arrematante.leilaoNome || 'Não informado'}</div>
@@ -5801,7 +5803,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
         <h2 className="text-xs font-medium text-gray-400 uppercase tracking-wider mb-4 break-after-avoid" style={{ pageBreakAfter: 'avoid', letterSpacing: '0.1em' }}>
           Informações Financeiras
         </h2>
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="bg-white p-5 rounded-lg" style={{ border: '1px solid #e5e7eb' }}>
             <div className="text-xs text-gray-500 mb-2">Valor Total a Pagar</div>
             <span className="text-2xl font-light text-gray-900" style={{ fontWeight: '300' }}>
@@ -5911,7 +5913,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
             : 'Modalidade de Pagamento'}
         </h2>
         <div className="bg-gray-50 rounded-lg p-6" style={{ border: '1px solid #f3f4f6' }}>
-        <div className="grid grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 lg:gap-6">
           {arrematante.quantidadeParcelas && arrematante.quantidadeParcelas > 1 ? (
             <>
               <div>
@@ -6004,7 +6006,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
                 const temJuros = valorComJuros > parcela.valor;
                 
                 return (
-                  <div key={index} className="bg-white rounded-lg p-3 flex items-center justify-between break-inside-avoid" style={{ border: `1px solid ${isPaga ? '#d1fae5' : temJuros ? '#fecaca' : '#e5e7eb'}`, pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '8px' }}>
+                  <div key={index} className="bg-white rounded-lg p-3 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex break-inside-avoid" style={{ border: `1px solid ${isPaga ? '#d1fae5' : temJuros ? '#fecaca' : '#e5e7eb'}`, pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '8px' }}>
                     <div className="flex items-center gap-3 flex-1">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isPaga ? 'bg-green-50' : temJuros ? 'bg-red-50' : 'bg-gray-50'}`}>
                         <span className={`text-xs font-medium ${isPaga ? 'text-green-700' : temJuros ? 'text-red-700' : 'text-gray-700'}`}>
@@ -6071,7 +6073,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
                 .join(' + ');
               
               return (
-                <div className="flex items-center justify-between">
+                <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex">
                   <div className="text-sm font-light text-gray-600">
                     {parcelasPagas} {parcelasPagas > 1 ? 'parcelas quitadas' : 'parcela quitada'}{' '}
                     <span className="text-gray-400">({descricaoTipos})</span>

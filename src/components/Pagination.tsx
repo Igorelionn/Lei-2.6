@@ -72,8 +72,8 @@ export function Pagination({
   }
 
   return (
-    <div className="flex items-center justify-center gap-1 mt-4">
-      {/* Primeira Página */}
+    <div className="flex flex-wrap items-center justify-center gap-1 sm:gap-1 mt-4">
+      {/* Primeira Página - oculto em mobile */}
       {showFirstLast && (
         <Button
           variant="outline"
@@ -81,7 +81,7 @@ export function Pagination({
           onClick={() => onPageChange(1)}
           disabled={!hasPrevPage || disabled}
           title="Primeira página"
-          className="h-9 w-9"
+          className="h-10 w-10 sm:h-9 sm:w-9 no-min-touch"
         >
           <ChevronsLeft className="h-4 w-4" />
         </Button>
@@ -94,7 +94,7 @@ export function Pagination({
         onClick={() => onPageChange(currentPage - 1)}
         disabled={!hasPrevPage || disabled}
         title="Página anterior"
-        className="h-9 w-9"
+        className="h-10 w-10 sm:h-9 sm:w-9 no-min-touch"
       >
         <ChevronLeft className="h-4 w-4" />
       </Button>
@@ -105,7 +105,7 @@ export function Pagination({
           return (
             <span
               key={`ellipsis-${index}`}
-              className="px-2 text-muted-foreground"
+              className="px-1 sm:px-2 text-muted-foreground text-sm"
             >
               ...
             </span>
@@ -121,7 +121,7 @@ export function Pagination({
             size="icon"
             onClick={() => onPageChange(pageNum as number)}
             disabled={disabled}
-            className="h-9 w-9"
+            className="h-10 w-10 sm:h-9 sm:w-9 text-sm no-min-touch"
           >
             {pageNum}
           </Button>
@@ -135,12 +135,12 @@ export function Pagination({
         onClick={() => onPageChange(currentPage + 1)}
         disabled={!hasNextPage || disabled}
         title="Próxima página"
-        className="h-9 w-9"
+        className="h-10 w-10 sm:h-9 sm:w-9 no-min-touch"
       >
         <ChevronRight className="h-4 w-4" />
       </Button>
 
-      {/* Última Página */}
+      {/* Última Página - oculto em mobile */}
       {showFirstLast && (
         <Button
           variant="outline"
@@ -148,15 +148,15 @@ export function Pagination({
           onClick={() => onPageChange(totalPages)}
           disabled={!hasNextPage || disabled}
           title="Última página"
-          className="h-9 w-9"
+          className="h-10 w-10 sm:h-9 sm:w-9 no-min-touch"
         >
           <ChevronsRight className="h-4 w-4" />
         </Button>
       )}
 
       {/* Info de Página */}
-      <span className="ml-2 text-sm text-muted-foreground whitespace-nowrap">
-        Página {currentPage} de {totalPages}
+      <span className="ml-1 sm:ml-2 text-xs sm:text-sm text-muted-foreground">
+        {currentPage}/{totalPages}
       </span>
     </div>
   );

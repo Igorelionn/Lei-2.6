@@ -1266,57 +1266,57 @@ function Faturas() {
   };
 
   return (
-    <div className="space-y-6 p-6 zoom-in-subtle">
+    <div className="space-y-4 sm:space-y-6 p-6 zoom-in-subtle">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestão de Faturas</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Gestão de Faturas</h1>
           <p className="text-gray-600 mt-1">Gerencie as faturas de arrematação dos leilões</p>
         </div>
       </div>
 
       {/* Indicadores Gerais - Faturas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total de Faturas</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsFaturas.total}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsFaturas.total}</p>
             <p className="text-sm text-gray-600 font-medium">Emitidas</p>
           </div>
         </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Pendentes</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsFaturas.emAberto + statsFaturas.atrasadas}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsFaturas.emAberto + statsFaturas.atrasadas}</p>
             <p className="text-sm text-gray-600 font-medium">Pendentes</p>
           </div>
         </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Pagas</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsFaturas.pagas}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{statsFaturas.pagas}</p>
             <p className="text-sm text-gray-600 font-medium">Quitadas</p>
           </div>
         </div>
 
-        <div className="bg-white border-0 shadow-sm rounded-lg p-6">
+        <div className="bg-white border-0 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Valor Pendente</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{formatCurrency(statsFaturas.valorPendente)}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{formatCurrency(statsFaturas.valorPendente)}</p>
             <p className="text-sm text-gray-600 font-medium">A Receber</p>
           </div>
         </div>
@@ -1333,7 +1333,7 @@ function Faturas() {
               {showArchived ? "Faturas Arquivadas" : "Faturas Emitidas"}
             </CardTitle>
 
-            <div className="flex flex-col lg:flex-row gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
               {/* Barra de pesquisa à esquerda */}
               <div className="relative w-full max-w-md">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -1440,14 +1440,15 @@ function Faturas() {
             </div>
           ) : (
             <div className={`transition-opacity duration-300 ${isTransitioningFaturas ? 'opacity-0' : 'opacity-100'}`}>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-gray-200">
-                    <TableHead className="font-semibold text-gray-700">Lote</TableHead>
+                    <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Lote</TableHead>
                     <TableHead className="font-semibold text-gray-700">Arrematante</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Leilão</TableHead>
+                    <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Leilão</TableHead>
                     <TableHead className="font-semibold text-gray-700">Valor</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Vencimento</TableHead>
+                    <TableHead className="font-semibold text-gray-700 hidden sm:table-cell">Vencimento</TableHead>
                     <TableHead className="font-semibold text-gray-700">Status</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-center">Ações</TableHead>
                   </TableRow>
@@ -1455,14 +1456,14 @@ function Faturas() {
                 <TableBody>
                   {filteredFaturas.map((fatura) => (
                     <TableRow key={fatura.id} className="border-gray-100 hover:bg-gray-50/50">
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <span className="font-semibold text-gray-900">#{fatura.loteNumero}</span>
                           <div className="text-xs text-gray-500">{getPaymentTypeDisplay(fatura)}</div>
                       </TableCell>
                       <TableCell>
                         <span className="font-medium text-gray-900">{fatura.arrematanteNome}</span>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <span className="text-sm text-gray-900">{fatura.leilaoNome}</span>
                       </TableCell>
                       <TableCell>
@@ -1473,7 +1474,7 @@ function Faturas() {
                           </span>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <span className="text-sm text-gray-600">
                           {new Date(fatura.dataVencimento + 'T00:00:00.000Z').toLocaleDateString('pt-BR', { timeZone: 'UTC' })}
                           {(() => {
@@ -1587,6 +1588,7 @@ function Faturas() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </CardContent>
@@ -1635,7 +1637,7 @@ function Faturas() {
                 {/* Valor Total - Destaque Clean */}
                 <div className="bg-gradient-to-br from-gray-50 to-gray-100/50 border border-gray-200 rounded-lg p-5 text-center">
                   <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Valor Total</Label>
-                  <p className="mt-2 text-4xl font-light text-gray-900">
+                  <p className="mt-2 text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900">
                     {formatCurrency(calcularValorTotalLeilaoComJuros(selectedFatura))}
                   </p>
                   <p className="mt-1.5 text-xs text-gray-500">Incluindo juros, se houver atraso</p>
@@ -1646,7 +1648,7 @@ function Faturas() {
                   <h3 className="text-sm uppercase tracking-wide font-medium text-gray-500 mb-4">
                     Arrematante
                   </h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
               <div>
                       <Label className="text-xs font-medium text-gray-500">Nome</Label>
                       <p className="mt-1 text-sm font-medium text-gray-900">{selectedFatura.arrematanteNome}</p>
@@ -1678,7 +1680,7 @@ function Faturas() {
                     <h3 className="text-sm uppercase tracking-wide font-medium text-gray-500 mb-4">
                       Entrada + Parcelamento
                     </h3>
-                    <div className="grid grid-cols-2 gap-5">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
                       {/* Informações da Entrada */}
                       <div className="bg-gray-50/50 border border-gray-200 rounded-lg p-4">
                         <h4 className="text-xs uppercase tracking-wide font-medium text-gray-500 mb-3">Entrada</h4>
@@ -1778,7 +1780,7 @@ function Faturas() {
                       {/* Informações das Parcelas */}
                       <div className="bg-gray-50/50 border border-gray-200 rounded-lg p-4">
                         <h4 className="text-xs uppercase tracking-wide font-medium text-gray-500 mb-3">Parcelas</h4>
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
                             <Label className="text-xs font-medium text-gray-500">Valor/Parcela</Label>
                             <p className="text-2xl font-light text-gray-900">
@@ -1898,7 +1900,7 @@ function Faturas() {
                       Pagamento À Vista
                     </h3>
                     <div className="bg-gray-50/50 border border-gray-200 rounded-lg p-4">
-              <div className="grid grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
                 <div>
                           <Label className="text-xs font-medium text-gray-500">Valor</Label>
                           <p className="text-xl font-semibold text-gray-900">
@@ -1947,7 +1949,7 @@ function Faturas() {
                   <h3 className="text-sm uppercase tracking-wide font-medium text-gray-500 mb-4">
                     Esta Fatura
                   </h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
                     <div>
                       <Label className="text-xs font-medium text-gray-500">
                         {selectedFatura.tipoPagamento === 'entrada_parcelamento' && selectedFatura.parcela === 1 ? 
@@ -1992,7 +1994,7 @@ function Faturas() {
                   <h3 className="text-sm uppercase tracking-wide font-medium text-gray-500 mb-4">
                     Leilão
                   </h3>
-                  <div className="grid grid-cols-2 gap-x-6 gap-y-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3">
               <div>
                       <Label className="text-xs font-medium text-gray-500">Nome</Label>
                       <p className="mt-1 text-sm font-medium text-gray-900">{selectedFatura.leilaoNome}</p>
@@ -2026,8 +2028,8 @@ function Faturas() {
               {isEditingFatura ? "Editar Fatura" : "Nova Fatura"}
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-6">
-            <div className="grid grid-cols-2 gap-4">
+          <div className="space-y-4 sm:space-y-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="lotId">Lote</Label>
                 <Select value={faturaForm.lotId} onValueChange={(value) => setFaturaForm({...faturaForm, lotId: value})}>
@@ -2054,7 +2056,7 @@ function Faturas() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="valorArremate">Valor Arrematado (R$)</Label>
                 <Input
@@ -2075,7 +2077,7 @@ function Faturas() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <Label htmlFor="custosAdicionais">Custos Adicionais (R$)</Label>
                 <Input
@@ -2142,11 +2144,11 @@ function Faturas() {
         </DialogHeader>
         
         {selectedFaturaForPreview && (
-          <div className="space-y-6">
+          <div className="space-y-4 sm:space-y-6">
             {/* Preview da Fatura - Design Minimalista Corporativo */}
             <div className="border rounded-lg bg-white" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif", padding: '48px 40px' }}>
               {/* Cabeçalho Minimalista */}
-              <div className="mb-8 pb-6" style={{ borderBottom: '1px solid #e2e8f0' }}>
+              <div className="mb-4 sm:mb-6 lg:mb-8 pb-6" style={{ borderBottom: '1px solid #e2e8f0' }}>
                 <div className="flex justify-between items-start mb-5">
                   <div>
                     <h1 className="text-2xl font-light text-slate-800 tracking-tight mb-1" style={{ letterSpacing: '-0.01em' }}>
@@ -2182,7 +2184,7 @@ function Faturas() {
               </div>
 
               {/* Grid de Informações */}
-              <div className="grid grid-cols-2 gap-10 mb-8">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mb-4 sm:mb-6 lg:mb-8">
                 {/* Dados do Arrematante */}
                 <div>
                   <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-4" style={{ fontSize: '10px' }}>
@@ -2221,7 +2223,7 @@ function Faturas() {
               </div>
 
               {/* Valor Total - Minimalista */}
-              <div className="py-8 mb-8" style={{ borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+              <div className="py-8 mb-4 sm:mb-6 lg:mb-8" style={{ borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
                 <div className="text-center">
                   <div className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3" style={{ fontSize: '10px' }}>
                     Valor Total
@@ -2239,7 +2241,7 @@ function Faturas() {
                       if (tipoPagamento === 'a_vista') {
                         if (!arrematante || !percentualJuros) {
                           return (
-                            <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
+                            <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                               {formatCurrency(valorBase)}
                             </div>
                           );
@@ -2261,7 +2263,7 @@ function Faturas() {
                         
                         const valorJuros = valorTotalComJuros - valorBase;
                         return (
-                          <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
+                          <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                             {formatCurrency(valorTotalComJuros)}
                             {valorJuros > 0.01 && (
                               <span className="text-sm text-red-600 ml-2">
@@ -2275,7 +2277,7 @@ function Faturas() {
                       // Para parcelamento
                       if (!arrematante || !arrematante.mesInicioPagamento) {
                         return (
-                          <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
+                          <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                             {formatCurrency(valorBase)}
                           </div>
                         );
@@ -2327,7 +2329,7 @@ function Faturas() {
                       
                       const valorJuros = valorTotalComJuros - valorBase;
                       return (
-                        <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
+                        <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                           {formatCurrency(valorTotalComJuros)}
                           {valorJuros > 0.01 && (
                             <span className="text-sm text-red-600 ml-2">
@@ -2343,7 +2345,7 @@ function Faturas() {
 
               {/* Condições de Pagamento Minimalista */}
               {selectedFaturaForPreview.tipoPagamento === 'entrada_parcelamento' && (
-                <div className="mb-8">
+                <div className="mb-4 sm:mb-6 lg:mb-8">
                   <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-4" style={{ fontSize: '10px' }}>
                     Condições de Pagamento
                   </h2>
@@ -2442,7 +2444,7 @@ function Faturas() {
               )}
 
               {/* Observações */}
-              <div className="mb-8 p-4" style={{ backgroundColor: '#fafafa', border: '1px solid #e2e8f0' }}>
+              <div className="mb-4 sm:mb-6 lg:mb-8 p-4" style={{ backgroundColor: '#fafafa', border: '1px solid #e2e8f0' }}>
                 <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3" style={{ fontSize: '10px' }}>
                   Observações
                 </h3>
@@ -2454,7 +2456,7 @@ function Faturas() {
               </div>
 
               {/* Rodapé */}
-              <div className="pt-6 mt-8" style={{ borderTop: '1px solid #e2e8f0' }}>
+              <div className="pt-6 mt-4 sm:mt-6 lg:mt-8" style={{ borderTop: '1px solid #e2e8f0' }}>
                 <div className="text-center mb-6">
                   <div className="text-xs text-slate-500" style={{ fontSize: '11px' }}>
                     Documento gerado automaticamente em {new Date().toLocaleDateString('pt-BR', { 
@@ -2467,13 +2469,13 @@ function Faturas() {
                     Sistema de Gestão de Leilões • Página 1 de 1
                   </div>
                 </div>
-                <div className="text-center text-xs text-slate-400 mb-8" style={{ fontSize: '10px' }}>
+                <div className="text-center text-xs text-slate-400 mb-4 sm:mb-6 lg:mb-8" style={{ fontSize: '10px' }}>
                   Este documento é válido sem assinatura conforme artigo 10º da MP 2.200-2/2001
                 </div>
               </div>
 
               {/* Logos no Rodapé */}
-              <div className="mt-8 flex justify-center items-center -ml-20">
+              <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20">
                 <img 
                   src="/logo-elionx-softwares.png" 
                   alt="Elionx Softwares" 
@@ -2662,7 +2664,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
   return (
     <div className="bg-white font-sans" style={{ fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif", padding: '48px 40px', maxWidth: '800px', margin: '0 auto' }}>
       {/* Cabeçalho Minimalista Corporativo */}
-      <div className="mb-8 pb-6" style={{ borderBottom: '1px solid #e2e8f0' }}>
+      <div className="mb-4 sm:mb-6 lg:mb-8 pb-6" style={{ borderBottom: '1px solid #e2e8f0' }}>
         <div className="flex justify-between items-start mb-5">
           <div>
             <h1 className="text-2xl font-light text-slate-800 tracking-tight mb-1" style={{ letterSpacing: '-0.01em' }}>
@@ -2698,7 +2700,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
       </div>
 
       {/* Grid de Informações */}
-      <div className="grid grid-cols-2 gap-10 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-10 mb-4 sm:mb-6 lg:mb-8">
         {/* Dados do Arrematante */}
         <div>
           <h2 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-4" style={{ fontSize: '10px' }}>
@@ -2751,7 +2753,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
       </div>
 
       {/* Valor Total - Minimalista */}
-      <div className="py-8 mb-8" style={{ borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
+      <div className="py-8 mb-4 sm:mb-6 lg:mb-8" style={{ borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0' }}>
         <div className="text-center">
           <div className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3" style={{ fontSize: '10px' }}>
             Valor Total
@@ -2762,7 +2764,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             if (tipoPagamento === 'a_vista') {
               if (!arrematante || !percentualJuros) {
                 return (
-                  <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                     {formatCurrency(valorTotalArrematante)}
                   </div>
                 );
@@ -2784,7 +2786,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
               
               const valorJuros = valorTotalComJuros - valorTotalArrematante;
               return (
-                <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
+                <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                   {formatCurrency(valorTotalComJuros)}
                   {valorJuros > 0.01 && (
                     <span className="text-sm text-red-600 ml-2">
@@ -2798,7 +2800,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             // Para parcelamento
             if (!arrematante || !mesInicioParcelas) {
                 return (
-                  <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
+                  <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                     {formatCurrency(valorTotalArrematante)}
                   </div>
                 );
@@ -2821,7 +2823,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             
             const valorJuros = valorTotalComJuros - valorTotalArrematante;
             return (
-              <div className="text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
+              <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                 {formatCurrency(valorTotalComJuros)}
                 {valorJuros > 0.01 && (
                   <span className="text-sm text-red-600 ml-2">
@@ -2965,7 +2967,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
       ) : null}
 
       {/* Observações */}
-      <div className="mb-8 p-4" style={{ backgroundColor: '#fafafa', border: '1px solid #e2e8f0' }}>
+      <div className="mb-4 sm:mb-6 lg:mb-8 p-4" style={{ backgroundColor: '#fafafa', border: '1px solid #e2e8f0' }}>
         <h3 className="text-xs font-medium text-slate-400 uppercase tracking-wide mb-3" style={{ fontSize: '10px' }}>
           Observações
         </h3>
@@ -2977,7 +2979,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
       </div>
 
       {/* Rodapé Minimalista */}
-      <div className="pt-6 mt-8" style={{ borderTop: '1px solid #e2e8f0' }}>
+      <div className="pt-6 mt-4 sm:mt-6 lg:mt-8" style={{ borderTop: '1px solid #e2e8f0' }}>
         <div className="text-center mb-6">
           <div className="text-xs text-slate-500" style={{ fontSize: '11px' }}>
             Documento gerado automaticamente em {new Date().toLocaleDateString('pt-BR', { 

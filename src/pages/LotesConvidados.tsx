@@ -278,24 +278,24 @@ export default function LotesConvidados() {
 
 
   return (
-    <div className="space-y-6 p-6 slide-in-right">
+    <div className="space-y-4 sm:space-y-6 p-6 slide-in-right">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Lotes de Convidados</h1>
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Lotes de Convidados</h1>
           <p className="text-gray-600 mt-1">Gerencie lotes de terceiros que participam dos leilões do anfitrião</p>
         </div>
       </div>
 
       {/* Indicadores Gerais */}
-      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="bg-white border border-gray-200 shadow-sm rounded-lg p-3 sm:p-4 lg:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 lg:gap-6">
           <div className="text-center">
             <div className="mb-4">
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total de Lotes</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.total}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.total}</p>
             <p className="text-sm text-gray-600 font-medium">De convidados</p>
           </div>
 
@@ -304,7 +304,7 @@ export default function LotesConvidados() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Disponíveis</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.disponiveis}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.disponiveis}</p>
             <p className="text-sm text-gray-600 font-medium">Para leilão</p>
           </div>
 
@@ -313,7 +313,7 @@ export default function LotesConvidados() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Arrematados</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.arrematados}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.arrematados}</p>
             <p className="text-sm text-gray-600 font-medium">Vendidos</p>
           </div>
 
@@ -322,7 +322,7 @@ export default function LotesConvidados() {
               <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Mercadorias</p>
               <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
             </div>
-            <p className="text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalMercadorias}</p>
+            <p className="text-xl sm:text-2xl lg:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">{stats.totalMercadorias}</p>
             <p className="text-sm text-gray-600 font-medium">Cadastradas</p>
           </div>
         </div>
@@ -332,7 +332,7 @@ export default function LotesConvidados() {
       <Card className="border border-gray-200 shadow-sm h-[calc(100vh-320px)]">
         <CardHeader className="pb-4">
           <div className="space-y-4">
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
                 <div className="p-2 bg-gray-100 rounded-lg">
                   {showArchived ? <Archive className="h-5 w-5 text-gray-600" /> : <Package className="h-5 w-5 text-gray-600" />}
@@ -354,7 +354,7 @@ export default function LotesConvidados() {
               </button>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+            <div className="flex flex-col sm:flex-row lg:flex-row gap-4 items-start sm:items-center lg:items-center justify-between">
               <div className="flex items-center gap-3 flex-1 min-w-0">
                 <div className="relative flex-1 min-w-0 max-w-md">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
@@ -367,7 +367,7 @@ export default function LotesConvidados() {
                 </div>
               </div>
 
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex flex-wrap gap-2 flex-shrink-0 w-full sm:w-auto">
                 <Select 
                   value={statusFilter} 
                   onValueChange={(value) => {
@@ -382,7 +382,7 @@ export default function LotesConvidados() {
                   }}
                 >
                   <SelectTrigger 
-                    className="w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none"
+                    className="w-full sm:w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none"
                   >
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -414,7 +414,7 @@ export default function LotesConvidados() {
                         setShowArchived(!showArchived);
                       });
                     }}
-                    className="h-11 px-4 border-gray-300 text-gray-700 hover:text-black hover:bg-gray-50"
+                    className="h-11 px-3 sm:px-4 border-gray-300 text-gray-700 hover:text-black hover:bg-gray-50 text-sm sm:text-base"
                   >
                     {showArchived ? "Ver Ativos" : `Ver Arquivados (${stats.arquivados})`}
                   </Button>
@@ -422,10 +422,11 @@ export default function LotesConvidados() {
 
                 <Button 
                   onClick={() => setWizardOpen(true)}
-                  className="h-11 bg-black hover:bg-gray-800 text-white"
+                  className="h-11 bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
-                  Cadastrar Lote
+                  <span className="hidden sm:inline">Cadastrar Lote</span>
+                  <span className="sm:hidden">Cadastrar</span>
                 </Button>
               </div>
             </div>
@@ -483,14 +484,15 @@ export default function LotesConvidados() {
             </div>
           ) : (
             <div className={`transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}>
+              <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow className="border-gray-200">
                     <TableHead className="font-semibold text-gray-700">Número do Lote</TableHead>
                     <TableHead className="font-semibold text-gray-700">Descrição</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Proprietário da Mercadoria</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Mercadorias</TableHead>
-                    <TableHead className="font-semibold text-gray-700">Leilão</TableHead>
+                    <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Proprietário da Mercadoria</TableHead>
+                    <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Mercadorias</TableHead>
+                    <TableHead className="hidden sm:table-cell font-semibold text-gray-700">Leilão</TableHead>
                     <TableHead className="font-semibold text-gray-700">Status</TableHead>
                     <TableHead className="font-semibold text-gray-700 text-center">Ações</TableHead>
                   </TableRow>
@@ -506,13 +508,13 @@ export default function LotesConvidados() {
                           <p className="font-medium text-gray-900 truncate">{lote.descricao}</p>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <div>
                           <p className="text-sm font-medium text-gray-900">{lote.proprietario}</p>
                           <p className="text-xs text-gray-500">{lote.celular_proprietario}</p>
                         </div>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <Popover 
                           open={openPopovers[lote.id] || false}
                           onOpenChange={(isOpen) => setOpenPopovers(prev => ({ ...prev, [lote.id]: isOpen }))}
@@ -566,7 +568,7 @@ export default function LotesConvidados() {
                           </PopoverContent>
                         </Popover>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="hidden sm:table-cell">
                         <span className="text-sm text-gray-600">{lote.leilao_nome || 'Não vinculado'}</span>
                       </TableCell>
                       <TableCell>
@@ -584,7 +586,7 @@ export default function LotesConvidados() {
                                   variant="ghost"
                                   size="sm"
                                   onClick={() => handleViewArrematantes(lote)}
-                                  className="h-8 w-8 p-0 hover:bg-gray-100 relative focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                  className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 relative focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                                   title={`Ver Arrematantes (${arrematantesCount})`}
                                 >
                                   <UserCheck className="h-4 w-4 text-gray-600" />
@@ -607,7 +609,7 @@ export default function LotesConvidados() {
                               setSelectedLote(lote);
                               setIsViewModalOpen(true);
                             }}
-                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                             title="Ver detalhes"
                           >
                             <Eye className="h-4 w-4" />
@@ -618,7 +620,7 @@ export default function LotesConvidados() {
                             variant="ghost"
                             size="sm"
                             onClick={() => handleEdit(lote)}
-                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                             title="Editar lote"
                           >
                             <Edit className="h-4 w-4" />
@@ -639,7 +641,7 @@ export default function LotesConvidados() {
                                 logger.error('Erro ao alterar status do lote:', _error);
                               }
                             }}
-                            className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                            className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                             title={showArchived ? "Desarquivar" : "Arquivar"}
                           >
                             <Archive className="h-4 w-4" />
@@ -651,7 +653,7 @@ export default function LotesConvidados() {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
+                                className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                                 title="Mais ações"
                               >
                                 <MoreVertical className="h-4 w-4" />
@@ -682,6 +684,7 @@ export default function LotesConvidados() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </div>
           )}
         </CardContent>
@@ -708,9 +711,9 @@ export default function LotesConvidados() {
             </DialogDescription>
           </DialogHeader>
           {selectedLote && (
-            <div className="space-y-6">
+            <div className="space-y-4 sm:space-y-6">
               {/* Informações Básicas */}
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium text-gray-700">Número do Lote</Label>
                   <p className="mt-1 text-sm font-semibold text-gray-900">#{selectedLote.numero}</p>
@@ -788,7 +791,7 @@ export default function LotesConvidados() {
                   <Label className="text-sm font-medium text-gray-700 mb-3 block">
                     Imagens do Lote ({selectedLote.imagens.length})
                   </Label>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                     {selectedLote.imagens.map((img: string, index: number) => (
                       <div 
                         key={index} 
@@ -857,7 +860,7 @@ export default function LotesConvidados() {
                     ) && (
                       <div className="mb-4">
                         <p className="text-xs font-medium text-gray-600 mb-2">Imagens</p>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
                           {selectedLote.documentos
                             .filter((doc: string) => 
                               /^data:image/.test(doc) || 

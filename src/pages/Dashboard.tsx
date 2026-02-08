@@ -1044,18 +1044,18 @@ export default function Dashboard() {
 
   if (isLoading) {
     return (
-      <div className="space-y-8">
+      <div className="space-y-4 sm:space-y-6 lg:space-y-8">
         {/* Header - mantém visível durante carregamento */}
-        <div className="pt-4 flex items-end justify-between">
+        <div className="pt-2 sm:pt-4 flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground mb-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-semibold tracking-tight text-foreground mb-1 lg:mb-2">
               {greeting}, {user?.full_name || user?.name || "Usuário"}!
             </h1>
-            <p className="text-lg text-muted-foreground">Carregando resumo dos leilões...</p>
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground">Carregando resumo dos leilões...</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Data atual</p>
-            <p className="text-lg font-medium text-foreground">
+          <div className="lg:text-right">
+            <p className="text-xs sm:text-sm text-muted-foreground">Data atual</p>
+            <p className="text-sm sm:text-base lg:text-lg font-medium text-foreground">
               {brasiliaDate.toLocaleDateString("pt-BR", {
                 weekday: "long",
                 year: "numeric", 
@@ -1067,9 +1067,9 @@ export default function Dashboard() {
         </div>
 
         {/* Layout Principal com Skeleton Loaders Premium */}
-        <div className="grid gap-6 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 lg:gap-6 lg:grid-cols-3">
           {/* Conteúdo Principal - 2 colunas */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className="lg:col-span-2 space-y-4 sm:space-y-6">
             {/* Resumo Geral Skeleton */}
             <Card className="overflow-hidden">
               <CardHeader>
@@ -1080,7 +1080,7 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent>
                 {/* Primeira linha de estatísticas */}
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                   {[...Array(4)].map((_, i) => (
                     <div key={`stat-${i}`} className="text-center px-2 space-y-3">
                       <div className="h-3.5 bg-gradient-to-r from-muted via-muted/70 to-muted rounded-full mb-3 mx-auto w-24 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}></div>
@@ -1092,14 +1092,14 @@ export default function Dashboard() {
                 </div>
 
                 {/* Separador */}
-                <div className="mt-8 pt-6 border-t border-border/50">
+                <div className="mt-4 sm:mt-6 lg:mt-8 pt-6 border-t border-border/50">
                   <div className="flex items-center gap-2 mb-5">
                     <Package className="h-5 w-5 text-muted-foreground/70" />
                     <div className="h-5 bg-gradient-to-r from-muted via-muted/80 to-muted rounded-md w-36 animate-pulse"></div>
                   </div>
                   
                   {/* Segunda linha de estatísticas */}
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                  <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                     {[...Array(4)].map((_, i) => (
                       <div key={`stat2-${i}`} className="text-center px-2 space-y-3">
                         <div className="h-3.5 bg-gradient-to-r from-muted via-muted/70 to-muted rounded-full mb-3 mx-auto w-20 animate-pulse" style={{ animationDelay: `${i * 100}ms` }}></div>
@@ -1116,7 +1116,7 @@ export default function Dashboard() {
             {/* Faturas Recentes Skeleton */}
             <Card className="flex-1 flex flex-col overflow-hidden">
               <CardHeader className="flex-shrink-0">
-                <CardTitle className="flex items-center justify-between">
+                <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex items-center gap-3 text-xl">
                     <FileText className="h-6 w-6 text-muted-foreground/70" />
                     <div className="h-6 bg-gradient-to-r from-muted via-muted/80 to-muted rounded-md w-36 animate-pulse"></div>
@@ -1148,7 +1148,7 @@ export default function Dashboard() {
           {/* Carrossel Skeleton - Lado direito */}
           <Card className="lg:row-span-3 h-[calc(100vh-150px)] flex flex-col overflow-hidden">
             <CardHeader className="flex-shrink-0">
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3 text-xl">
                   <Calendar className="h-6 w-6 text-muted-foreground/70" />
                   <div className="h-6 bg-gradient-to-r from-muted via-muted/80 to-muted rounded-md w-36 animate-pulse"></div>
@@ -1182,17 +1182,17 @@ export default function Dashboard() {
   }
 
   return (
-          <div className="space-y-8">
-        <div className="pt-4 flex items-end justify-between">
+          <div className="space-y-4 sm:space-y-6 lg:space-y-8">
+        <div className="pt-2 sm:pt-4 flex flex-col gap-2 sm:gap-3 lg:flex-row lg:items-end lg:justify-between">
           <div>
-            <h1 className="text-4xl font-semibold tracking-tight text-foreground mb-2">
+            <h1 className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-semibold tracking-tight text-foreground mb-1 lg:mb-2">
               {greeting}, {user?.full_name || user?.name || "Usuário"}!
             </h1>
-            <p className="text-lg text-muted-foreground">Aqui está o resumo dos leilões</p>
+            <p className="text-sm sm:text-base lg:text-lg text-muted-foreground">Aqui está o resumo dos leilões</p>
           </div>
-          <div className="text-right">
-            <p className="text-sm text-muted-foreground">Data atual</p>
-            <p className="text-lg font-medium text-foreground">
+          <div className="lg:text-right">
+            <p className="text-xs sm:text-sm text-muted-foreground">Data atual</p>
+            <p className="text-sm sm:text-base lg:text-lg font-medium text-foreground">
               {brasiliaDate.toLocaleDateString("pt-BR", {
                 weekday: "long",
                 year: "numeric", 
@@ -1204,26 +1204,26 @@ export default function Dashboard() {
         </div>
 
       {/* Layout Principal: Conteúdo à esquerda, Agenda à direita */}
-      <div className="grid gap-6 lg:grid-cols-3">
+      <div className="grid gap-4 lg:gap-6 lg:grid-cols-3">
         {/* Conteúdo Principal - 2 colunas */}
-        <div className="lg:col-span-2 lg:min-h-[calc(100vh-150px)] flex flex-col space-y-6">
+        <div className="lg:col-span-2 lg:min-h-[calc(100vh-150px)] flex flex-col space-y-4 lg:space-y-6">
           {/* Resumo Geral - Layout Limpo */}
           <Card>
             <CardHeader>
-              <CardTitle className="flex items-center gap-3 text-xl">
-                <TrendingUp className="h-6 w-6" />
+              <CardTitle className="flex items-center gap-2 sm:gap-3 text-base sm:text-lg lg:text-xl">
+                <TrendingUp className="h-5 w-5 sm:h-6 sm:w-6" />
                 Resumo Geral
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+              <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                 <div className="text-center px-2">
                   <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3 flex items-center justify-center gap-2">
                     <DollarSign className="h-4 w-4" />
                     Total a Receber
                   </p>
                   <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                  <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalReceiverNumber)}</p>
+                  <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalReceiverNumber)}</p>
                   {(() => {
                     // Verificar se há leilões com comissão do leiloeiro
                     const _leiloesComComissao = activeAuctions.filter(a => 
@@ -1271,7 +1271,7 @@ export default function Dashboard() {
                     Arrematantes
                   </p>
                   <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                  <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{totalArrematantes}</p>
+                  <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{totalArrematantes}</p>
                 </div>
 
                 <div className="text-center px-2">
@@ -1280,7 +1280,7 @@ export default function Dashboard() {
                     Inadimplentes
                   </p>
                   <div className="h-px w-20 bg-red-300 mx-auto mb-4"></div>
-                  <p className="text-[2.125rem] font-extralight text-red-600 mb-2 tracking-tight">{overdueCount}</p>
+                  <p className="text-2xl xl:text-[2.125rem] font-extralight text-red-600 mb-2 tracking-tight">{overdueCount}</p>
                 </div>
 
                 <div className="text-center px-2">
@@ -1289,7 +1289,7 @@ export default function Dashboard() {
                     Total Recebido
                   </p>
                   <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                  <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalRecebido)}</p>
+                  <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalRecebido)}</p>
                   {(() => {
                     // Verificar se há leilões com comissão do leiloeiro
                     const _leiloesComComissao = activeAuctions.filter(a => 
@@ -1337,29 +1337,29 @@ export default function Dashboard() {
                   <Package className="h-5 w-5 text-black" />
                   <span className="text-lg font-semibold text-black">Dados do Sistema</span>
                 </div>
-                <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+                <div className="grid gap-3 sm:gap-4 lg:gap-6 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
                   <div className="text-center px-2">
                     <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total de Leilões</p>
                     <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                    <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{auctions.length}</p>
+                    <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{auctions.length}</p>
                     <p className="text-sm text-gray-600 font-medium">Eventos Cadastrados</p>
                   </div>
                   <div className="text-center px-2">
                     <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Em Andamento</p>
                     <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                    <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{activeAuctionsCount}</p>
+                    <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{activeAuctionsCount}</p>
                     <p className="text-sm text-gray-600 font-medium">Leilões Em Andamento</p>
                   </div>
                   <div className="text-center px-2">
                     <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Programados</p>
                     <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                    <p className="text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{scheduledAuctionsCount}</p>
+                    <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{scheduledAuctionsCount}</p>
                     <p className="text-sm text-gray-600 font-medium">Eventos Futuros</p>
                   </div>
                   <div className="text-center px-2">
                     <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Despesas</p>
                     <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                    <p className="text-[2.125rem] font-light text-gray-900 mb-2 tracking-tight">{currency.format(auctionCostsNumber)}</p>
+                    <p className="text-2xl xl:text-[2.125rem] font-light text-gray-900 mb-2 tracking-tight">{currency.format(auctionCostsNumber)}</p>
                     <p className="text-sm text-gray-600 font-medium">Custos Totais</p>
                   </div>
                 </div>
@@ -1370,7 +1370,7 @@ export default function Dashboard() {
           {/* Faturas Recentes */}
           <Card className="flex-1 flex flex-col">
             <CardHeader className="flex-shrink-0">
-              <CardTitle className="flex items-center justify-between">
+              <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                 <div className="flex items-center gap-3 text-xl">
                   <FileText className="h-6 w-6" />
                   Faturas Recentes
@@ -1654,7 +1654,7 @@ export default function Dashboard() {
           onMouseLeave={() => setIsPaused(false)}
         >
           <CardHeader className="flex-shrink-0">
-            <CardTitle className="flex items-center justify-between">
+            <CardTitle className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
               <div className="flex items-center gap-3 text-xl">
 {(() => {
                   const IconComponent = slides[currentSlide].icon;

@@ -65,15 +65,15 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-white flex items-center justify-center p-6">
+    <div className="min-h-screen bg-white flex items-center justify-center p-4 sm:p-6">
       {/* Container principal */}
-      <div className="w-full max-w-xl p-12 bg-white">
+      <div className="w-full max-w-xl px-4 py-8 sm:p-12 bg-white">
         {/* Logo */}
-        <div className="flex justify-center mb-12">
+        <div className="flex justify-center mb-8 sm:mb-12">
           <img 
             src="/arthur-lira-logo.png" 
             alt="Arthur Lira Leilões" 
-            className="h-16 w-auto object-contain"
+            className="h-12 sm:h-16 w-auto object-contain"
           />
         </div>
         
