@@ -20,6 +20,43 @@
 
   <body>
     <div id="root"></div>
+    <!-- Diagnóstico: captura TODOS os erros incluindo módulos ES (iPhone debug) -->
+    <script>
+      window.__APP_ERRORS = [];
+      function showErr(msg) {
+        window.__APP_ERRORS.push(msg);
+        var d = document.getElementById('app-error-display');
+        if (!d) {
+          d = document.createElement('div');
+          d.id = 'app-error-display';
+          d.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#fff;color:#b91c1c;font:13px/1.6 -apple-system,system-ui,sans-serif;padding:20px;overflow:auto;';
+          document.body.appendChild(d);
+        }
+        d.innerHTML = '<div style="max-width:500px;margin:40px auto"><h2 style="font-size:18px;margin-bottom:12px;color:#111">Erro ao carregar</h2><div style="background:#fef2f2;border:1px solid #fecaca;border-radius:8px;padding:12px;word-break:break-all;font-size:12px;line-height:1.6">' + window.__APP_ERRORS.join('<br><br>') + '</div><button onclick="location.reload()" style="margin-top:16px;padding:10px 24px;background:#3b82f6;color:#fff;border:none;border-radius:8px;font-size:14px">Tentar Novamente</button></div>';
+      }
+      // Captura erros de runtime
+      window.onerror = function(msg, src, line, col) {
+        showErr(msg + ' [' + (src||'').split('/').pop() + ':' + line + ']');
+      };
+      // Captura erros de módulos ES (import failures)
+      window.addEventListener('error', function(e) {
+        if (e.target && (e.target.tagName === 'SCRIPT' || e.target.tagName === 'LINK')) {
+          showErr('Falha ao carregar: ' + (e.target.src || e.target.href || 'recurso desconhecido'));
+        }
+      }, true);
+      // Captura promises rejeitadas (import() dinâmico)
+      window.addEventListener('unhandledrejection', function(e) {
+        var msg = e.reason ? (e.reason.message || e.reason.stack || String(e.reason)) : 'Promise rejected';
+        showErr('Async: ' + msg);
+      });
+      // Timeout: se após 8s o root estiver vazio, algo falhou silenciosamente
+      setTimeout(function() {
+        var root = document.getElementById('root');
+        if (root && !root.firstChild && !document.getElementById('app-error-display')) {
+          showErr('Timeout: o aplicativo nao renderizou em 8 segundos. Possivel erro silencioso no carregamento.');
+        }
+      }, 8000);
+    </script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
