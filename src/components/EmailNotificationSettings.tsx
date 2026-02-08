@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useEmailNotifications } from '@/hooks/use-email-notifications';
 import { useAuth } from '@/hooks/use-auth';
-import { Mail, CheckCircle, Check, Trash2 } from 'lucide-react';
+import { Mail, CheckCircle, Check, Trash2, Send, Loader2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { logger } from '@/lib/logger';
@@ -22,7 +22,7 @@ import {
 } from '@/components/ui/alert-dialog';
 
 export function EmailNotificationSettings() {
-  const { config, saveConfig, carregarLogs, emailLogs, limparHistorico } = useEmailNotifications();
+  const { config, saveConfig, carregarLogs, emailLogs, limparHistorico, enviarEmailTeste } = useEmailNotifications();
   const { user } = useAuth();
   const [localConfig, setLocalConfig] = useState({
     emailRemetente: 'notificacoes@grupoliraleiloes.com',
@@ -54,6 +54,11 @@ export function EmailNotificationSettings() {
   const [isClearing, setIsClearing] = useState(false);
   const [clearMessage, setClearMessage] = useState<{ success: boolean; text: string } | null>(null);
 
+  // Estado do teste de email
+  const [emailTeste, setEmailTeste] = useState('');
+  const [isSendingTest, setIsSendingTest] = useState(false);
+  const [testResult, setTestResult] = useState<{ success: boolean; text: string } | null>(null);
+
   // Verificar se usuário é administrador
   const isAdmin = user?.role === 'admin' || user?.permissions?.can_manage_users === true;
 
@@ -69,6 +74,25 @@ export function EmailNotificationSettings() {
         setIsSaved(false);
       }, 1500);
     }, 800);
+  };
+
+  const handleEnviarTeste = async () => {
+    if (!emailTeste || !emailTeste.includes('@')) {
+      setTestResult({ success: false, text: 'Digite um email válido para o teste' });
+      setTimeout(() => setTestResult(null), 4000);
+      return;
+    }
+
+    setIsSendingTest(true);
+    setTestResult(null);
+
+    const result = await enviarEmailTeste(emailTeste);
+
+    setTestResult({ success: result.success, text: result.message });
+    setIsSendingTest(false);
+
+    // Limpar resultado após alguns segundos
+    setTimeout(() => setTestResult(null), result.success ? 5000 : 8000);
   };
 
   const handleLimparHistorico = async () => {
@@ -192,6 +216,75 @@ export function EmailNotificationSettings() {
               </span>
             </Button>
           </div>
+        </CardContent>
+      </Card>
+
+      {/* Teste de Envio de Email */}
+      <Card className="border-gray-200 shadow-sm">
+        <CardHeader className="bg-gradient-to-r from-gray-50 to-white border-b border-gray-100 pb-6">
+          <div>
+            <CardTitle className="text-xl text-gray-900">Teste de Envio de Email</CardTitle>
+            <CardDescription className="text-gray-600 mt-2">
+              Envie um email de teste para verificar se toda a configuração está funcionando corretamente
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4 pt-6">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="flex-1">
+              <Input
+                type="email"
+                placeholder="Digite o email de destino para o teste"
+                value={emailTeste}
+                onChange={(e) => setEmailTeste(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isSendingTest) handleEnviarTeste();
+                }}
+                className="focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0 focus:outline-none focus-visible:outline-none focus:border-gray-800"
+                disabled={isSendingTest}
+              />
+            </div>
+            <Button
+              onClick={handleEnviarTeste}
+              disabled={isSendingTest || !emailTeste}
+              className="bg-gray-800 hover:bg-black text-white px-6 transition-all duration-300 whitespace-nowrap"
+            >
+              {isSendingTest ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  Enviando...
+                </>
+              ) : (
+                <>
+                  <Send className="w-4 h-4 mr-2" />
+                  Enviar Teste
+                </>
+              )}
+            </Button>
+          </div>
+
+          {/* Resultado do teste */}
+          {testResult && (
+            <div className={`p-4 rounded-lg border transition-all duration-300 ${
+              testResult.success 
+                ? 'bg-green-50 border-green-200 text-green-800' 
+                : 'bg-red-50 border-red-200 text-red-800'
+            }`}>
+              <p className="text-sm font-medium">
+                {testResult.text}
+              </p>
+              {testResult.success && (
+                <p className="text-xs mt-1 opacity-75">
+                  Verifique a caixa de entrada (e spam) do email informado.
+                </p>
+              )}
+            </div>
+          )}
+
+          <p className="text-xs text-gray-500">
+            O email de teste será enviado usando as mesmas configurações do sistema (Resend + Edge Function). 
+            Isso ajuda a confirmar que tudo está operacional antes de ativar o envio automático.
+          </p>
         </CardContent>
       </Card>
 

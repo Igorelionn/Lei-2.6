@@ -1157,6 +1157,56 @@ export function useEmailNotifications() {
     };
   };
 
+  /**
+   * Envia um email de teste para verificar se a configuração está funcionando.
+   * Não registra no histórico de logs.
+   */
+  const enviarEmailTeste = async (emailDestino: string): Promise<{ success: boolean; message: string }> => {
+    if (!emailDestino || !emailDestino.includes('@')) {
+      return { success: false, message: 'Email de destino inválido' };
+    }
+
+    const html = `
+      <div style="font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff;">
+        <div style="background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%); padding: 32px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 600;">Arthur Lira Leilões</h1>
+          <p style="color: #a0aec0; margin: 8px 0 0; font-size: 14px;">Sistema de Notificações</p>
+        </div>
+        <div style="padding: 32px;">
+          <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 20px; text-align: center; margin-bottom: 24px;">
+            <div style="font-size: 40px; margin-bottom: 8px;">✅</div>
+            <h2 style="color: #166534; margin: 0 0 8px; font-size: 18px;">Email de Teste Enviado com Sucesso!</h2>
+            <p style="color: #15803d; margin: 0; font-size: 14px;">A configuração de envio de emails está funcionando corretamente.</p>
+          </div>
+          <div style="background: #f8fafc; border-radius: 8px; padding: 16px; margin-bottom: 24px;">
+            <p style="color: #475569; margin: 0 0 8px; font-size: 13px;"><strong>Remetente:</strong> ${config.emailRemetente}</p>
+            <p style="color: #475569; margin: 0 0 8px; font-size: 13px;"><strong>Destinatário:</strong> ${emailDestino}</p>
+            <p style="color: #475569; margin: 0 0 8px; font-size: 13px;"><strong>Lembrete:</strong> ${config.diasAntesLembrete} dia(s) antes do vencimento</p>
+            <p style="color: #475569; margin: 0; font-size: 13px;"><strong>Cobrança:</strong> ${config.diasDepoisCobranca} dia(s) após o vencimento</p>
+          </div>
+          <p style="color: #64748b; font-size: 12px; text-align: center; margin: 0;">
+            Este é um email de teste gerado automaticamente em ${new Date().toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}.
+          </p>
+        </div>
+        <div style="background: #f1f5f9; padding: 16px; text-align: center; border-top: 1px solid #e2e8f0;">
+          <p style="color: #94a3b8; font-size: 11px; margin: 0;">Arthur Lira Leilões — Sistema de Gestão</p>
+        </div>
+      </div>
+    `;
+
+    const result = await enviarEmail(
+      emailDestino,
+      '✅ Teste de Envio — Arthur Lira Leilões',
+      html
+    );
+
+    if (result.success) {
+      return { success: true, message: `Email de teste enviado com sucesso para ${emailDestino}` };
+    } else {
+      return { success: false, message: result.error || 'Erro ao enviar email de teste' };
+    }
+  };
+
   return {
     config,
     loading,
@@ -1171,6 +1221,7 @@ export function useEmailNotifications() {
     limparHistorico,
     jaEnviouEmail,
     testarEnvioCobranca,
+    enviarEmailTeste,
   };
 }
 
