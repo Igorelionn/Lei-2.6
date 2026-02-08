@@ -1278,14 +1278,14 @@ function Relatorios() {
                 
                     <div className="h-96 mt-4 overflow-x-auto">
                       <div className="min-w-full">
-                        <svg width="100%" height="100%" viewBox="0 0 1400 420" style={{ cursor: 'crosshair', minWidth: '100%' }}>
+                        <svg width="100%" height="100%" viewBox="0 0 1450 420" style={{ cursor: 'crosshair', minWidth: '100%' }}>
                         {/* Grid horizontal - linhas sutis */}
                         {[0, 1, 2, 3, 4, 5, 6, 7].map((line) => (
                           <line
                             key={line}
-                            x1="30"
+                            x1="80"
                             y1={25 + line * 50}
-                            x2="1380"
+                            x2="1430"
                             y2={25 + line * 50}
                             stroke="#d1d5db"
                             strokeWidth="1"
@@ -1338,12 +1338,12 @@ function Relatorios() {
                           }
                           
                           const quantidadePeriodos = labelsData.length;
-                          const espacamentoX = quantidadePeriodos > 1 ? (1400 - 60) / (quantidadePeriodos - 1) : 0;
+                          const espacamentoX = quantidadePeriodos > 1 ? (1430 - 80) / (quantidadePeriodos - 1) : 0;
                           
                           return labelsData.map((label, i) => (
                             <text
                               key={i}
-                              x={30 + (i * espacamentoX)}
+                              x={80 + (i * espacamentoX)}
                               y="405"
                               fill="#6B7280"
                               fontSize="14"
@@ -1745,14 +1745,14 @@ function Relatorios() {
                                 
                                 // Configuração das barras baseado na quantidade de períodos
                                 const quantidadePeriodos = dadosMensais.length;
-                                const larguraDisponivel = 1400 - 60; // Total menos margens
+                                const larguraDisponivel = 1430 - 80; // Total menos margens
                                 const larguraSegmento = larguraDisponivel / quantidadePeriodos;
                                 const larguraBarra = Math.min(larguraSegmento * 0.3, 50); // Cada barra individual
                                 const espacamentoBarra = 6; // Espaço entre faturamento e despesas
                                 
                                 // Função para calcular posição X das barras
                                 const calcularXBarra = (indicePeriodo, tipoFaturamento = true) => {
-                                  const centroSegmento = 30 + (indicePeriodo * larguraSegmento) + (larguraSegmento / 2);
+                                  const centroSegmento = 80 + (indicePeriodo * larguraSegmento) + (larguraSegmento / 2);
                                   const larguraConjunto = (larguraBarra * 2) + espacamentoBarra;
                                   const inicioConjunto = centroSegmento - (larguraConjunto / 2);
                                   
@@ -1763,7 +1763,7 @@ function Relatorios() {
                                 
                                 // Para posicionamento de tooltips e linha vertical
                                 const calcularCentroPeriodo = (indicePeriodo) => {
-                                  return 30 + (indicePeriodo * larguraSegmento) + (larguraSegmento / 2);
+                                  return 80 + (indicePeriodo * larguraSegmento) + (larguraSegmento / 2);
                                 };
                                 
                                 
@@ -1828,7 +1828,7 @@ function Relatorios() {
                                       <g key={i}>
                                         {/* Área invisível para hover cobrindo todo o segmento do período */}
                                         <rect
-                                          x={30 + (i * larguraSegmento)}
+                                          x={80 + (i * larguraSegmento)}
                                           y="25"
                                           width={larguraSegmento}
                                           height="350"
@@ -1973,10 +1973,10 @@ function Relatorios() {
                                 return (
                                   <text
                                     key={tick}
-                                    x="15"
+                                    x="72"
                                     y={25 + tick * 50 + 4}
                                     fill="#64748b"
-                                    fontSize="14"
+                                    fontSize="12"
                                     textAnchor="end"
                                   >
                                     {value}
