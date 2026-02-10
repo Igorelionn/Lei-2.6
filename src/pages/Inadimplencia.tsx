@@ -1923,7 +1923,7 @@ Arthur Lira Leilões`;
             Acompanhe e gerencie os pagamentos em atraso
           </p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex flex-wrap gap-3">
           <Button 
             variant="outline" 
             className="bg-white text-black border-gray-300 hover:bg-gray-100 hover:text-black"
@@ -2009,7 +2009,7 @@ Arthur Lira Leilões`;
 
               <div className="flex gap-3">
                 <Select value={statusFilter} onValueChange={setStatusFilter} onOpenChange={setIsStatusSelectOpen}>
-                  <SelectTrigger className="w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
+                  <SelectTrigger className="w-full sm:w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
                     <SelectValue placeholder="Atraso" />
               </SelectTrigger>
               <SelectContent>
@@ -2021,7 +2021,7 @@ Arthur Lira Leilões`;
             </Select>
 
                 <Select value={sortBy} onValueChange={setSortBy} onOpenChange={setIsSortSelectOpen}>
-                  <SelectTrigger className="w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
+                  <SelectTrigger className="w-full sm:w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
                     <SelectValue placeholder="Ordenar" />
               </SelectTrigger>
               <SelectContent>
@@ -2370,7 +2370,7 @@ Arthur Lira Leilões`;
 
       {/* Modal de Relatório do Arrematante */}
       <Dialog open={isHistoryModalOpen} onOpenChange={setIsHistoryModalOpen}>
-         <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+         <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
            <DialogHeader className="border-b-2 border-slate-800 pb-4">
              <div className="text-center">
                <DialogTitle className="text-2xl font-light text-slate-900 tracking-wider uppercase mb-2">
@@ -2811,7 +2811,7 @@ Arthur Lira Leilões`;
 
       {/* Modal de Exportação */}
       <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Exportar Relatório de Inadimplência</DialogTitle>
             <DialogDescription className="text-gray-600 mt-2">
@@ -2888,7 +2888,7 @@ Arthur Lira Leilões`;
 
       {/* Modal de Envio de Cobrança */}
       <Dialog open={isChargeModalOpen} onOpenChange={setIsChargeModalOpen}>
-        <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Send className="h-5 w-5" />
@@ -3033,7 +3033,7 @@ Arthur Lira Leilões`;
 
       {/* Modal de Teste de Envio de Cobrança */}
       <Dialog open={isTestEmailModalOpen} onOpenChange={setIsTestEmailModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[80vh]">
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Send className="h-5 w-5 text-amber-600" />

@@ -2,8 +2,9 @@ import { createClient } from '@supabase/supabase-js';
 import { Database } from './database.types';
 
 // 🔒 SEGURANÇA: Credenciais apenas de variáveis de ambiente
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// .trim() remove caracteres invisíveis (\r\n) que podem vir de .env com line endings Windows
+const supabaseUrl = (import.meta.env.VITE_SUPABASE_URL || '').trim();
+const supabaseAnonKey = (import.meta.env.VITE_SUPABASE_ANON_KEY || '').trim();
 
 // ✅ Validação: garantir que as variáveis de ambiente estão configuradas
 if (!supabaseUrl || !supabaseAnonKey) {

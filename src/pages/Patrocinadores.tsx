@@ -725,9 +725,9 @@ export default function Patrocinadores() {
                 </div>
               </div>
 
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex flex-wrap gap-2 flex-shrink-0">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
-                  <SelectTrigger className="w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
+                  <SelectTrigger className="w-full sm:w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -937,7 +937,7 @@ export default function Patrocinadores() {
 
       {/* Modal de Visualização de Detalhes */}
       <Dialog open={!!viewingPatrocinador} onOpenChange={(open) => !open && setViewingPatrocinador(null)}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden p-0">
           {/* Header Fixo */}
           <div className="sticky top-0 bg-white z-50 px-6 py-4 border-b border-gray-200 shadow-sm">
             <DialogHeader>
@@ -1067,7 +1067,7 @@ export default function Patrocinadores() {
 
       {/* Modal de Confirmação de Pagamento - Igual ao de Arrematantes */}
       <Dialog open={isPaymentModalOpen} onOpenChange={setIsPaymentModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden">
           <DialogHeader className="pb-4">
             <DialogTitle className="text-lg font-medium text-gray-900">
               Confirmação de Pagamentos
@@ -1205,7 +1205,7 @@ export default function Patrocinadores() {
 
           <div className="min-h-screen flex">
             {/* Conteúdo Principal */}
-            <div className="flex-1 flex items-center justify-center px-8 md:px-20 py-16">
+            <div className="flex-1 flex items-center justify-center px-4 sm:px-8 md:px-20 py-16">
               <div className="w-full max-w-2xl space-y-12">
                 {/* Título */}
                 <div>

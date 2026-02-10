@@ -244,7 +244,7 @@ function MobileSidebar() {
 
       {/* Drawer lateral */}
       <div className={cn(
-        "fixed inset-y-0 left-0 z-50 w-72 bg-card border-r border-border flex flex-col shadow-xl md:hidden",
+        "fixed inset-y-0 left-0 z-50 w-[85vw] max-w-72 bg-card border-r border-border flex flex-col shadow-xl md:hidden",
         "transition-transform duration-300 ease-in-out",
         isMobileOpen ? "translate-x-0" : "-translate-x-full"
       )}>

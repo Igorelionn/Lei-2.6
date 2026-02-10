@@ -1764,7 +1764,7 @@ function Leiloes() {
              </div>
            </div>
            
-           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 xl:gap-0 xl:divide-x xl:divide-gray-200">
+           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-4 xl:gap-0 xl:divide-x xl:divide-gray-200">
              <div className="text-center px-4 xl:px-6">
                <div className="mb-3 xl:mb-4">
                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Total de Leilões</p>
@@ -1855,9 +1855,9 @@ function Leiloes() {
                  />
                </div>
                
-               {/* Filtros à Direita */}
-               <div className="flex items-center gap-3">
-                 <div className="text-sm font-medium text-gray-700">Filtrar:</div>
+              {/* Filtros à Direita */}
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="text-sm font-medium text-gray-700">Filtrar:</div>
                  
                  <Select 
                    value={statusFilter} 
@@ -1868,7 +1868,7 @@ function Leiloes() {
                    }}
                    onOpenChange={setIsStatusFilterOpen}
                  >
-                   <SelectTrigger className="h-10 w-48 border-gray-300 bg-white text-sm focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
+                   <SelectTrigger className="h-10 w-full sm:w-48 border-gray-300 bg-white text-sm focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
                      <SelectValue placeholder="Status" />
                    </SelectTrigger>
                    <SelectContent>
@@ -2325,9 +2325,9 @@ function Leiloes() {
 
       {/* Modal de Visualização de Detalhes */}
       <Dialog open={!!viewingAuction} onOpenChange={(open) => !open && setViewingAuction(null)}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden p-0">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden p-0">
           {/* Header Fixo */}
-          <div className="sticky top-0 bg-white z-50 px-6 py-4 border-b border-gray-200 shadow-sm">
+          <div className="sticky top-0 bg-white z-50 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-b border-gray-200 shadow-sm">
           <DialogHeader>
               <DialogTitle className="text-xl font-semibold text-gray-900 pr-8">Detalhes do Leilão</DialogTitle>
               <DialogDescription>
@@ -2365,7 +2365,7 @@ function Leiloes() {
           setEditingArrematanteId(null);
         }
       }}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               Selecione o Arrematante
@@ -2863,7 +2863,7 @@ function Leiloes() {
 
       {/* Modal de Pagamento Mensal - REMOVIDO DIALOG ANTIGO */}
       <Dialog open={false}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">
               {editingArrematanteId ? "Editar Arrematante" : "Adicionar Arrematante"}
@@ -3907,7 +3907,7 @@ function Leiloes() {
 
       {/* Modal de Pagamento Mensal */}
       <Dialog open={paymentModalOpen} onOpenChange={setPaymentModalOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-[95vw] sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <CreditCard className="h-5 w-5" />
@@ -3948,7 +3948,7 @@ function Leiloes() {
 
       {/* Modal de Exportação */}
       <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Exportar Relatório de Leilão</DialogTitle>
             <DialogDescription>

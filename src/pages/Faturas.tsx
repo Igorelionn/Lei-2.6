@@ -1346,9 +1346,9 @@ function Faturas() {
               </div>
               
               {/* Filtros à direita */}
-              <div className="flex gap-3 lg:ml-auto">
+              <div className="flex flex-wrap gap-2 sm:gap-3 lg:ml-auto">
                 <Select value={statusFilterFaturas} onValueChange={setStatusFilterFaturas}>
-                  <SelectTrigger className="w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
+                  <SelectTrigger className="w-full sm:w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none">
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -1596,7 +1596,7 @@ function Faturas() {
 
       {/* Modal de Visualização de Fatura */}
       <Dialog open={isViewFaturaModalOpen} onOpenChange={setIsViewFaturaModalOpen}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-5xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-gray-900 flex items-center gap-2">
               <Receipt className="h-5 w-5 text-gray-600" />
@@ -1613,10 +1613,10 @@ function Faturas() {
             <div className="space-y-5">
                 {/* Identificação Principal - Clean e Minimalista */}
                 <div className="bg-gray-50/50 border border-gray-200 rounded-lg p-4">
-                  <div className="grid grid-cols-3 gap-6">
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
                 <div>
                   <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Lote</Label>
-                       <p className="mt-1.5 text-2xl font-light text-gray-900">#{selectedFatura.loteNumero}</p>
+                       <p className="mt-1.5 text-xl sm:text-2xl font-light text-gray-900">#{selectedFatura.loteNumero}</p>
                 </div>
                 <div>
                   <Label className="text-xs uppercase tracking-wide font-medium text-gray-500">Status</Label>
@@ -1920,7 +1920,7 @@ function Faturas() {
                       Parcelamento
                     </h3>
                     <div className="bg-gray-50/50 border border-gray-200 rounded-lg p-4">
-                      <div className="grid grid-cols-3 gap-6">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-6">
                         <div>
                           <Label className="text-xs font-medium text-gray-500">Parcela Atual</Label>
                           <p className="text-2xl font-light text-gray-900">
@@ -2021,7 +2021,7 @@ function Faturas() {
 
       {/* Modal de Criação/Edição de Fatura */}
       <Dialog open={isFaturaModalOpen} onOpenChange={setIsFaturaModalOpen}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Receipt className="h-5 w-5" />
@@ -2135,7 +2135,7 @@ function Faturas() {
 
       {/* Modal de Preview da Fatura - similar ao dos relatórios */}
     <Dialog open={isFaturaPreviewOpen} onOpenChange={setIsFaturaPreviewOpen}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Visualizar Fatura - Lote #{selectedFaturaForPreview?.loteNumero}</DialogTitle>
           <p className="text-sm text-gray-600">

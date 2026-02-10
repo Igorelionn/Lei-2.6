@@ -3774,7 +3774,7 @@ function Arrematantes() {
 
       {/* Modal de Visualização */}
       <Dialog open={isViewModalOpen} onOpenChange={setIsViewModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-gray-900">
               Detalhes do Arrematante
@@ -4225,7 +4225,7 @@ function Arrematantes() {
 
       {/* Modal de Edição Antigo - REMOVIDO */}
       <Dialog open={false}>
-        <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto custom-scrollbar">
+        <DialogContent className="max-w-[95vw] sm:max-w-5xl max-h-[90vh] overflow-y-auto custom-scrollbar">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold text-gray-900">
               Editar Arrematante
@@ -4482,7 +4482,7 @@ function Arrematantes() {
               
               {/* Área de upload */}
               <div 
-                className="border-2 border-dashed border-gray-300 rounded-lg p-6 hover:border-gray-400 transition-colors"
+                className="border-2 border-dashed border-gray-300 rounded-lg p-3 sm:p-4 lg:p-6 hover:border-gray-400 transition-colors"
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
               >
@@ -4560,7 +4560,7 @@ function Arrematantes() {
             setIsPaymentModalOpen(open);
           }}
         >
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
+          <DialogContent className="max-w-[95vw] sm:max-w-2xl max-h-[90vh] overflow-hidden">
             <DialogHeader className="pb-4">
               <DialogTitle className="text-lg font-medium text-gray-900">
                 Confirmação de Pagamentos
@@ -4939,7 +4939,7 @@ function Arrematantes() {
           }
         }}>
           <DialogContent 
-            className="max-w-6xl max-h-[90vh] overflow-y-auto"
+            className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto"
             onEscapeKeyDown={(_e) => {
               handleCloseFullEdit();
             }}
@@ -5501,7 +5501,7 @@ function Arrematantes() {
 
                 {/* Área de Upload */}
                 <div
-                  className="mt-3 border-2 border-dashed border-gray-300 rounded-md p-6 text-center hover:border-gray-400 transition-colors"
+                  className="mt-3 border-2 border-dashed border-gray-300 rounded-md p-3 sm:p-4 lg:p-6 text-center hover:border-gray-400 transition-colors"
                   onDragOver={handleDragOver}
                   onDrop={(e) => handleFullEditDrop(e)}
                 >
@@ -5555,7 +5555,7 @@ function Arrematantes() {
 
         {/* Modal de Exportação */}
       <Dialog open={isExportModalOpen} onOpenChange={setIsExportModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="text-xl font-semibold">Exportar Relatório de Arrematante</DialogTitle>
             <DialogDescription>

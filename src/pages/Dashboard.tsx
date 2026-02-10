@@ -1223,7 +1223,7 @@ export default function Dashboard() {
                     Total a Receber
                   </p>
                   <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                  <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalReceiverNumber)}</p>
+                  <p className="text-xl sm:text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalReceiverNumber)}</p>
                   {(() => {
                     // Verificar se há leilões com comissão do leiloeiro
                     const _leiloesComComissao = activeAuctions.filter(a => 
@@ -1271,7 +1271,7 @@ export default function Dashboard() {
                     Arrematantes
                   </p>
                   <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                  <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{totalArrematantes}</p>
+                  <p className="text-xl sm:text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{totalArrematantes}</p>
                 </div>
 
                 <div className="text-center px-2">
@@ -1280,7 +1280,7 @@ export default function Dashboard() {
                     Inadimplentes
                   </p>
                   <div className="h-px w-20 bg-red-300 mx-auto mb-4"></div>
-                  <p className="text-2xl xl:text-[2.125rem] font-extralight text-red-600 mb-2 tracking-tight">{overdueCount}</p>
+                  <p className="text-xl sm:text-2xl xl:text-[2.125rem] font-extralight text-red-600 mb-2 tracking-tight">{overdueCount}</p>
                 </div>
 
                 <div className="text-center px-2">
@@ -1289,7 +1289,7 @@ export default function Dashboard() {
                     Total Recebido
                   </p>
                   <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                  <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalRecebido)}</p>
+                  <p className="text-xl sm:text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{currency.format(totalRecebido)}</p>
                   {(() => {
                     // Verificar se há leilões com comissão do leiloeiro
                     const _leiloesComComissao = activeAuctions.filter(a => 
@@ -1341,25 +1341,25 @@ export default function Dashboard() {
                   <div className="text-center px-2">
                     <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Total de Leilões</p>
                     <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                    <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{auctions.length}</p>
+                    <p className="text-xl sm:text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{auctions.length}</p>
                     <p className="text-sm text-gray-600 font-medium">Eventos Cadastrados</p>
                   </div>
                   <div className="text-center px-2">
                     <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Em Andamento</p>
                     <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                    <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{activeAuctionsCount}</p>
+                    <p className="text-xl sm:text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{activeAuctionsCount}</p>
                     <p className="text-sm text-gray-600 font-medium">Leilões Em Andamento</p>
                   </div>
                   <div className="text-center px-2">
                     <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Programados</p>
                     <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                    <p className="text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{scheduledAuctionsCount}</p>
+                    <p className="text-xl sm:text-2xl xl:text-[2.125rem] font-extralight text-gray-900 mb-2 tracking-tight">{scheduledAuctionsCount}</p>
                     <p className="text-sm text-gray-600 font-medium">Eventos Futuros</p>
                   </div>
                   <div className="text-center px-2">
                     <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-3">Despesas</p>
                     <div className="h-px w-20 bg-gray-300 mx-auto mb-4"></div>
-                    <p className="text-2xl xl:text-[2.125rem] font-light text-gray-900 mb-2 tracking-tight">{currency.format(auctionCostsNumber)}</p>
+                    <p className="text-xl sm:text-2xl xl:text-[2.125rem] font-light text-gray-900 mb-2 tracking-tight">{currency.format(auctionCostsNumber)}</p>
                     <p className="text-sm text-gray-600 font-medium">Custos Totais</p>
                   </div>
                 </div>

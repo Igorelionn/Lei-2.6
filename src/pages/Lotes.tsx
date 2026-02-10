@@ -1490,7 +1490,7 @@ function Lotes() {
   return (
     <div className="space-y-4 sm:space-y-6 p-6 slide-in-right">
       {/* Header */}
-      <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">Gestão de Lotes</h1>
           <p className="text-gray-600 mt-1">Gerencie os lotes dos leilões cadastrados</p>
@@ -1563,7 +1563,7 @@ function Lotes() {
                 </div>
               </div>
 
-              <div className="flex gap-2 flex-shrink-0">
+              <div className="flex flex-wrap gap-2 flex-shrink-0">
                 <Select 
                   value={statusFilterLotes} 
                   onValueChange={(value) => {
@@ -1579,7 +1579,7 @@ function Lotes() {
                   onOpenChange={setIsFilterSelectOpen}
                 >
                   <SelectTrigger 
-                    className="w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none"
+                    className="w-full sm:w-[140px] h-11 border-gray-300 bg-white focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-300 focus:!outline-none focus:!shadow-none"
                   >
                     <SelectValue placeholder="Status" />
                   </SelectTrigger>
@@ -1893,7 +1893,7 @@ function Lotes() {
 
       {/* Modal de Visualização de Lote */}
       <Dialog open={isViewLoteModalOpen} onOpenChange={setIsViewLoteModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -2021,7 +2021,7 @@ function Lotes() {
 
       {/* Modal de Criação/Edição de Lote */}
       <Dialog open={isLoteModalOpen} onOpenChange={setIsLoteModalOpen}>
-        <DialogContent className="max-w-4xl max-h-[95vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[95vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Package className="h-5 w-5" />
@@ -2305,7 +2305,7 @@ function Lotes() {
 
       {/* Modal de Visualização de Fotos */}
       <Dialog open={isPhotoViewerOpen} onOpenChange={setIsPhotoViewerOpen}>
-        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden" hideCloseButton={true}>
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden" hideCloseButton={true}>
           <DialogHeader>
             <DialogTitle>
               Fotos do Lote - {selectedLoteForPhotos?.descricao}
@@ -2367,7 +2367,7 @@ function Lotes() {
 
       {/* Modal de Detalhes do Leilão */}
       <Dialog open={!!viewingAuction} onOpenChange={() => setViewingAuction(null)}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Gavel className="h-5 w-5" />

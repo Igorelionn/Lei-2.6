@@ -2000,7 +2000,7 @@ function Relatorios() {
       
       {/* Modal de Preview de Relatórios - igual ao da página Leilões */}
       <Dialog open={isPreviewModalOpen} onOpenChange={setIsPreviewModalOpen}>
-        <DialogContent className="max-w-6xl max-h-[90vh] overflow-y-auto">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Exportar Relatório - {previewType === 'leiloes' ? 'Leilões' : previewType === 'inadimplencia' ? 'Inadimplência' : previewType === 'historico' ? 'Histórico' : 'Faturas'}</DialogTitle>
             <p className="text-sm text-gray-600">

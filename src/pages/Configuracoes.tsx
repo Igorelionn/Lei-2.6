@@ -1628,12 +1628,12 @@ export default function Configuracoes() {
                   {/* Cabeçalho da tabela */}
                   <div className="px-4 py-3 border-b border-gray-200">
                     <div className="grid grid-cols-12 gap-3 sm:gap-4 lg:gap-6 text-sm font-medium text-gray-600">
-                      <div className="col-span-3">Membro</div>
-                      <div className="col-span-2">Último Acesso</div>
-                      <div className="col-span-2">Data de Entrada</div>
-                      <div className="col-span-2">Contato</div>
-                      <div className="col-span-1">Status</div>
-                      <div className="col-span-2">Ações</div>
+                      <div className="col-span-7 sm:col-span-3">Membro</div>
+                      <div className="hidden sm:block col-span-2">Último Acesso</div>
+                      <div className="hidden sm:block col-span-2">Data de Entrada</div>
+                      <div className="hidden sm:block col-span-2">Contato</div>
+                      <div className="hidden sm:block col-span-1">Status</div>
+                      <div className="col-span-5 sm:col-span-2">Ações</div>
                     </div>
                   </div>
 
@@ -1643,7 +1643,7 @@ export default function Configuracoes() {
                       <div key={member.id} className="px-4 py-4 hover:bg-gray-50 transition-colors">
                         <div className="grid grid-cols-12 gap-3 sm:gap-4 lg:gap-6 items-center">
                           {/* Membro */}
-                          <div className="col-span-3">
+                          <div className="col-span-7 sm:col-span-3">
                             <div className="flex items-center gap-3">
                               {/* Avatar real ou ícone padrão */}
                               <div className="w-10 h-10 rounded-full overflow-hidden bg-gray-100 flex-shrink-0">
@@ -1703,7 +1703,7 @@ export default function Configuracoes() {
                           </div>
 
                           {/* Contato */}
-                          <div className="col-span-2">
+                          <div className="hidden sm:block col-span-2">
                             {member.phone ? (
                               <div className="text-sm text-gray-900">
                                 {member.phone}
@@ -1716,7 +1716,7 @@ export default function Configuracoes() {
                           </div>
 
                           {/* Status */}
-                          <div className="col-span-1">
+                          <div className="hidden sm:block col-span-1">
                             <div className="flex items-center gap-2">
                               <div className={`w-2 h-2 rounded-full ${isUserOnline(member.last_login_at) ? 'bg-green-500' : 'bg-gray-400'}`} />
                               <span className={`text-xs ${isUserOnline(member.last_login_at) ? 'text-green-600' : 'text-gray-600'}`}>
@@ -1726,7 +1726,7 @@ export default function Configuracoes() {
                           </div>
 
                           {/* Ações */}
-                          <div className="col-span-2">
+                          <div className="col-span-5 sm:col-span-2">
                             <div className="flex items-center gap-1">
                               {/* Botão Ver Atividades - Sempre visível */}
                               <Button
@@ -1831,7 +1831,7 @@ export default function Configuracoes() {
 
       {/* Modal de Verificação de Senha */}
       <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[425px]">
           <DialogHeader>
             <DialogTitle>Verificar Senha Atual</DialogTitle>
             <DialogDescription>
@@ -1930,7 +1930,7 @@ export default function Configuracoes() {
 
       {/* Modal de Atividades do Usuário */}
       <Dialog open={showActionsModal} onOpenChange={setShowActionsModal}>
-        <DialogContent className="sm:max-w-[700px] max-h-[80vh]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[700px] max-h-[80vh]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Clock className="w-5 h-5" />
@@ -2163,7 +2163,7 @@ export default function Configuracoes() {
 
       {/* Modal de Confirmação de Desativação */}
       <Dialog open={showDeactivateModal} onOpenChange={setShowDeactivateModal}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[550px]">
           <DialogHeader className="text-center pb-4">
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <UserMinus className="w-6 h-6 text-red-600" />
@@ -2234,7 +2234,7 @@ export default function Configuracoes() {
 
       {/* Modal de Confirmação de Exclusão */}
       <Dialog open={showDeleteModal} onOpenChange={setShowDeleteModal}>
-        <DialogContent className="sm:max-w-[550px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[550px]">
           <DialogHeader className="text-center pb-4">
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <Trash2 className="w-6 h-6 text-red-600" />
@@ -2305,7 +2305,7 @@ export default function Configuracoes() {
 
       {/* Modal de Confirmação de Limpeza de Histórico */}
       <Dialog open={showClearHistoryModal} onOpenChange={setShowClearHistoryModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
           <DialogHeader className="text-center pb-4">
             <div className="mx-auto w-12 h-12 bg-red-100 rounded-full flex items-center justify-center mb-4">
               <Database className="w-6 h-6 text-red-600" />
@@ -2360,7 +2360,7 @@ export default function Configuracoes() {
         setShowAddUserModal(open);
         if (!open) clearNewUserForm();
       }}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[600px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <UserPlus className="w-5 h-5 text-gray-600" />
@@ -2590,7 +2590,7 @@ export default function Configuracoes() {
 
       {/* Modal de Promoção/Despromoção */}
       <Dialog open={showPromotionModal} onOpenChange={setShowPromotionModal}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               {promotionAction === 'promote' ? (
@@ -2681,7 +2681,7 @@ export default function Configuracoes() {
 
       {/* Modal de Confirmação de Senha do Administrador */}
       <Dialog open={showAdminPasswordConfirmModal} onOpenChange={closePasswordChangeModals}>
-        <DialogContent className="sm:max-w-[450px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[450px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-purple-600" />
@@ -2784,7 +2784,7 @@ export default function Configuracoes() {
 
       {/* Modal de Alteração de Senha */}
       <Dialog open={showChangePasswordModal} onOpenChange={closePasswordChangeModals}>
-        <DialogContent className="sm:max-w-[500px]">
+        <DialogContent className="max-w-[95vw] sm:max-w-[500px]">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Shield className="w-5 h-5 text-purple-600" />
