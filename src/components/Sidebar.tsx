@@ -22,32 +22,35 @@ import {
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "./ui/button";
+import { AnimatedIcon } from "./SidebarIcons";
 
 type MenuItem = {
   icon: LucideIcon;
   label: string;
   path: string;
+  animKey: string; // chave para o AnimatedIcon
   subitems?: { icon: LucideIcon; label: string; path: string }[];
 };
 
 const menuItems: MenuItem[] = [
-  { icon: Home, label: "Dashboard", path: "/" },
-  { icon: Gavel, label: "Leilões", path: "/leiloes" },
+  { icon: Home, label: "Dashboard", path: "/", animKey: "home" },
+  { icon: Gavel, label: "Leilões", path: "/leiloes", animKey: "gavel" },
   { 
     icon: Package, 
     label: "Lotes", 
     path: "/lotes",
+    animKey: "package",
     subitems: [
       { icon: UserPlus, label: "Lotes Convidados", path: "/lotes-convidados" }
     ]
   },
-  { icon: Handshake, label: "Patrocinadores", path: "/patrocinadores" },
-  { icon: Users, label: "Arrematantes", path: "/arrematantes" },
-  { icon: FileText, label: "Faturas", path: "/faturas" },
-  { icon: AlertTriangle, label: "Inadimplência", path: "/inadimplencia" },
-  { icon: History, label: "Histórico", path: "/historico" },
-  { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
-  { icon: Settings, label: "Configurações", path: "/configuracoes" },
+  { icon: Handshake, label: "Patrocinadores", path: "/patrocinadores", animKey: "handshake" },
+  { icon: Users, label: "Arrematantes", path: "/arrematantes", animKey: "users" },
+  { icon: FileText, label: "Faturas", path: "/faturas", animKey: "filetext" },
+  { icon: AlertTriangle, label: "Inadimplência", path: "/inadimplencia", animKey: "alert" },
+  { icon: History, label: "Histórico", path: "/historico", animKey: "history" },
+  { icon: BarChart3, label: "Relatórios", path: "/relatorios", animKey: "barchart" },
+  { icon: Settings, label: "Configurações", path: "/configuracoes", animKey: "settings" },
 ];
 
 /** Conteúdo compartilhado do sidebar (usado desktop e mobile) */
@@ -65,42 +68,15 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
     onNavigate?.();
   };
 
-  // Mapa de animações por rota (classes CSS definidas em index.css)
-  const clickAnimationMap: Record<string, string> = {
-    "/": "sidebar-anim-home",
-    "/leiloes": "sidebar-anim-gavel",
-    "/lotes": "sidebar-anim-package",
-    "/patrocinadores": "sidebar-anim-handshake",
-    "/arrematantes": "sidebar-anim-users",
-    "/faturas": "sidebar-anim-filetext",
-    "/inadimplencia": "sidebar-anim-alert",
-    "/historico": "sidebar-anim-history",
-    "/relatorios": "sidebar-anim-barchart",
-    "/configuracoes": "sidebar-anim-settings",
-  };
-
   return (
     <>
       <nav className="flex-1 p-3 xl:p-4 flex flex-col overflow-y-auto">
         <ul className="space-y-1 xl:space-y-2 flex-1">
           {menuItems.map((item) => {
-            const Icon = item.icon;
             const isActive = location.pathname === item.path;
             const hasSubitems = item.subitems && item.subitems.length > 0;
             const isHovered = hoveredItem === item.path;
-            
-            const iconAnimation = {
-              Home: "group-hover:scale-110 group-hover:rotate-[8deg] transition-all duration-300",
-              Gavel: "group-hover:rotate-[15deg] group-hover:scale-110 transition-all duration-300",
-              Package: "group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300",
-              UserPlus: "group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300",
-              Handshake: "group-hover:scale-110 group-hover:rotate-[-5deg] transition-all duration-300",
-              Users: "group-hover:scale-125 transition-all duration-300",
-              FileText: "group-hover:rotate-[10deg] group-hover:scale-110 transition-all duration-300",
-              AlertTriangle: "group-hover:animate-bounce",
-              BarChart3: "group-hover:scale-110 group-hover:translate-y-[-2px] transition-all duration-300",
-              Settings: "group-hover:rotate-90 transition-all duration-500",
-            }[item.icon.name] || "group-hover:scale-110 transition-all duration-300";
+            const isAnimating = clickedIcon === item.path;
             
             return (
               <li key={item.path}>
@@ -133,12 +109,11 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                   )}
                   title={collapsed ? item.label : undefined}
                 >
-                  <Icon className={cn(
-                    "h-5 w-5 flex-shrink-0",
-                    clickedIcon === item.path
-                      ? clickAnimationMap[item.path] || ""
-                      : iconAnimation
-                  )} />
+                  <AnimatedIcon
+                    name={item.animKey}
+                    isAnimating={isAnimating}
+                    className="h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
+                  />
                   {!collapsed && <span className="group-hover:translate-x-1 transition-transform duration-300 truncate">{item.label}</span>}
                 </Link>
 
