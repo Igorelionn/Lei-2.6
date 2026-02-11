@@ -705,10 +705,8 @@ export default function Patrocinadores() {
       <Card className="border border-gray-200 shadow-sm h-[calc(100vh-320px)]">
         <CardHeader className="pb-4">
           <div className="space-y-4">
-            <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                {showArchived ? <Archive className="h-5 w-5 text-gray-600" /> : <Handshake className="h-5 w-5 text-gray-600" />}
-              </div>
+            <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
+              {showArchived ? <Archive className="h-5 w-5 text-gray-600 shrink-0" /> : <Handshake className="h-5 w-5 text-gray-600 shrink-0" />}
               {showArchived ? "Patrocinadores Arquivados" : "Patrocinadores Cadastrados"}
             </CardTitle>
 
