@@ -1987,10 +1987,8 @@ Arthur Lira Leilões`;
       <Card className="h-[calc(100vh-320px)] flex flex-col">
         <CardHeader className="flex-shrink-0">
           <div className="space-y-4">
-            <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <AlertTriangle className="h-5 w-5 text-red-600" />
-              </div>
+            <CardTitle className="flex items-center gap-2 text-xl font-semibold leading-tight text-gray-800">
+              <AlertTriangle className="h-5 w-5 text-red-600 shrink-0" />
               Arrematantes Inadimplentes
           </CardTitle>
 

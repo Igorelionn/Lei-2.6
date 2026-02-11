@@ -2915,10 +2915,8 @@ function Arrematantes() {
         <CardHeader className="pb-4">
           <div className="space-y-4">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-            <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                {showArchived ? <Archive className="h-5 w-5 text-gray-600" /> : <Users className="h-5 w-5 text-gray-600" />}
-              </div>
+            <CardTitle className="flex items-center gap-2 text-xl font-semibold leading-tight text-gray-800">
+              {showArchived ? <Archive className="h-5 w-5 text-gray-600 shrink-0" /> : <Users className="h-5 w-5 text-gray-600 shrink-0" />}
               {showArchived ? "Arrematantes Arquivados" : "Arrematantes Cadastrados"}
             </CardTitle>
               
