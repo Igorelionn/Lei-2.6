@@ -305,8 +305,12 @@ export default function Configuracoes() {
       // Atualizar o nome completo no contexto de autenticação
       updateFullName(profile.name);
 
-      // Atualizar a lista da equipe para refletir avatar/nome alterados
-      loadTeamUsers(false);
+      // Atualizar a lista da equipe instantaneamente (sem esperar re-fetch do banco)
+      setTeamUsers(prev => prev.map(member =>
+        member.id === user?.id
+          ? { ...member, avatar: profile.avatar, full_name: profile.name, phone: profile.phone }
+          : member
+      ));
       
     } catch (error) {
       logger.error('Erro no salvamento', { error });
