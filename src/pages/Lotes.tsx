@@ -1542,10 +1542,8 @@ function Lotes() {
       <Card className="border border-gray-200 shadow-sm h-[calc(100vh-320px)]">
         <CardHeader className="pb-4">
           <div className="space-y-4">
-            <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-              <div className="p-2 bg-gray-100 rounded-lg">
+            <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
                 {showArchivedLotes ? <Archive className="h-5 w-5 text-gray-600" /> : <Package className="h-5 w-5 text-gray-600" />}
-              </div>
               {showArchivedLotes ? "Lotes Arquivados" : "Lotes Cadastrados"}
             </CardTitle>
 
