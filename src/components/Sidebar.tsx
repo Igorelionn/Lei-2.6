@@ -56,9 +56,27 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const { logout } = useAuth();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isExiting, setIsExiting] = useState(false);
+  const [clickedIcon, setClickedIcon] = useState<string | null>(null);
 
-  const handleLinkClick = () => {
+  const handleLinkClick = (path: string) => {
+    // Disparar animação ao clicar
+    setClickedIcon(path);
+    setTimeout(() => setClickedIcon(null), 650);
     onNavigate?.();
+  };
+
+  // Mapa de animações por rota (classes CSS definidas em index.css)
+  const clickAnimationMap: Record<string, string> = {
+    "/": "sidebar-anim-home",
+    "/leiloes": "sidebar-anim-gavel",
+    "/lotes": "sidebar-anim-package",
+    "/patrocinadores": "sidebar-anim-handshake",
+    "/arrematantes": "sidebar-anim-users",
+    "/faturas": "sidebar-anim-filetext",
+    "/inadimplencia": "sidebar-anim-alert",
+    "/historico": "sidebar-anim-history",
+    "/relatorios": "sidebar-anim-barchart",
+    "/configuracoes": "sidebar-anim-settings",
   };
 
   return (
@@ -105,7 +123,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                 >
                 <Link
                   to={item.path}
-                  onClick={handleLinkClick}
+                  onClick={() => handleLinkClick(item.path)}
                   className={cn(
                     "group flex items-center rounded-lg transition-colors",
                     collapsed ? "justify-center py-3 px-5 mx-0" : "space-x-3 px-3 py-2.5",
@@ -115,7 +133,12 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                   )}
                   title={collapsed ? item.label : undefined}
                 >
-                  <Icon className={cn("h-5 w-5 flex-shrink-0", iconAnimation)} />
+                  <Icon className={cn(
+                    "h-5 w-5 flex-shrink-0",
+                    clickedIcon === item.path
+                      ? clickAnimationMap[item.path] || ""
+                      : iconAnimation
+                  )} />
                   {!collapsed && <span className="group-hover:translate-x-1 transition-transform duration-300 truncate">{item.label}</span>}
                 </Link>
 
