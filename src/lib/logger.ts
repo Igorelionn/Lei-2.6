@@ -36,7 +36,7 @@ class Logger {
     this.isDev = import.meta.env.DEV;
     this.config = {
       enabled: true,
-      minLevel: this.isDev ? 'debug' : 'info',
+      minLevel: this.isDev ? 'debug' : 'warn',
       showTimestamp: true,
       showEmoji: true,
     };
