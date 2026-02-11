@@ -22,35 +22,32 @@ import {
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "./ui/button";
-import { AnimatedIcon } from "./SidebarIcons";
 
 type MenuItem = {
   icon: LucideIcon;
   label: string;
   path: string;
-  animKey: string; // chave para o AnimatedIcon
   subitems?: { icon: LucideIcon; label: string; path: string }[];
 };
 
 const menuItems: MenuItem[] = [
-  { icon: Home, label: "Dashboard", path: "/", animKey: "home" },
-  { icon: Gavel, label: "Leilões", path: "/leiloes", animKey: "gavel" },
+  { icon: Home, label: "Dashboard", path: "/" },
+  { icon: Gavel, label: "Leilões", path: "/leiloes" },
   { 
     icon: Package, 
     label: "Lotes", 
     path: "/lotes",
-    animKey: "package",
     subitems: [
       { icon: UserPlus, label: "Lotes Convidados", path: "/lotes-convidados" }
     ]
   },
-  { icon: Handshake, label: "Patrocinadores", path: "/patrocinadores", animKey: "handshake" },
-  { icon: Users, label: "Arrematantes", path: "/arrematantes", animKey: "users" },
-  { icon: FileText, label: "Faturas", path: "/faturas", animKey: "filetext" },
-  { icon: AlertTriangle, label: "Inadimplência", path: "/inadimplencia", animKey: "alert" },
-  { icon: History, label: "Histórico", path: "/historico", animKey: "history" },
-  { icon: BarChart3, label: "Relatórios", path: "/relatorios", animKey: "barchart" },
-  { icon: Settings, label: "Configurações", path: "/configuracoes", animKey: "settings" },
+  { icon: Handshake, label: "Patrocinadores", path: "/patrocinadores" },
+  { icon: Users, label: "Arrematantes", path: "/arrematantes" },
+  { icon: FileText, label: "Faturas", path: "/faturas" },
+  { icon: AlertTriangle, label: "Inadimplência", path: "/inadimplencia" },
+  { icon: History, label: "Histórico", path: "/historico" },
+  { icon: BarChart3, label: "Relatórios", path: "/relatorios" },
+  { icon: Settings, label: "Configurações", path: "/configuracoes" },
 ];
 
 /** Conteúdo compartilhado do sidebar (usado desktop e mobile) */
@@ -59,12 +56,8 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   const { logout } = useAuth();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isExiting, setIsExiting] = useState(false);
-  const [clickedIcon, setClickedIcon] = useState<string | null>(null);
 
-  const handleLinkClick = (path: string) => {
-    // Disparar animação ao clicar
-    setClickedIcon(path);
-    setTimeout(() => setClickedIcon(null), 650);
+  const handleLinkClick = () => {
     onNavigate?.();
   };
 
@@ -73,10 +66,23 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
       <nav className="flex-1 p-3 xl:p-4 flex flex-col overflow-y-auto">
         <ul className="space-y-1 xl:space-y-2 flex-1">
           {menuItems.map((item) => {
+            const Icon = item.icon;
             const isActive = location.pathname === item.path;
             const hasSubitems = item.subitems && item.subitems.length > 0;
             const isHovered = hoveredItem === item.path;
-            const isAnimating = clickedIcon === item.path;
+            
+            const iconAnimation = {
+              Home: "group-hover:scale-110 group-hover:rotate-[8deg] transition-all duration-300",
+              Gavel: "group-hover:rotate-[15deg] group-hover:scale-110 transition-all duration-300",
+              Package: "group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300",
+              UserPlus: "group-hover:scale-110 group-hover:-translate-y-1 transition-all duration-300",
+              Handshake: "group-hover:scale-110 group-hover:rotate-[-5deg] transition-all duration-300",
+              Users: "group-hover:scale-125 transition-all duration-300",
+              FileText: "group-hover:rotate-[10deg] group-hover:scale-110 transition-all duration-300",
+              AlertTriangle: "group-hover:animate-bounce",
+              BarChart3: "group-hover:scale-110 group-hover:translate-y-[-2px] transition-all duration-300",
+              Settings: "group-hover:rotate-90 transition-all duration-500",
+            }[item.icon.name] || "group-hover:scale-110 transition-all duration-300";
             
             return (
               <li key={item.path}>
@@ -99,7 +105,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                 >
                 <Link
                   to={item.path}
-                  onClick={() => handleLinkClick(item.path)}
+                  onClick={handleLinkClick}
                   className={cn(
                     "group flex items-center rounded-lg transition-colors",
                     collapsed ? "justify-center py-3 px-5 mx-0" : "space-x-3 px-3 py-2.5",
@@ -109,11 +115,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                   )}
                   title={collapsed ? item.label : undefined}
                 >
-                  <AnimatedIcon
-                    name={item.animKey}
-                    isAnimating={isAnimating}
-                    className="h-5 w-5 flex-shrink-0 transition-transform duration-300 group-hover:scale-110"
-                  />
+                  <Icon className={cn("h-5 w-5 flex-shrink-0", iconAnimation)} />
                   {!collapsed && <span className="group-hover:translate-x-1 transition-transform duration-300 truncate">{item.label}</span>}
                 </Link>
 
