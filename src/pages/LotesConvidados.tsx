@@ -333,10 +333,8 @@ export default function LotesConvidados() {
         <CardHeader className="pb-4">
           <div className="space-y-4">
             <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-              <CardTitle className="flex items-center gap-3 text-xl font-semibold text-gray-800">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  {showArchived ? <Archive className="h-5 w-5 text-gray-600" /> : <Package className="h-5 w-5 text-gray-600" />}
-                </div>
+              <CardTitle className="flex items-center gap-2 text-xl font-semibold text-gray-800">
+                {showArchived ? <Archive className="h-5 w-5 text-gray-600 shrink-0" /> : <Package className="h-5 w-5 text-gray-600 shrink-0" />}
                 {showArchived ? "Lotes Arquivados" : "Lotes de Convidados"}
               </CardTitle>
               
