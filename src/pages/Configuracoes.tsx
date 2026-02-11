@@ -304,6 +304,9 @@ export default function Configuracoes() {
 
       // Atualizar o nome completo no contexto de autenticação
       updateFullName(profile.name);
+
+      // Atualizar a lista da equipe para refletir avatar/nome alterados
+      loadTeamUsers(false);
       
     } catch (error) {
       logger.error('Erro no salvamento', { error });
