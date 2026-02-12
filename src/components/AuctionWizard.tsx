@@ -1232,7 +1232,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                     <>
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-3">
-                          <Label className="text-lg font-normal text-gray-600">Valor do Lance (R$)</Label>
+                          <Label className="text-lg font-normal text-gray-600">Valor da Parcela (R$)</Label>
                           <Input
                             type="text"
                             placeholder="Ex: 1.000,00"
@@ -1252,7 +1252,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                               return (
                                 <p className="text-sm text-red-600 flex items-center gap-1">
                                   <AlertCircle className="h-4 w-4" />
-                                  O valor do lance deve ser maior que zero
+                                  O valor da parcela deve ser maior que zero
                                 </p>
                               );
                             }

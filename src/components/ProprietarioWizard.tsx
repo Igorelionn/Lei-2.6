@@ -653,7 +653,7 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
             <Label className="text-lg font-normal text-gray-600">
               Celular do Proprietário da Mercadoria <span className="text-red-500">*</span>
             </Label>
-            <div className="flex gap-3">
+            <div className="flex items-end gap-3">
               <Select
                 value={values.codigoPais}
                 onValueChange={(value) => {
