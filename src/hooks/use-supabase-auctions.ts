@@ -252,8 +252,8 @@ export function useSupabaseAuctions() {
     queryKey: AUCTIONS_KEY,
     staleTime: 5 * 60 * 1000, // ⚡ OTIMIZAÇÃO: 5 minutos - dados frescos mas sem refetch excessivo
     gcTime: 10 * 60 * 1000, // ⚡ OTIMIZAÇÃO: 10 minutos - mantém cache em memória
-    refetchOnWindowFocus: false, // ⚡ OTIMIZAÇÃO: Não refazer automaticamente ao focar
-    refetchOnMount: false, // ⚡ OTIMIZAÇÃO: Usar cache se disponível
+    refetchOnWindowFocus: true, // Recarregar ao voltar para a aba (recupera falhas)
+    refetchOnMount: 'always', // Sempre buscar dados ao montar (garante dados atualizados)
     refetchInterval: false, // Não usar polling automático
     queryFn: async () => {
       const { data, error } = await supabaseClient

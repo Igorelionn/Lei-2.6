@@ -50,14 +50,15 @@ const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
 const Login = lazy(() => import("./pages/Login"));
 const MigrationManager = lazy(() => import("@/components/MigrationManager").then(module => ({ default: module.MigrationManager })));
 
-// ⚡ PERFORMANCE: Cache otimizado conforme auditoria
+// ⚡ PERFORMANCE: Cache otimizado com resiliência para garantir carregamento
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 30 * 1000, // 30 segundos - balance entre atualização e performance
       gcTime: 5 * 60 * 1000, // 5 minutos - mantém cache mas libera memória
-      refetchOnWindowFocus: false, // Evita refetch desnecessários
-      retry: 1, // Apenas 1 retry para falhas
+      refetchOnWindowFocus: true, // Recarregar ao voltar para a aba (recupera falhas)
+      retry: 3, // 3 tentativas para redes instáveis
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 10000), // Backoff exponencial: 1s, 2s, 4s
     },
   },
 });
