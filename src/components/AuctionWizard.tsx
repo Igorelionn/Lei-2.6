@@ -1417,30 +1417,19 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                           
                           if (totalParcelas > 0 && somaCalculada !== fatorParsed) {
                             return (
-                              <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
-                                <p className="text-sm text-red-800 flex items-center gap-2">
-                                  <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                                  <span>
-                                    <strong>Atenção:</strong> A soma calculada ({somaCalculada}) não corresponde ao fator multiplicador ({fatorParsed}).
-                                  </span>
-                                </p>
-                                <p className="text-xs text-red-700 mt-1 ml-6">
-                                  Ajuste as parcelas para que (Triplas × 3) + (Duplas × 2) + (Simples × 1) = {fatorParsed}
-                                </p>
-                              </div>
+                              <p className="text-xs text-red-500 flex items-center gap-1.5">
+                                <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                                Soma ({somaCalculada}) ≠ fator ({fatorParsed}). Ajuste para (T×3) + (D×2) + (S×1) = {fatorParsed}
+                              </p>
                             );
                           }
 
                           if (totalParcelas > 0 && somaCalculada === fatorParsed) {
                             return (
-                              <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
-                                <p className="text-sm text-green-800 flex items-center gap-2">
-                                  <Check className="h-4 w-4 flex-shrink-0" />
-                                  <span>
-                                    Configuração válida: {totalParcelas} {totalParcelas === 1 ? 'parcela' : 'parcelas'} totalizando fator {fatorParsed}
-                                  </span>
-                                </p>
-                              </div>
+                              <p className="text-xs text-gray-500 flex items-center gap-1.5">
+                                <Check className="h-3.5 w-3.5 flex-shrink-0 text-green-500" />
+                                {totalParcelas} {totalParcelas === 1 ? 'parcela' : 'parcelas'} — fator {fatorParsed}
+                              </p>
                             );
                           }
 
