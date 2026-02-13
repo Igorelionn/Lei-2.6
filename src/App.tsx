@@ -32,23 +32,50 @@ class SafeAnalytics extends Component<{ children: ReactNode }, { hasError: boole
   }
 }
 
-// ⚡ PERFORMANCE: Lazy loading de páginas para reduzir bundle inicial
-const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Leiloes = lazy(() => import("./pages/Leiloes"));
-const Arrematantes = lazy(() => import("./pages/Arrematantes"));
-const Lotes = lazy(() => import("./pages/Lotes"));
-const LotesConvidados = lazy(() => import("./pages/LotesConvidados"));
-const ValoresConvidados = lazy(() => import("./pages/ValoresConvidados"));
-const Patrocinadores = lazy(() => import("./pages/Patrocinadores"));
-const Faturas = lazy(() => import("./pages/Faturas"));
-const Relatorios = lazy(() => import("./pages/Relatorios"));
-const Inadimplencia = lazy(() => import("./pages/Inadimplencia"));
-const Historico = lazy(() => import("./pages/Historico"));
-const Configuracoes = lazy(() => import("./pages/Configuracoes"));
-const Email = lazy(() => import("./pages/Email"));
-const NotFoundPage = lazy(() => import("./pages/NotFoundPage"));
-const Login = lazy(() => import("./pages/Login"));
-const MigrationManager = lazy(() => import("@/components/MigrationManager").then(module => ({ default: module.MigrationManager })));
+// ⚡ PERFORMANCE: Lazy loading com auto-reload ao detectar chunks desatualizados
+// Após novo deploy, chunks antigos não existem mais no servidor.
+// O Vercel retorna index.html (text/html) no lugar, causando erro de MIME type.
+// Este wrapper detecta a falha e recarrega a página para obter os chunks novos.
+function lazyWithRetry(importFn: () => Promise<{ default: React.ComponentType<unknown> }>) {
+  return lazy(() =>
+    importFn().catch((error: Error) => {
+      const isChunkError =
+        error.message.includes('Failed to fetch dynamically imported module') ||
+        error.message.includes('Loading chunk') ||
+        error.message.includes('Loading CSS chunk') ||
+        error.message.includes('MIME type');
+
+      if (isChunkError) {
+        // Evitar loop infinito: só recarregar uma vez
+        const key = 'chunk_reload_ts';
+        const lastReload = Number(sessionStorage.getItem(key) || '0');
+        const now = Date.now();
+        if (now - lastReload > 10000) { // 10 segundos de intervalo mínimo
+          sessionStorage.setItem(key, String(now));
+          window.location.reload();
+        }
+      }
+      throw error;
+    })
+  );
+}
+
+const Dashboard = lazyWithRetry(() => import("./pages/Dashboard"));
+const Leiloes = lazyWithRetry(() => import("./pages/Leiloes"));
+const Arrematantes = lazyWithRetry(() => import("./pages/Arrematantes"));
+const Lotes = lazyWithRetry(() => import("./pages/Lotes"));
+const LotesConvidados = lazyWithRetry(() => import("./pages/LotesConvidados"));
+const ValoresConvidados = lazyWithRetry(() => import("./pages/ValoresConvidados"));
+const Patrocinadores = lazyWithRetry(() => import("./pages/Patrocinadores"));
+const Faturas = lazyWithRetry(() => import("./pages/Faturas"));
+const Relatorios = lazyWithRetry(() => import("./pages/Relatorios"));
+const Inadimplencia = lazyWithRetry(() => import("./pages/Inadimplencia"));
+const Historico = lazyWithRetry(() => import("./pages/Historico"));
+const Configuracoes = lazyWithRetry(() => import("./pages/Configuracoes"));
+const Email = lazyWithRetry(() => import("./pages/Email"));
+const NotFoundPage = lazyWithRetry(() => import("./pages/NotFoundPage"));
+const Login = lazyWithRetry(() => import("./pages/Login"));
+const MigrationManager = lazyWithRetry(() => import("@/components/MigrationManager").then(module => ({ default: module.MigrationManager as React.ComponentType<unknown> })));
 
 // ⚡ PERFORMANCE: Cache otimizado com resiliência para garantir carregamento
 const queryClient = new QueryClient({
