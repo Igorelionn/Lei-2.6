@@ -205,22 +205,25 @@ function DesktopSidebar() {
         </div>
         
         {/* Botão toggle posicionado na borda direita */}
-        <Button
-          variant="ghost"
-          size="sm"
+        <button
           onClick={toggleSidebar}
           className={cn(
-            "group absolute -right-4 top-[280px] z-10 h-8 w-8 rounded-full bg-card border border-border shadow-md",
-            "hover:bg-primary/10 hover:border-primary/30 transition-colors duration-200",
-            "flex items-center justify-center"
+            "group/toggle absolute -right-3 top-1/2 -translate-y-1/2 z-10",
+            "h-6 w-6 rounded-full",
+            "bg-white border border-gray-200 shadow-sm",
+            "hover:bg-gray-50 hover:border-gray-300 hover:shadow-md",
+            "active:scale-90",
+            "flex items-center justify-center",
+            "transition-all duration-200 ease-out"
           )}
+          title={isCollapsed ? "Expandir menu" : "Retrair menu"}
         >
           {isCollapsed ? (
-            <ChevronsRight className="h-4 w-4 text-foreground/70" />
+            <ChevronsRight className="h-3 w-3 text-gray-400 group-hover/toggle:text-gray-600 transition-colors" />
           ) : (
-            <ChevronsLeft className="h-4 w-4 text-foreground/70" />
+            <ChevronsLeft className="h-3 w-3 text-gray-400 group-hover/toggle:text-gray-600 transition-colors" />
           )}
-        </Button>
+        </button>
         
         <SidebarContent collapsed={isCollapsed} />
       </div>
