@@ -193,17 +193,16 @@ export default function ValoresConvidados() {
       {/* Header fixo */}
       <div className="border-b border-gray-200 bg-white sticky top-0 z-10">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4">
-          <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-2">
-            {/* Botão de voltar estilo wizard */}
+          <div className="flex items-center gap-3">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => selectedLeilao ? setSelectedLeilao(null) : navigate('/lotes-convidados')}
-              className="rounded-full w-10 h-10 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-700 self-start"
+              className="rounded-full w-9 h-9 shrink-0 bg-gray-100 hover:bg-gray-200 text-gray-700 hover:text-gray-700"
             >
               <ChevronLeft className="h-5 w-5" />
             </Button>
-            <h1 className="text-xl sm:text-2xl font-light text-gray-900">
+            <h1 className="text-xl sm:text-2xl font-light text-gray-900 truncate">
               {selectedLeilao ? leilaoSelecionado?.nome : 'Detalhes dos Valores'}
             </h1>
           </div>
