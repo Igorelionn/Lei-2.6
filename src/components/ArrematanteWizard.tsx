@@ -1654,7 +1654,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
         <div className="space-y-8">
           <div className="space-y-3">
             <Label className="text-lg font-normal text-gray-600">Telefone</Label>
-            <div className="flex gap-3">
+            <div className="flex items-end gap-3">
               <Select
                 value={values.codigoPais}
                 onValueChange={(v) => updateField("codigoPais", v)}
@@ -3807,7 +3807,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
 
                         <div className="space-y-3">
                             <Label className="text-lg font-normal text-gray-600">Telefone</Label>
-                            <div className="flex gap-3">
+                            <div className="flex items-end gap-3">
                               <Select
                                 value={currentArr.codigoPais || '+55'}
                                 onValueChange={(v) => updateArrematanteField('codigoPais', v)}

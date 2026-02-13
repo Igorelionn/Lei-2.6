@@ -545,7 +545,7 @@ export default function LoteConvidadoWizard({
 
           <div className="space-y-3">
             <Label className="text-lg font-normal text-gray-600">Celular do Proprietário da Mercadoria</Label>
-            <div className="flex gap-3">
+            <div className="flex items-end gap-3">
               <Select
                 value={values.codigoPais || '+55'}
                 onValueChange={(v) => updateField('codigoPais', v)}
