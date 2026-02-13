@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { ChevronRight, ChevronLeft } from "lucide-react";
+import { ChevronRight, ChevronLeft, PackageSearch } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
@@ -215,21 +215,12 @@ export default function ValoresConvidados() {
         {!selectedLeilao && (
           <div className="space-y-2">
             {leiloesArray.length === 0 ? (
-              <div className="text-center py-16">
-                <p className="text-gray-500 mb-4">Nenhum lote encontrado</p>
-                <div className="max-w-md mx-auto text-left space-y-2">
-                  <p className="text-sm text-gray-600">Para aparecer aqui, os lotes precisam:</p>
-                  <ul className="text-sm text-gray-500 space-y-1 ml-4">
-                    <li>✓ Estar vinculados a um leilão</li>
-                    <li>✓ Status "Arrematado" OU ter arrematantes cadastrados</li>
-                  </ul>
-                  <p className="text-xs text-gray-400 mt-4">
-                    Total de lotes: {guestLots.length} | 
-                    Com leilão: {guestLots.filter(l => l.leilao_id).length} | 
-                    Arrematados: {guestLots.filter(l => l.status === 'arrematado').length} | 
-                    Com arrematantes: {guestLots.filter(l => l.arrematantes && l.arrematantes.length > 0).length}
-                  </p>
-                </div>
+              <div className="flex flex-col items-center justify-center py-20">
+                <PackageSearch className="h-12 w-12 text-gray-300 mb-4" strokeWidth={1.2} />
+                <p className="text-base font-medium text-gray-500 mb-1">Nenhum lote disponível</p>
+                <p className="text-sm text-gray-400">
+                  Os lotes aparecerão aqui quando forem arrematados ou tiverem arrematantes cadastrados.
+                </p>
               </div>
             ) : (
               leiloesArray.map(([id, leilao]) => {
