@@ -3255,14 +3255,16 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
 
   if (type === 'historico') {
     const comHistorico = auctions.filter(a => a.arrematante && !a.arquivado);
+    const totalRegistros = comHistorico.length;
+    const quitados = comHistorico.filter(a => a.arrematante?.pago).length;
+    const pendentes = comHistorico.filter(a => !a.arrematante?.pago && !isOverdue(a.arrematante, a)).length;
+    const atrasados = comHistorico.filter(a => !a.arrematante?.pago && isOverdue(a.arrematante, a)).length;
 
     const sLabel = { fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 4px 0' } as React.CSSProperties;
+    const sValue = { fontSize: '14px', color: '#1a1a1a', margin: 0, fontWeight: 500 } as React.CSSProperties;
     const sValueLg = { fontSize: '22px', fontWeight: 300, color: '#1a1a1a', margin: 0, letterSpacing: '-0.02em' } as React.CSSProperties;
     const sSep = { border: 'none', borderTop: '1px solid #eee', margin: '28px 0' } as React.CSSProperties;
     const sSection = { fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 16px 0' } as React.CSSProperties;
-    const sRow = { display: 'flex', fontSize: '12px', padding: '4px 0' } as React.CSSProperties;
-    const sRowLabel = { color: '#999', width: '130px', flexShrink: 0 } as React.CSSProperties;
-    const sRowValue = { color: '#1a1a1a', fontWeight: 500 } as React.CSSProperties;
 
     const getTipoPagLabel = (tipo: string) => {
       const l: Record<string, string> = { a_vista: 'À vista', parcelamento: 'Parcelamento', entrada_parcelamento: 'Entrada + Parcelamento' };
@@ -3278,12 +3280,38 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             Relatório de Histórico
           </h1>
           <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
-            {new Date().toLocaleDateString('pt-BR')} &middot; {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })} &middot; Arrematantes e Contratos Vinculados
+            {new Date().toLocaleDateString('pt-BR')} &middot; {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
           </p>
         </div>
 
         <hr style={sSep} />
 
+        {/* Resumo */}
+        {totalRegistros > 0 && (
+          <div style={{ pageBreakInside: 'avoid' }}>
+            <p style={sSection}>Resumo</p>
+            <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 100px' }}>
+                <p style={sLabel}>Total</p>
+                <p style={sValueLg}>{totalRegistros}</p>
+              </div>
+              <div style={{ flex: '1 1 100px' }}>
+                <p style={sLabel}>Quitados</p>
+                <p style={sValueLg}>{quitados}</p>
+              </div>
+              <div style={{ flex: '1 1 100px' }}>
+                <p style={sLabel}>Pendentes</p>
+                <p style={sValueLg}>{pendentes}</p>
+              </div>
+              <div style={{ flex: '1 1 100px' }}>
+                <p style={sLabel}>Atrasados</p>
+                <p style={sValueLg}>{atrasados}</p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Lista de Registros */}
         {comHistorico.length > 0 ? (
           <div>
             {comHistorico.slice(0, 3).map((auction, index) => {
@@ -3301,7 +3329,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               const valorTotal = valorBase;
               const percentualJuros = arrematante?.percentualJurosAtraso || 0;
 
-              // Calcular risco (lógica completa mantida)
+              // Calcular risco (lógica completa)
               let valorEmAtraso = 0; let parcelasAtrasadasCount = 0; let diasAtrasoMaximo = 0;
               if (isCurrentlyOverdue) {
                 const hoje = new Date();
@@ -3344,13 +3372,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
 
               const avgDelayDays = diasAtrasoMaximo;
               const isHVO = valorEmAtraso > 500000; const isMVO = valorEmAtraso > 200000 && valorEmAtraso <= 500000; const isLVO = valorEmAtraso <= 200000;
-              let riskLevel = 'Baixo'; let riskColor = '#666';
+              let riskLevel = 'BAIXO'; let riskBg = '#fafafa'; let riskBorder = '#e5e7eb'; let riskColor = '#666';
               if (isCurrentlyOverdue) {
-                if (isHVO || parcelasAtrasadasCount >= 3 || (parcelasAtrasadasCount >= 2 && avgDelayDays > 30) || (isMVO && parcelasAtrasadasCount >= 2) || avgDelayDays > 60) { riskLevel = 'Alto'; riskColor = '#991b1b'; }
-                else if (isMVO || parcelasAtrasadasCount >= 2 || (parcelasAtrasadasCount >= 1 && avgDelayDays > 30) || (isLVO && avgDelayDays > 15)) { riskLevel = 'Médio'; riskColor = '#b45309'; }
+                if (isHVO || parcelasAtrasadasCount >= 3 || (parcelasAtrasadasCount >= 2 && avgDelayDays > 30) || (isMVO && parcelasAtrasadasCount >= 2) || avgDelayDays > 60) { riskLevel = 'ALTO'; riskBg = '#fef2f2'; riskBorder = '#fecaca'; riskColor = '#991b1b'; }
+                else if (isMVO || parcelasAtrasadasCount >= 2 || (parcelasAtrasadasCount >= 1 && avgDelayDays > 30) || (isLVO && avgDelayDays > 15)) { riskLevel = 'MÉDIO'; riskBg = '#fffbeb'; riskBorder = '#fde68a'; riskColor = '#b45309'; }
               }
 
-              // Gerar texto de situação atual (lógica completa mantida)
+              // Texto de situação atual (lógica completa)
               const getSituacaoText = () => {
                 const getVencDate = () => { try {
                   if (tipoPagamento === 'a_vista') { const dv = loteArrematado?.dataVencimentoVista || auction.dataVencimentoVista; return dv ? new Date(dv.split('-').map(Number)[0], dv.split('-').map(Number)[1] - 1, dv.split('-').map(Number)[2]).toLocaleDateString('pt-BR') : null; }
@@ -3391,92 +3419,174 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               };
 
               const statusLabel = arrematante?.pago ? 'Quitado' : isCurrentlyOverdue ? 'Atrasado' : 'Pendente';
-              const statusColor = arrematante?.pago ? '#16a34a' : isCurrentlyOverdue ? '#dc2626' : '#d97706';
+              const statusBg = arrematante?.pago ? '#f0fdf4' : isCurrentlyOverdue ? '#fef2f2' : '#fafafa';
+              const statusColor = arrematante?.pago ? '#16a34a' : isCurrentlyOverdue ? '#dc2626' : '#666';
+              const statusBorder = arrematante?.pago ? '#bbf7d0' : isCurrentlyOverdue ? '#fecaca' : '#e5e7eb';
 
               return (
-                <div key={auction.id} style={{ pageBreakBefore: index > 0 ? 'auto' : 'avoid' }}>
-                  {index > 0 && <hr style={{ ...sSep, margin: '32px 0' }} />}
+                <div key={auction.id} style={{ pageBreakBefore: index > 0 ? 'always' : 'avoid' }}>
+                  <hr style={{ ...sSep, margin: '36px 0' }} />
 
-                  {/* Header */}
+                  {/* Header do registro */}
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px', pageBreakInside: 'avoid' }}>
-                    <p style={{ fontSize: '16px', fontWeight: 600, color: '#1a1a1a', margin: 0 }}>
-                      {auction.identificacao ? `Processo Nº ${auction.identificacao}` : (auction.nome || 'Processo sem identificação')}
-                    </p>
-                    <span style={{ fontSize: '10px', fontWeight: 600, padding: '3px 10px', borderRadius: '4px', color: statusColor, background: `${statusColor}10`, border: `1px solid ${statusColor}30`, flexShrink: 0 }}>
+                    <div>
+                      <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 2px 0', letterSpacing: '-0.01em' }}>
+                        {auction.identificacao ? `Processo Nº ${auction.identificacao}` : (auction.nome || 'Processo sem identificação')}
+                      </h2>
+                      <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
+                        {auction.nome && auction.identificacao && <span>{auction.nome} &middot; </span>}
+                        {formatDate(auction.dataInicio)}
+                        {arrematante?.nome && <span> &middot; {arrematante.nome}</span>}
+                      </p>
+                    </div>
+                    <span style={{
+                      padding: '3px 10px',
+                      borderRadius: '4px',
+                      fontSize: '10px',
+                      fontWeight: 600,
+                      textTransform: 'uppercase' as const,
+                      letterSpacing: '0.05em',
+                      background: statusBg,
+                      color: statusColor,
+                      border: `1px solid ${statusBorder}`,
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0,
+                    }}>
                       {statusLabel}
                     </span>
                   </div>
 
-                  {/* Arrematante */}
-                  <div style={{ marginTop: '16px', pageBreakInside: 'avoid' }}>
-                    <p style={sSection}>Arrematante</p>
+                  {/* Financeiro */}
+                  <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+                    <p style={sSection}>Financeiro</p>
                     <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                      <div style={{ flex: '1 1 220px' }}>
-                        <div style={sRow}><span style={sRowLabel}>Nome</span><span style={sRowValue}>{arrematante?.nome || 'N/I'}</span></div>
-                        <div style={sRow}><span style={sRowLabel}>Documento</span><span style={{ ...sRowValue, fontFamily: 'monospace' }}>{arrematante?.documento || 'N/I'}</span></div>
-                        <div style={sRow}><span style={sRowLabel}>Email</span><span style={sRowValue}>{arrematante?.email || 'N/I'}</span></div>
-                        <div style={sRow}><span style={sRowLabel}>Telefone</span><span style={sRowValue}>{arrematante?.telefone || 'N/I'}</span></div>
+                      <div style={{ flex: '1 1 180px' }}>
+                        <p style={sLabel}>Valor Total</p>
+                        <p style={sValueLg}>
+                          {formatCurrency(valorComJuros)}
+                          {valorJuros > 0 && <span style={{ fontSize: '12px', color: '#dc2626', marginLeft: '6px' }}>({formatCurrency(valorJuros)} juros)</span>}
+                        </p>
                       </div>
-                      <div style={{ flex: '1 1 220px' }}>
-                        <div style={sRow}><span style={sRowLabel}>Valor Total</span><span style={sRowValue}>{formatCurrency(valorComJuros)}{valorJuros > 0 && <span style={{ color: '#dc2626', fontSize: '11px', marginLeft: '4px' }}>({formatCurrency(valorJuros)} juros)</span>}</span></div>
-                        <div style={sRow}><span style={sRowLabel}>Contratos</span><span style={sRowValue}>1</span></div>
+                      <div style={{ flex: '1 1 180px' }}>
+                        <p style={sLabel}>Modalidade</p>
+                        <p style={sValue}>{getTipoPagLabel(tipoPagamento || '')}</p>
                       </div>
+                      <div style={{ flex: '1 1 180px' }}>
+                        <p style={sLabel}>Parcelas</p>
+                        <p style={sValue}>{parcelasPagas} / {quantidadeParcelas}</p>
+                      </div>
+                    </div>
+
+                    {/* Detalhes em tabela */}
+                    <div style={{ marginTop: '16px' }}>
+                      <p style={{ ...sLabel, marginBottom: '6px' }}>Identificação do Arrematante</p>
+                      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                        <tbody>
+                          <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
+                            <td style={{ padding: '5px 0', color: '#666' }}>Nome Completo</td>
+                            <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 500, color: '#1a1a1a' }}>{arrematante?.nome || 'Não informado'}</td>
+                          </tr>
+                          <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
+                            <td style={{ padding: '5px 0', color: '#666' }}>Documento</td>
+                            <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 500, color: '#1a1a1a', fontFamily: 'monospace' }}>{arrematante?.documento || 'Não informado'}</td>
+                          </tr>
+                          <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
+                            <td style={{ padding: '5px 0', color: '#666' }}>Email</td>
+                            <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 500, color: '#1a1a1a' }}>{arrematante?.email || 'Não informado'}</td>
+                          </tr>
+                          <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
+                            <td style={{ padding: '5px 0', color: '#666' }}>Telefone</td>
+                            <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 500, color: '#1a1a1a' }}>{arrematante?.telefone || 'Não informado'}</td>
+                          </tr>
+                        </tbody>
+                      </table>
                     </div>
                   </div>
 
-                  {/* Contrato */}
-                  <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+                  {/* Contrato Vinculado */}
+                  <div style={{ marginTop: '24px', pageBreakInside: 'avoid' }}>
                     <p style={sSection}>Contrato Vinculado</p>
-                    <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                      <div style={{ flex: '1 1 220px' }}>
-                        <div style={sRow}><span style={sRowLabel}>Leilão</span><span style={sRowValue}>{auction.nome || 'N/I'}</span></div>
-                        <div style={sRow}><span style={sRowLabel}>Código</span><span style={{ ...sRowValue, fontFamily: 'monospace' }}>{auction.identificacao || 'N/I'}</span></div>
-                        <div style={sRow}><span style={sRowLabel}>Data</span><span style={sRowValue}>{formatDate(auction.dataInicio)}</span></div>
+                    <div style={{ padding: '12px 0', borderBottom: '1px solid #f0f0f0', pageBreakInside: 'avoid' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <p style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 2px 0' }}>{auction.nome || 'Leilão sem nome'}</p>
+                          <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
+                            {auction.identificacao && <span style={{ fontFamily: 'monospace' }}>#{auction.identificacao} &middot; </span>}
+                            {formatDate(auction.dataInicio)}
+                          </p>
+                        </div>
+                        <span style={{ fontSize: '11px', color: '#999' }}>{getTipoPagLabel(tipoPagamento || '')}</span>
                       </div>
-                      <div style={{ flex: '1 1 220px' }}>
-                        <div style={sRow}><span style={sRowLabel}>Valor</span><span style={sRowValue}>{formatCurrency(valorComJuros)}{valorJuros > 0 && <span style={{ color: '#dc2626', fontSize: '11px', marginLeft: '4px' }}>({formatCurrency(valorJuros)} juros)</span>}</span></div>
-                        <div style={sRow}><span style={sRowLabel}>Status</span><span style={{ ...sRowValue, color: statusColor }}>{statusLabel}{isCurrentlyOverdue && !arrematante?.pago ? ' (Inadimplente)' : ''}</span></div>
-                        <div style={sRow}><span style={sRowLabel}>Modalidade</span><span style={sRowValue}>{getTipoPagLabel(tipoPagamento || '')}</span></div>
-                      </div>
+
+                      {/* Mercadoria e Lote */}
+                      {loteArrematado && (
+                        <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                          {mercadoriaComprada && (
+                            <p style={{ margin: '1px 0' }}>
+                              {mercadoriaComprada.titulo || mercadoriaComprada.tipo || 'Mercadoria'}
+                            </p>
+                          )}
+                          <p style={{ margin: '1px 0' }}>Lote {loteArrematado.numero} - {loteArrematado.descricao || 'Sem descrição'}</p>
+                        </div>
+                      )}
                     </div>
-                    {loteArrematado && (
-                      <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
-                        {mercadoriaComprada && <span>{mercadoriaComprada.titulo || mercadoriaComprada.tipo || 'Mercadoria'} &middot; </span>}
-                        Lote {loteArrematado.numero} - {loteArrematado.descricao || 'Sem descrição'}
-                      </div>
-                    )}
                   </div>
 
                   {/* Perfil de Risco */}
-                  <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+                  <div style={{ marginTop: '24px', pageBreakInside: 'avoid' }}>
                     <p style={sSection}>Perfil de Risco</p>
-                    <div style={{ display: 'flex', gap: '16px', alignItems: 'flex-start' }}>
-                      <span style={{ fontSize: '11px', fontWeight: 600, padding: '4px 12px', borderRadius: '4px', color: riskColor, background: `${riskColor}10`, border: `1px solid ${riskColor}30`, textTransform: 'uppercase', letterSpacing: '0.05em', flexShrink: 0 }}>
-                        Risco {riskLevel}
-                      </span>
+                    <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', marginBottom: '16px' }}>
+                      <div style={{ flex: '1 1 180px' }}>
+                        <p style={sLabel}>Classificação</p>
+                        <p style={{ fontSize: '14px', fontWeight: 600, margin: 0, padding: '3px 10px', borderRadius: '4px', display: 'inline-block', background: riskBg, color: riskColor, border: `1px solid ${riskBorder}`, letterSpacing: '0.05em' }}>
+                          RISCO {riskLevel}
+                        </p>
+                      </div>
+                      {isCurrentlyOverdue && valorEmAtraso > 0 && (
+                        <div style={{ flex: '1 1 180px' }}>
+                          <p style={sLabel}>Valor em Atraso</p>
+                          <p style={{ ...sValue, color: '#dc2626' }}>{formatCurrency(valorEmAtraso)}</p>
+                        </div>
+                      )}
+                      {diasAtrasoMaximo > 0 && (
+                        <div style={{ flex: '1 1 180px' }}>
+                          <p style={sLabel}>Dias de Atraso</p>
+                          <p style={sValue}>{diasAtrasoMaximo} dias</p>
+                        </div>
+                      )}
                     </div>
-                    <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.7', marginTop: '12px' }}>
+
+                    {/* Análise textual */}
+                    <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.7' }}>
                       <p style={{ margin: '0 0 8px 0' }}>
-                        <strong style={{ color: '#1a1a1a' }}>Dados Consolidados:</strong> {arrematante?.nome || 'Arrematante'} &mdash; risco {riskLevel.toLowerCase()}. Valor total: {(() => { const vf = valorTotalComJuros > 0 ? valorTotalComJuros : valorTotal; const vj = vf - valorTotal; return vj > 0 ? `${formatCurrency(vf)} (${formatCurrency(vj)} juros)` : formatCurrency(vf); })()}.{' '}
-                        {tipoPagamento === 'a_vista' ? (parcelasPagas > 0 ? 'Pagamento à vista processado.' : 'Pagamento à vista pendente.') :
-                         tipoPagamento === 'entrada_parcelamento' ? (parcelasPagas > 0 ? `${parcelasPagas} pagamentos (entrada + ${parcelasPagas - 1} parcela${parcelasPagas > 2 ? 's' : ''}) de ${quantidadeParcelas + 1} programados.` : `Entrada + ${quantidadeParcelas} parcelas, nenhum pagamento registrado.`) :
-                         (parcelasPagas > 0 ? `${parcelasPagas} de ${quantidadeParcelas} parcelas pagas.` : `${quantidadeParcelas} parcelas, nenhum pagamento registrado.`)}
+                        <strong style={{ color: '#1a1a1a' }}>Dados Consolidados:</strong> O arrematante {arrematante?.nome || 'identificado'} possui risco classificado como {riskLevel.toLowerCase()} baseado nos dados históricos de pagamentos. Este relatório consolida 1 contrato com valor total de {(() => { const vf = valorTotalComJuros > 0 ? valorTotalComJuros : valorTotal; const vj = vf - valorTotal; return vj > 0 ? `${formatCurrency(vf)} (${formatCurrency(vj)} juros)` : formatCurrency(vf); })()}.{' '}
+                        {tipoPagamento === 'a_vista' ? (parcelasPagas > 0 ? 'Pagamento à vista foi processado.' : 'Pagamento à vista ainda não processado, em período de vencimento.') :
+                         tipoPagamento === 'entrada_parcelamento' ? (parcelasPagas > 0 ? `Foram registrados ${parcelasPagas} pagamentos (entrada + ${parcelasPagas - 1} parcela${parcelasPagas > 2 ? 's' : ''}) de um total de ${quantidadeParcelas + 1} pagamentos programados (entrada + ${quantidadeParcelas} parcelas).` : `Foram processados entrada e ${quantidadeParcelas} parcelas para pagamento, porém nenhum pagamento foi registrado até o momento.`) :
+                         (parcelasPagas > 0 ? `Foram registrados ${parcelasPagas} pagamentos de um total de ${quantidadeParcelas} parcelas programadas.` : `Foram processadas ${quantidadeParcelas} parcelas para pagamento, porém nenhum pagamento foi registrado até o momento.`)}
                       </p>
                       {isCurrentlyOverdue && (
                         <p style={{ margin: '0 0 8px 0' }}>
-                          <strong style={{ color: '#1a1a1a' }}>Análise:</strong> {parcelasAtrasadasCount} parcela{parcelasAtrasadasCount > 1 ? 's' : ''} em atraso, {formatCurrency(valorEmAtraso)} em débito.{diasAtrasoMaximo > 0 ? ` Maior atraso: ${diasAtrasoMaximo}d.` : ''}{' '}
-                          {parcelasAtrasadasCount >= 3 ? 'Risco alto.' : parcelasAtrasadasCount >= 2 ? 'Risco médio a alto.' : diasAtrasoMaximo > 30 ? 'Atenção necessária.' : 'Risco controlado.'}
+                          <strong style={{ color: '#1a1a1a' }}>Análise de Risco:</strong> O cálculo de risco considera {parcelasAtrasadasCount} parcela{parcelasAtrasadasCount > 1 ? 's' : ''} atualmente em atraso, com valor total de {formatCurrency(valorEmAtraso)} em débito.{diasAtrasoMaximo > 0 ? ` O maior período de atraso registrado é de ${diasAtrasoMaximo} dias.` : ''}{' '}
+                          {parcelasAtrasadasCount >= 3 ? 'O elevado número de parcelas em atraso resulta em classificação de risco alto.' : parcelasAtrasadasCount >= 2 ? 'Múltiplas parcelas em atraso indicam risco médio a alto.' : diasAtrasoMaximo > 30 ? 'Atraso prolongado indica necessidade de atenção.' : 'Situação de atraso recente com risco controlado.'}
                         </p>
                       )}
                       <p style={{ margin: 0 }}>
-                        <strong style={{ color: '#1a1a1a' }}>Situação:</strong> {getSituacaoText()}
+                        <strong style={{ color: '#1a1a1a' }}>Situação Atual:</strong> {getSituacaoText()}
                       </p>
                     </div>
                   </div>
 
-                  {/* Info do Relatório */}
-                  <div style={{ marginTop: '20px', fontSize: '11px', color: '#999', lineHeight: '1.6' }}>
-                    Escopo: 1 contrato de {(() => { const vf = valorTotalComJuros > 0 ? valorTotalComJuros : valorTotal; const vj = vf - valorTotal; return vj > 0 ? `${formatCurrency(vf)} (${formatCurrency(vj)} juros)` : formatCurrency(vf); })()} &middot; Leilão em {formatDate(auction.dataInicio)} &middot; Risco baseado em status de pagamento e histórico.
+                  {/* Informações do Relatório */}
+                  <div style={{ marginTop: '24px', pageBreakInside: 'avoid' }}>
+                    <p style={sSection}>Informações do Relatório</p>
+                    <div style={{ fontSize: '12px', color: '#666', lineHeight: '1.7' }}>
+                      <p style={{ margin: '0 0 6px 0' }}>
+                        <strong style={{ color: '#1a1a1a' }}>Escopo:</strong> 1 contrato no valor total de {(() => { const vf = valorTotalComJuros > 0 ? valorTotalComJuros : valorTotal; const vj = vf - valorTotal; return vj > 0 ? `${formatCurrency(vf)} (${formatCurrency(vj)} juros)` : formatCurrency(vf); })()} vinculado ao arrematante {arrematante?.nome || 'identificado'}. Leilão realizado em {formatDate(auction.dataInicio)}.
+                      </p>
+                      <p style={{ margin: 0, fontSize: '11px', color: '#999' }}>
+                        Perfil de risco determinado com base em: status de pagamento atual, histórico de transações e informações consolidadas do contrato vinculado.
+                      </p>
+                    </div>
                   </div>
                 </div>
               );
