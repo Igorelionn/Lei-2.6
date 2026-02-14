@@ -371,25 +371,82 @@ export default function Dashboard() {
       return total;
     }, 0);
 
-  // Calcular total de patrocínios integralmente APENAS OS RECEBIDOS
+  // Calcular total de patrocínios RECEBIDOS (incluindo pagamentos parciais)
   const totalPatrocinios = activeAuctions.reduce((total, auction) => {
-    // Somar apenas patrocínios que foram confirmados como recebidos
-    const patrociniosRecebidos = (auction.detalhePatrocinios || [])
-      .filter(p => p.recebido === true)
-      .reduce((sum, p) => sum + (p.valorNumerico || 0), 0);
-    
-    return total + patrociniosRecebidos;
+    const patrocinios = auction.detalhePatrocinios || [];
+    return total + patrocinios.reduce((sum, p) => {
+      const valorLance = p.valorLanceNumerico || 0;
+      
+      if (p.formaPagamento === 'entrada_parcelamento') {
+        const parcelasRecebidas = p.parcelasRecebidas || 0;
+        if (parcelasRecebidas === 0) return sum;
+        
+        const valorEntrada = p.valorEntradaNumerico || 0;
+        let valorRecebido = 0;
+        
+        // parcelasRecebidas >= 1 significa que a entrada foi paga
+        if (parcelasRecebidas >= 1) {
+          valorRecebido += valorEntrada;
+        }
+        
+        // Parcelas normais pagas (parcelasRecebidas - 1, pois a 1ª é a entrada)
+        const parcelasNormaisPagas = Math.max(0, parcelasRecebidas - 1);
+        if (parcelasNormaisPagas > 0) {
+          const triplas = p.parcelasTriplas || 0;
+          const duplas = p.parcelasDuplas || 0;
+          const simples = p.parcelasSimples || 0;
+          
+          const estrutura: number[] = [];
+          for (let i = 0; i < triplas; i++) estrutura.push(valorLance * 3);
+          for (let i = 0; i < duplas; i++) estrutura.push(valorLance * 2);
+          for (let i = 0; i < simples; i++) estrutura.push(valorLance * 1);
+          
+          valorRecebido += estrutura.slice(0, parcelasNormaisPagas).reduce((s, v) => s + v, 0);
+        }
+        
+        return sum + valorRecebido;
+      } else if (p.formaPagamento === 'parcelamento') {
+        const parcelasRecebidas = p.parcelasRecebidas || 0;
+        if (parcelasRecebidas === 0) {
+          // Fallback: se não tem parcelasRecebidas mas recebido = true, contar tudo
+          return p.recebido ? sum + (p.valorNumerico || 0) : sum;
+        }
+        
+        const triplas = p.parcelasTriplas || 0;
+        const duplas = p.parcelasDuplas || 0;
+        const simples = p.parcelasSimples || 0;
+        
+        const estrutura: number[] = [];
+        for (let i = 0; i < triplas; i++) estrutura.push(valorLance * 3);
+        for (let i = 0; i < duplas; i++) estrutura.push(valorLance * 2);
+        for (let i = 0; i < simples; i++) estrutura.push(valorLance * 1);
+        
+        return sum + estrutura.slice(0, parcelasRecebidas).reduce((s, v) => s + v, 0);
+      } else {
+        // À vista: se recebido, contar valor total
+        if (p.recebido) {
+          return sum + (p.valorNumerico || 0);
+        }
+      }
+      return sum;
+    }, 0);
   }, 0);
 
-  // Calcular total de patrocínios PENDENTES (não recebidos)
-  const totalPatrociniosPendentes = activeAuctions.reduce((total, auction) => {
-    // Somar apenas patrocínios que NÃO foram confirmados como recebidos
-    const patrociniosPendentes = (auction.detalhePatrocinios || [])
-      .filter(p => p.recebido !== true)
-      .reduce((sum, p) => sum + (p.valorNumerico || 0), 0);
-    
-    return total + patrociniosPendentes;
+  // Calcular total de patrocínios PENDENTES (valor total - valor recebido)
+  const totalPatrociniosBruto = activeAuctions.reduce((total, auction) => {
+    const patrocinios = auction.detalhePatrocinios || [];
+    return total + patrocinios.reduce((sum, p) => {
+      if (p.formaPagamento === 'entrada_parcelamento') {
+        const valorEntrada = p.valorEntradaNumerico || 0;
+        const valorLance = p.valorLanceNumerico || 0;
+        const fator = p.fatorMultiplicador || 1;
+        return sum + valorEntrada + (valorLance * fator);
+      } else {
+        return sum + (p.valorNumerico || 0);
+      }
+    }, 0);
   }, 0);
+  const totalPatrociniosPendentes = totalPatrociniosBruto - totalPatrocinios;
 
   // Total recebido final = pagamentos dos arrematantes + patrocínios (integralmente)
   const totalRecebidoComSuperavit = localTotalRecebido + totalPatrocinios;

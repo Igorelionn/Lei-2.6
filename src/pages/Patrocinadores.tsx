@@ -1318,23 +1318,14 @@ export default function Patrocinadores() {
                 </div>
               </div>
 
-              {/* Rodapé com resumo */}
-              <div className="space-y-3 pt-4 border-t border-gray-200">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Total</span>
-                  <span className="font-medium text-gray-900">R$ {paymentStatus.reduce((sum, s) => sum + s.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              {/* Rodapé Simples */}
+              <div className="flex justify-between items-center pt-4 border-gray-200">
+                <div className="text-sm text-gray-600">
+                  Total: R$ {paymentStatus.reduce((sum, s) => sum + s.valor, 0).toLocaleString('pt-BR', { 
+                    minimumFractionDigits: 2, 
+                    maximumFractionDigits: 2 
+                  })}
                 </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-green-600">Recebido</span>
-                  <span className="font-medium text-green-600">R$ {paymentStatus.filter(s => s.paid).reduce((sum, s) => sum + s.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-amber-600">A receber</span>
-                  <span className="font-medium text-amber-600">R$ {paymentStatus.filter(s => !s.paid).reduce((sum, s) => sum + s.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
-                </div>
-              </div>
-
-              <div className="flex justify-end items-center pt-2">
                 
                 <div className="flex gap-3">
                   <Button 
