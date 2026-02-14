@@ -446,18 +446,8 @@ export default function Patrocinadores() {
         });
       }
 
-      // Forçar invalidação e refetch imediato dos dados
-      await queryClient.invalidateQueries({ queryKey: ['auctions'] });
-      await queryClient.refetchQueries({ queryKey: ['auctions'] });
-
-      toast({
-        title: "Pagamento atualizado",
-        description: `Status de pagamento de ${selectedPatrocinadorForPayment.empresa} salvo com sucesso.`,
-      });
-
-      setIsPaymentModalOpen(false);
-      setSelectedPatrocinadorForPayment(null);
-      setPaymentStatus([]);
+      // Recarregar a página para garantir que todos os dados atualizem
+      window.location.reload();
     } catch (error) {
       logger.error('Erro ao salvar pagamentos:', error);
       toast({
