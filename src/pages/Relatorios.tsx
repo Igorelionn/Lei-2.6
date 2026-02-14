@@ -266,6 +266,11 @@ function Relatorios() {
   const [previewType, setPreviewType] = useState<'leiloes' | 'inadimplencia' | 'historico' | 'faturas'>('leiloes');
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<'todos' | 'a_vista' | 'parcelamento' | 'entrada_parcelamento'>('todos');
   
+  // Filtros de consideração do gráfico (toggles)
+  const [considerarComissaoCompra, setConsiderarComissaoCompra] = useState(true); // Comissão de compra (leiloeiro/assessor) nas despesas
+  const [considerarComissaoVenda, setConsiderarComissaoVenda] = useState(true); // Apenas comissão de venda para lotes de convidados
+  const [considerarPatrocinios, setConsiderarPatrocinios] = useState(true); // Patrocínios no faturamento
+  
   // Estado para o gráfico de evolução
   const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string } | null>(null);
   const svgRef = useRef<SVGSVGElement>(null);
@@ -1310,7 +1315,7 @@ function Relatorios() {
                 </div>
 
                 {/* Legenda */}
-                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mt-3 mb-2">
+                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mt-3 mb-1">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
                     <span className="text-sm text-gray-600 font-medium">Faturamento</span>
@@ -1319,6 +1324,65 @@ function Relatorios() {
                     <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
                     <span className="text-sm text-gray-600 font-medium">Despesas</span>
                   </div>
+                </div>
+                
+                {/* Toggles de consideração */}
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-2">
+                  <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Considerar:</span>
+                  
+                  <button
+                    onClick={() => setConsiderarComissaoVenda(!considerarComissaoVenda)}
+                    className="flex items-center gap-1.5 group"
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                      considerarComissaoVenda 
+                        ? 'border-indigo-500 bg-indigo-500' 
+                        : 'border-gray-300 bg-white group-hover:border-gray-400'
+                    }`}>
+                      {considerarComissaoVenda && (
+                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium transition-colors ${
+                      considerarComissaoVenda ? 'text-gray-700' : 'text-gray-400'
+                    }`}>% Venda (Convidados)</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setConsiderarComissaoCompra(!considerarComissaoCompra)}
+                    className="flex items-center gap-1.5 group"
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                      considerarComissaoCompra 
+                        ? 'border-gray-500 bg-gray-500' 
+                        : 'border-gray-300 bg-white group-hover:border-gray-400'
+                    }`}>
+                      {considerarComissaoCompra && (
+                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium transition-colors ${
+                      considerarComissaoCompra ? 'text-gray-700' : 'text-gray-400'
+                    }`}>% Compra (Leiloeiro)</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setConsiderarPatrocinios(!considerarPatrocinios)}
+                    className="flex items-center gap-1.5 group"
+                  >
+                    <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
+                      considerarPatrocinios 
+                        ? 'border-emerald-500 bg-emerald-500' 
+                        : 'border-gray-300 bg-white group-hover:border-gray-400'
+                    }`}>
+                      {considerarPatrocinios && (
+                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                      )}
+                    </div>
+                    <span className={`text-xs font-medium transition-colors ${
+                      considerarPatrocinios ? 'text-gray-700' : 'text-gray-400'
+                    }`}>Patrocínios</span>
+                  </button>
                 </div>
 
                 
@@ -1592,27 +1656,23 @@ function Relatorios() {
                                           // Identificar o lote do arrematante
                                           const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
                                           
-                                          if (loteArrematado?.isConvidado) {
-                                            // LOTE DE CONVIDADO: faturamento = apenas comissão de venda
+                                          if (loteArrematado?.isConvidado && considerarComissaoVenda) {
+                                            // LOTE DE CONVIDADO com toggle ativo: faturamento = apenas comissão de venda
                                             const percVenda = loteArrematado.percentualComissaoVenda 
                                               || arrematante.percentualComissaoVenda 
                                               || auction.percentualComissaoVenda 
                                               || 5; // Default 5%
                                             faturamentoPeriodo += valorPago * (percVenda / 100);
-                                            
-                                            // Comissão de compra (leiloeiro/assessor) = despesa
-                                            const percCompra = loteArrematado.percentualComissaoLeiloeiro 
-                                              || arrematante.percentualComissaoLeiloeiro 
-                                              || auction.percentualComissaoLeiloeiro 
-                                              || 0;
-                                            if (percCompra > 0) {
-                                              comissaoCompraTotal += valorPago * (percCompra / 100);
-                                            }
+                                          } else if (loteArrematado?.isConvidado && !considerarComissaoVenda) {
+                                            // LOTE DE CONVIDADO com toggle desativado: considerar valor total
+                                            faturamentoPeriodo += valorPago;
                                           } else {
                                             // LOTE PRÓPRIO: faturamento = valor total pago
                                             faturamentoPeriodo += valorPago;
-                                            
-                                            // Comissão de compra (leiloeiro/assessor) = despesa mesmo em lote próprio
+                                          }
+                                          
+                                          // Comissão de compra (leiloeiro/assessor) = despesa (se toggle ativo)
+                                          if (considerarComissaoCompra) {
                                             const percCompra = loteArrematado?.percentualComissaoLeiloeiro 
                                               || arrematante.percentualComissaoLeiloeiro 
                                               || auction.percentualComissaoLeiloeiro 
@@ -1626,24 +1686,26 @@ function Relatorios() {
                                     }
                                   });
                                   
-                                  // Adicionar patrocínios ao faturamento (total recebido de patrocinadores)
-                                  // ✅ Considerar APENAS patrocínios confirmados como recebidos
-                                  const totalPatrocinios = auctions?.reduce((sum, auction) => {
-                                    if (!auction.arquivado) {
-                                      const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
-                                      if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                        const patrociniosRecebidos = (auction.detalhePatrocinios || [])
-                                          .filter(p => p.recebido === true)
-                                          .reduce((sumPatrocinios, p) => sumPatrocinios + (p.valorNumerico || 0), 0);
-                                        return sum + patrociniosRecebidos;
+                                  // Adicionar patrocínios ao faturamento (se toggle ativo)
+                                  let totalPatrocinios = 0;
+                                  if (considerarPatrocinios) {
+                                    totalPatrocinios = auctions?.reduce((sum, auction) => {
+                                      if (!auction.arquivado) {
+                                        const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
+                                        if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
+                                          const patrociniosRecebidos = (auction.detalhePatrocinios || [])
+                                            .filter(p => p.recebido === true)
+                                            .reduce((sumPatrocinios, p) => sumPatrocinios + (p.valorNumerico || 0), 0);
+                                          return sum + patrociniosRecebidos;
+                                        }
                                       }
-                                    }
-                                    return sum;
-                                  }, 0) || 0;
+                                      return sum;
+                                    }, 0) || 0;
+                                  }
                                   
                                   const faturamentoTotalPeriodo = faturamentoPeriodo + totalPatrocinios;
                                   
-                                  // DESPESAS = Custos cadastrados + comissões de compra (leiloeiro/assessor)
+                                  // DESPESAS = Custos cadastrados + comissões de compra (se toggle ativo)
                                   const custosCadastrados = auctions?.reduce((sum, auction) => {
                                     if (!auction.arquivado) {
                                       const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
