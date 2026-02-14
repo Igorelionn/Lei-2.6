@@ -20,7 +20,8 @@ import {
   Package,
   Gavel,
   Clock,
-  CreditCard
+  CreditCard,
+  SlidersHorizontal
 } from "lucide-react";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
@@ -1315,38 +1316,57 @@ function Relatorios() {
                 </div>
 
                 {/* Legenda + Filtros de consideração */}
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-3 mb-2 gap-2">
+                <div className="flex items-center justify-between mt-3 mb-2">
                   {/* Legenda (esquerda) */}
                   <div className="flex items-center gap-4">
                     <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></div>
-                      <span className="text-xs text-gray-500">Faturamento</span>
+                      <div className="w-2 h-2 bg-indigo-500 rounded-full"></div>
+                      <span className="text-xs text-gray-400">Faturamento</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 bg-gray-400 rounded-full"></div>
-                      <span className="text-xs text-gray-500">Despesas</span>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <span className="text-xs text-gray-400">Despesas</span>
                     </div>
                   </div>
                   
-                  {/* Toggles (direita) */}
-                  <div className="flex items-center gap-1">
-                    {[
-                      { key: 'venda', label: '% Venda', active: considerarComissaoVenda, toggle: () => setConsiderarComissaoVenda(!considerarComissaoVenda) },
-                      { key: 'compra', label: '% Compra', active: considerarComissaoCompra, toggle: () => setConsiderarComissaoCompra(!considerarComissaoCompra) },
-                      { key: 'patrocinios', label: 'Patrocínios', active: considerarPatrocinios, toggle: () => setConsiderarPatrocinios(!considerarPatrocinios) },
-                    ].map(item => (
-                      <button
-                        key={item.key}
-                        onClick={item.toggle}
-                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 border ${
-                          item.active
-                            ? 'bg-gray-900 text-white border-gray-900'
-                            : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300 hover:text-gray-500'
-                        }`}
-                      >
-                        {item.label}
-                      </button>
-                    ))}
+                  {/* Filtros (direita) - expandem ao hover */}
+                  <div className="relative group/filtros">
+                    <div className="flex items-center gap-1 cursor-default">
+                      <SlidersHorizontal className="h-3.5 w-3.5 text-gray-300 group-hover/filtros:text-gray-500 transition-colors" />
+                    </div>
+                    
+                    {/* Dropdown ao hover */}
+                    <div className="absolute right-0 top-full mt-1.5 opacity-0 invisible group-hover/filtros:opacity-100 group-hover/filtros:visible transition-all duration-200 z-20">
+                      <div className="bg-white border border-gray-100 rounded-lg shadow-sm p-2 flex flex-col gap-1 min-w-[160px]">
+                        <span className="text-[10px] text-gray-300 font-medium uppercase tracking-wider px-1.5 mb-0.5">Considerar</span>
+                        {[
+                          { key: 'venda', label: '% Venda', active: considerarComissaoVenda, toggle: () => setConsiderarComissaoVenda(!considerarComissaoVenda) },
+                          { key: 'compra', label: '% Compra', active: considerarComissaoCompra, toggle: () => setConsiderarComissaoCompra(!considerarComissaoCompra) },
+                          { key: 'patrocinios', label: 'Patrocínios', active: considerarPatrocinios, toggle: () => setConsiderarPatrocinios(!considerarPatrocinios) },
+                        ].map(item => (
+                          <button
+                            key={item.key}
+                            onClick={item.toggle}
+                            className="flex items-center gap-2 px-1.5 py-1 rounded-md hover:bg-gray-50 transition-colors w-full text-left"
+                          >
+                            <div className={`w-3 h-3 rounded-sm border transition-all duration-150 flex items-center justify-center ${
+                              item.active
+                                ? 'bg-indigo-500 border-indigo-500'
+                                : 'border-gray-300 bg-white'
+                            }`}>
+                              {item.active && (
+                                <svg className="w-2 h-2 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                                </svg>
+                              )}
+                            </div>
+                            <span className={`text-xs transition-colors ${
+                              item.active ? 'text-gray-600' : 'text-gray-400'
+                            }`}>{item.label}</span>
+                          </button>
+                        ))}
+                      </div>
+                    </div>
                   </div>
                 </div>
 
