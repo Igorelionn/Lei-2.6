@@ -2226,381 +2226,241 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
 
   if (type === 'leiloes') {
     const leiloesAtivos = auctions.filter(a => !a.arquivado);
-    
-    // Calcular estatísticas
     const totalLeiloes = leiloesAtivos.length;
     const emAndamento = leiloesAtivos.filter(a => a.status === 'em_andamento').length;
     const finalizados = leiloesAtivos.filter(a => a.status === 'finalizado').length;
     const leiloesAgendados = leiloesAtivos.filter(a => a.status === 'agendado').length;
-    
+
+    const sLabel = { fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 4px 0' } as React.CSSProperties;
+    const sValue = { fontSize: '14px', color: '#1a1a1a', margin: 0, fontWeight: 500 } as React.CSSProperties;
+    const sValueLg = { fontSize: '22px', fontWeight: 300, color: '#1a1a1a', margin: 0, letterSpacing: '-0.02em' } as React.CSSProperties;
+    const sSep = { border: 'none', borderTop: '1px solid #eee', margin: '28px 0' } as React.CSSProperties;
+    const sSection = { fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 16px 0' } as React.CSSProperties;
+
+    const getTipoPagLabel = (tipo: string) => {
+      const l: Record<string, string> = { a_vista: 'À vista', parcelamento: 'Parcelamento', entrada_parcelamento: 'Entrada + Parcelamento' };
+      return l[tipo] || tipo;
+    };
+
+    const getMesLbl = (mesStr: string) => {
+      const meses = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+      if (mesStr.includes('-')) { const [ano, mes] = mesStr.split('-'); return `${meses[parseInt(mes) - 1]}/${ano}`; }
+      return meses[parseInt(mesStr) - 1] || mesStr;
+    };
+
     return (
-      <div style={{ background: 'white', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: '40px', fontSize: '14px', lineHeight: '1.5', color: '#111827' }}>
-        {/* Cabeçalho Clean */}
-        <div style={{ marginBottom: '48px', paddingBottom: '24px', borderBottom: '2px solid #e5e7eb', pageBreakInside: 'avoid' }}>
-          <h1 style={{ fontSize: '28px', fontWeight: '300', color: '#111827', margin: '0 0 8px 0', letterSpacing: '-0.02em' }}>
+      <div style={{ background: 'white', fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif", padding: '48px 40px', fontSize: '13px', lineHeight: '1.6', color: '#1a1a1a' }}>
+        
+        {/* Cabeçalho */}
+        <div style={{ marginBottom: '8px' }}>
+          <h1 style={{ fontSize: '26px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
             Relatório de Leilões
           </h1>
-          <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '300' }}>
-            {new Date().toLocaleDateString('pt-BR')} • {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </div>
+          <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
+            {new Date().toLocaleDateString('pt-BR')} &middot; {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </p>
         </div>
 
-        {/* Resumo Executivo */}
+        <hr style={sSep} />
+
+        {/* Resumo */}
         {totalLeiloes > 0 && (
-          <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
-            <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-              Resumo Executivo
-            </h2>
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }}>
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Total de Leilões</div>
-                <div style={{ fontSize: '24px', fontWeight: '300', color: '#111827' }}>{totalLeiloes}</div>
+          <div style={{ pageBreakInside: 'avoid' }}>
+            <p style={sSection}>Resumo</p>
+            <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+              <div style={{ flex: '1 1 100px' }}>
+                <p style={sLabel}>Total</p>
+                <p style={sValueLg}>{totalLeiloes}</p>
               </div>
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Em Andamento</div>
-                <div style={{ fontSize: '24px', fontWeight: '300', color: '#111827' }}>{emAndamento}</div>
+              <div style={{ flex: '1 1 100px' }}>
+                <p style={sLabel}>Em Andamento</p>
+                <p style={sValueLg}>{emAndamento}</p>
               </div>
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Finalizados</div>
-                <div style={{ fontSize: '24px', fontWeight: '300', color: '#111827' }}>{finalizados}</div>
+              <div style={{ flex: '1 1 100px' }}>
+                <p style={sLabel}>Finalizados</p>
+                <p style={sValueLg}>{finalizados}</p>
               </div>
-              <div>
-                <div style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '8px' }}>Agendados</div>
-                <div style={{ fontSize: '24px', fontWeight: '300', color: '#111827' }}>{leiloesAgendados}</div>
+              <div style={{ flex: '1 1 100px' }}>
+                <p style={sLabel}>Agendados</p>
+                <p style={sValueLg}>{leiloesAgendados}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Lista Detalhada dos Leilões */}
-        <div>
-          {leiloesAtivos.map((auction, index) => (
-            <div key={auction.id} style={{ pageBreakBefore: index > 0 ? 'always' : 'avoid', marginBottom: '60px' }}>
+        {/* Lista de Leilões */}
+        {leiloesAtivos.map((auction, index) => (
+          <div key={auction.id} style={{ pageBreakBefore: index > 0 ? 'always' : 'avoid' }}>
+            <hr style={{ ...sSep, margin: '36px 0' }} />
 
-              {/* Cabeçalho do Leilão */}
-              <div style={{ marginBottom: '40px', paddingBottom: '20px', borderBottom: '2px solid #e5e7eb', pageBreakInside: 'avoid' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px' }}>
-                  <div style={{ flex: 1 }}>
-                    <h2 style={{ fontSize: '22px', fontWeight: '300', color: '#111827', margin: '0 0 6px 0', letterSpacing: '-0.01em' }}>
-                      {auction.nome}
-                    </h2>
-                    <div style={{ fontSize: '13px', color: '#9ca3af', fontWeight: '300' }}>
-                      {auction.identificacao && <span style={{ fontFamily: 'monospace' }}>#{auction.identificacao}</span>}
-                      {auction.identificacao && <span style={{ margin: '0 8px' }}>•</span>}
-                      <span>{formatDate(auction.dataInicio)}</span>
-                    </div>
-                  </div>
-                  <span style={{ 
-                    padding: '4px 12px', 
-                    borderRadius: '4px', 
-                    fontSize: '11px', 
-                    fontWeight: '600',
-                    textTransform: 'uppercase',
-                    letterSpacing: '0.05em',
-                    background: auction.status === 'finalizado' ? '#e5e7eb' : auction.status === 'em_andamento' ? '#dcfce7' : '#f3f4f6',
-                    color: auction.status === 'finalizado' ? '#374151' : auction.status === 'em_andamento' ? '#15803d' : '#6b7280',
-                    border: `1px solid ${auction.status === 'finalizado' ? '#d1d5db' : auction.status === 'em_andamento' ? '#86efac' : '#e5e7eb'}`,
-                    whiteSpace: 'nowrap'
-                  }}>
-                    {getStatusLabel(auction.status)}
-                        </span>
-                    </div>
-              </div>
-
-              {/* Informações Básicas */}
-              <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                  Informações Básicas
+            {/* Header do leilão */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px', pageBreakInside: 'avoid' }}>
+              <div>
+                <h2 style={{ fontSize: '20px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 2px 0', letterSpacing: '-0.01em' }}>
+                  {auction.nome}
                 </h2>
-                
-                <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
-                  {/* Local do Evento */}
-                  <div style={{ flex: '1 1 200px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginTop: 0, marginBottom: '12px' }}>
-                      Local do Evento
-                    </h3>
-                    <p style={{ color: '#111827', textTransform: 'capitalize', margin: '0 0 8px 0' }}>
-                      {getLocalLabel(auction.local)}
-                    </p>
-                    {auction.endereco && (
-                      <p style={{ fontSize: '14px', color: '#6b7280', lineHeight: '1.6', margin: 0 }}>{auction.endereco}</p>
-                    )}
-                  </div>
-
-                  {/* Investimento Total */}
-                  <div style={{ flex: '1 1 200px' }}>
-                    <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginTop: 0, marginBottom: '12px' }}>
-                      Investimento Total
-                </h3>
-                    <p style={{ fontSize: '24px', fontWeight: '300', color: '#111827', margin: 0 }}>
-                      {formatCurrency(auction.custosNumerico || auction.custos)}
-                    </p>
+                <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
+                  {auction.identificacao && <span style={{ fontFamily: 'monospace' }}>#{auction.identificacao} &middot; </span>}
+                  {formatDate(auction.dataInicio)}
+                  {auction.dataEncerramento && <span> &mdash; {formatDate(auction.dataEncerramento)}</span>}
+                  {' '}&middot; {getLocalLabel(auction.local).charAt(0) + getLocalLabel(auction.local).slice(1).toLowerCase()}
+                  {auction.endereco && ` &middot; ${auction.endereco}`}
+                </p>
               </div>
-              
-                  {/* Patrocínios Recebidos */}
-                  {auction.detalhePatrocinios && auction.detalhePatrocinios.filter(p => p.recebido === true).length > 0 && (
-                    <div style={{ flex: '1 1 200px' }}>
-                      <h3 style={{ fontSize: '14px', fontWeight: '500', color: '#374151', marginTop: 0, marginBottom: '12px' }}>
-                        Patrocínios Recebidos
-                </h3>
-                      <p style={{ fontSize: '24px', fontWeight: '300', color: '#111827', margin: 0 }}>
-                        {formatCurrency(auction.detalhePatrocinios.filter(p => p.recebido === true).reduce((sum, p) => sum + (p.valorNumerico || 0), 0))}
-                      </p>
-                      </div>
-                  )}
-              </div>
+              <span style={{
+                padding: '3px 10px',
+                borderRadius: '4px',
+                fontSize: '10px',
+                fontWeight: 600,
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                background: auction.status === 'em_andamento' ? '#f0fdf4' : auction.status === 'finalizado' ? '#f3f4f6' : '#fafafa',
+                color: auction.status === 'em_andamento' ? '#16a34a' : '#666',
+                border: `1px solid ${auction.status === 'em_andamento' ? '#bbf7d0' : '#e5e7eb'}`,
+                whiteSpace: 'nowrap',
+                flexShrink: 0,
+              }}>
+                {getStatusLabel(auction.status)}
+              </span>
+            </div>
 
-                {/* Cronograma do Evento */}
-                <div style={{ marginTop: '24px', paddingTop: '24px', borderTop: '1px solid #e5e7eb' }}>
-                  <h3 style={{ fontSize: '10px', fontWeight: '500', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.05em', marginTop: 0, marginBottom: '12px' }}>
-                    Cronograma do Evento
-                </h3>
-                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '16px' }}>
-                  <div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Data de Início</div>
-                      <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>{formatDate(auction.dataInicio)}</div>
-                    </div>
-                    <div>
-                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '4px' }}>Encerramento</div>
-                      <div style={{ fontSize: '14px', color: '#111827', fontWeight: '500' }}>{formatDate(auction.dataEncerramento || '')}</div>
-                    </div>
-                    </div>
-                  </div>
+            {/* Financeiro do leilão */}
+            <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+              <p style={sSection}>Financeiro</p>
+              <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+                <div style={{ flex: '1 1 180px' }}>
+                  <p style={sLabel}>Investimento</p>
+                  <p style={sValueLg}>{formatCurrency(auction.custosNumerico || auction.custos)}</p>
                 </div>
-
-                {/* Especificação dos Custos */}
-                {auction.detalheCustos && auction.detalheCustos.length > 0 && (
-                <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
-                  <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                      Especificação dos Gastos
-                  </h2>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {auction.detalheCustos.map((item: ItemCustoInfo, index: number) => (
-                      <div key={item.id || index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                          <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
-                          <span style={{ fontSize: '14px', color: '#374151' }}>
-                              {item.descricao || 'Item de custo'}
-                            </span>
-                          </div>
-                        <span style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
-                            {formatCurrency(item.valorNumerico)}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
+                {auction.detalhePatrocinios && auction.detalhePatrocinios.filter(p => p.recebido === true).length > 0 && (
+                  <div style={{ flex: '1 1 180px' }}>
+                    <p style={sLabel}>Patrocínios Recebidos</p>
+                    <p style={sValueLg}>
+                      {formatCurrency(auction.detalhePatrocinios.filter(p => p.recebido === true).reduce((sum, p) => sum + (p.valorNumerico || 0), 0))}
+                    </p>
                   </div>
                 )}
+              </div>
 
-                {/* Patrocínios Recebidos */}
-              {auction.detalhePatrocinios && auction.detalhePatrocinios.length > 0 && (() => {
-                const patrociniosRecebidos = auction.detalhePatrocinios.filter(p => p.recebido === true);
-                if (patrociniosRecebidos.length === 0) return null;
-                
-                return (
-                  <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
-                    <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                      Patrocínios Recebidos
-                    </h2>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      {patrociniosRecebidos.map((item: ItemPatrocinioInfo, index: number) => (
-                        <div key={item.id || index} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: '#f9fafb', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <span style={{ fontSize: '12px', color: '#6b7280' }}>
-                              {String(index + 1).padStart(2, '0')}
-                            </span>
-                            <span style={{ fontSize: '14px', color: '#374151' }}>
-                              {item.nomePatrocinador || 'Patrocinador'}
-                            </span>
-                          </div>
-                          <span style={{ fontSize: '14px', fontWeight: '500', color: '#111827' }}>
-                            {formatCurrency(item.valorNumerico)}
-                          </span>
-                        </div>
+              {/* Custos */}
+              {auction.detalheCustos && auction.detalheCustos.length > 0 && (
+                <div style={{ marginTop: '16px' }}>
+                  <p style={{ ...sLabel, marginBottom: '6px' }}>Especificação dos Gastos</p>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                    <tbody>
+                      {auction.detalheCustos.map((item: ItemCustoInfo, i: number) => (
+                        <tr key={item.id || i} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                          <td style={{ padding: '5px 0', color: '#666' }}>{item.descricao || 'Item de custo'}</td>
+                          <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 500, color: '#1a1a1a' }}>{formatCurrency(item.valorNumerico)}</td>
+                        </tr>
                       ))}
-                    </div>
-                    </div>
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* Patrocinadores */}
+              {auction.detalhePatrocinios && (() => {
+                const recebidos = auction.detalhePatrocinios.filter(p => p.recebido === true);
+                if (recebidos.length === 0) return null;
+                return (
+                  <div style={{ marginTop: '16px' }}>
+                    <p style={{ ...sLabel, marginBottom: '6px' }}>Patrocinadores</p>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '12px' }}>
+                      <tbody>
+                        {recebidos.map((item: ItemPatrocinioInfo, i: number) => (
+                          <tr key={item.id || i} style={{ borderBottom: '1px solid #f5f5f5' }}>
+                            <td style={{ padding: '5px 0', color: '#666' }}>{item.nomePatrocinador || 'Patrocinador'}</td>
+                            <td style={{ padding: '5px 0', textAlign: 'right', fontWeight: 500, color: '#1a1a1a' }}>{formatCurrency(item.valorNumerico)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 );
               })()}
+            </div>
 
-              {/* Configurações de Pagamento por Mercadoria */}
-              <div style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', padding: '24px', marginBottom: '40px', pageBreakInside: 'avoid' }}>
-                <h2 style={{ fontSize: '18px', fontWeight: '600', color: '#111827', marginTop: 0, marginBottom: '24px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                  Lotes e Configurações de Pagamento
-                </h2>
-                
-                {auction.lotes && auction.lotes.length > 0 ? (
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {auction.lotes.map((lote, loteIndex) => {
-                      if (!lote.mercadorias || lote.mercadorias.length === 0) {
-                        return (
-                          <div key={lote.id || loteIndex} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '16px' }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111827', margin: '0 0 8px 0' }}>
-                              Lote {lote.numero}
-                            </h4>
-                            {lote.descricao && <p style={{ fontSize: '13px', color: '#6b7280', margin: '0 0 12px 0' }}>{lote.descricao}</p>}
-                            <div style={{ background: '#f3f4f6', borderRadius: '4px', padding: '12px', textAlign: 'center' }}>
-                              <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>Nenhuma mercadoria cadastrada</p>
-                            </div>
-                          </div>
-                        );
-                      }
-
-                      return (
-                        <div key={lote.id || loteIndex} style={{ background: '#f9fafb', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '16px' }}>
-                          <div style={{ marginBottom: '12px', paddingBottom: '12px', borderBottom: '1px solid #e5e7eb' }}>
-                            <h4 style={{ fontSize: '14px', fontWeight: '600', color: '#111827', margin: '0 0 4px 0' }}>
-                              Lote {lote.numero}
-                            </h4>
-                            {lote.descricao && <p style={{ fontSize: '13px', color: '#6b7280', margin: 0 }}>{lote.descricao}</p>}
-                          </div>
-                          
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                            {lote.mercadorias.map((mercadoria, mercIndex) => {
-                              // ✅ CORREÇÃO: Buscar arrematante pelo loteId, não mercadoriaId (deprecated)
-                              const arrematante = auction.arrematantes?.find(arr => arr.loteId === lote.id);
-
-                              return (
-                                <div key={mercadoria.id || mercIndex} style={{ background: 'white', border: '1px solid #e5e7eb', borderRadius: '6px', padding: '12px' }}>
-                                  <div style={{ marginBottom: '12px' }}>
-                                    <h5 style={{ fontSize: '13px', fontWeight: '500', color: '#111827', margin: '0 0 4px 0' }}>
-                                      {mercadoria.titulo || mercadoria.tipo || 'Mercadoria'} 
-                                      {mercadoria.quantidade && <span style={{ fontSize: '12px', color: '#9ca3af', marginLeft: '8px' }}>({mercadoria.quantidade} un.)</span>}
-                                    </h5>
-                                    {mercadoria.descricao && <p style={{ fontSize: '12px', color: '#6b7280', margin: 0, lineHeight: '1.5' }}>{mercadoria.descricao}</p>}
-                            </div>
-
-                                  {arrematante && arrematante.tipoPagamento ? (
-                                    <div>
-                                      <div style={{ fontSize: '12px', color: '#6b7280', marginBottom: '8px' }}>
-                                        <span style={{ fontWeight: '500', color: '#374151' }}>Arrematante:</span> {arrematante.nome || 'Não informado'}
-                                      </div>
-                                      <div style={{ background: '#f9fafb', borderRadius: '4px', padding: '10px', border: '1px solid #e5e7eb' }}>
-                                        <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '8px 16px', fontSize: '12px' }}>
-                                          <div style={{ color: '#6b7280' }}>
-                                            <strong style={{ color: '#374151' }}>Tipo:</strong>
-                                          </div>
-                                          <div style={{ color: '#111827' }}>
-                                              {arrematante.tipoPagamento === 'a_vista' ? 'À Vista' :
-                                               arrematante.tipoPagamento === 'parcelamento' ? 'Parcelamento' :
-                                               arrematante.tipoPagamento === 'entrada_parcelamento' ? 'Entrada + Parcelamento' :
-                                               'Não definido'}
-                          </div>
-
-                                          {arrematante.tipoPagamento === 'a_vista' && arrematante.dataVencimentoVista && (
-                                            <>
-                                              <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Data de Pagamento:</strong></div>
-                                              <div style={{ color: '#111827' }}>{formatDate(arrematante.dataVencimentoVista)}</div>
-                                            </>
-                    )}
-
-                                          {arrematante.tipoPagamento === 'entrada_parcelamento' && arrematante.dataEntrada && (
-                                            <>
-                                              <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Data da Entrada:</strong></div>
-                                              <div style={{ color: '#111827' }}>{formatDate(arrematante.dataEntrada)}</div>
-                                            </>
-                )}
-
-                                          {(arrematante.tipoPagamento === 'parcelamento' || arrematante.tipoPagamento === 'entrada_parcelamento') && (
-                                            <>
-                                              {arrematante.mesInicioPagamento && (
-                                                <>
-                                                  <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Mês de Início:</strong></div>
-                                                  <div style={{ color: '#111827' }}>
-                            {(() => {
-                                                      const meses = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-                                                                    'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
-                                                      const [ano, mes] = arrematante.mesInicioPagamento.split('-');
-                                                      return `${meses[parseInt(mes) - 1]}/${ano}`;
-                            })()}
+            {/* Lotes */}
+            {auction.lotes && auction.lotes.length > 0 && (
+              <div style={{ marginTop: '24px', pageBreakInside: 'avoid' }}>
+                <p style={sSection}>Lotes ({auction.lotes.length})</p>
+                {auction.lotes.map((lote, li) => {
+                  const arrematante = auction.arrematantes?.find(arr => arr.loteId === lote.id);
+                  return (
+                    <div key={lote.id || li} style={{ padding: '12px 0', borderBottom: li < auction.lotes!.length - 1 ? '1px solid #f0f0f0' : 'none', pageBreakInside: 'avoid' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                        <div>
+                          <p style={{ fontSize: '13px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 2px 0' }}>Lote {lote.numero}</p>
+                          {lote.descricao && <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>{lote.descricao}</p>}
                         </div>
-                                                </>
+                        {lote.tipoPagamento && (
+                          <span style={{ fontSize: '11px', color: '#999' }}>{getTipoPagLabel(lote.tipoPagamento)}</span>
+                        )}
+                      </div>
+
+                      {/* Mercadorias */}
+                      {lote.mercadorias && lote.mercadorias.length > 0 && (
+                        <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                          {lote.mercadorias.map((m, mi) => (
+                            <p key={m.id || mi} style={{ margin: '1px 0' }}>
+                              {m.titulo || m.tipo || 'Mercadoria'}
+                              {m.descricao && ` — ${m.descricao}`}
+                              {m.quantidade && <span style={{ color: '#ccc' }}> (Qtd: {m.quantidade})</span>}
+                            </p>
+                          ))}
+                        </div>
                       )}
-                                              
-                                              {arrematante.diaVencimentoMensal && (
-                                                <>
-                                                  <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Dia do Vencimento:</strong></div>
-                                                  <div style={{ color: '#111827' }}>Dia {arrematante.diaVencimentoMensal}</div>
-                                                </>
-                )}
 
-                                              {arrematante.quantidadeParcelas && (
-                                                <>
-                                                  <div style={{ color: '#6b7280' }}><strong style={{ color: '#374151' }}>Parcelas:</strong></div>
-                                                  <div style={{ color: '#111827' }}>
-                                                    {arrematante.quantidadeParcelas}x{arrematante.tipoPagamento === 'entrada_parcelamento' ? ' (após entrada)' : ''}
-                                                </div>
-                                                </>
-                                              )}
-                                            </>
-                            )}
-                          </div>
-                            </div>
-                                    </div>
-                                  ) : (
-                                    <div style={{ background: '#f9fafb', borderRadius: '4px', padding: '12px', textAlign: 'center', border: '1px solid #e5e7eb' }}>
-                                      <p style={{ fontSize: '12px', color: '#9ca3af', margin: 0 }}>
-                                        Configurações de pagamento não definidas
-                                      </p>
-                                    </div>
-                                  )}
-                                </div>
-                              );
-                            })}
-                              </div>
-                          </div>
-                      );
-                    })}
+                      {/* Arrematante + Pagamento */}
+                      {arrematante && arrematante.tipoPagamento && (
+                        <div style={{ marginTop: '8px', fontSize: '12px', color: '#666' }}>
+                          <span style={{ fontWeight: 500 }}>Arrematante:</span> {arrematante.nome || 'Não informado'}
+                          <span style={{ margin: '0 6px', color: '#ddd' }}>|</span>
+                          <span>{getTipoPagLabel(arrematante.tipoPagamento)}</span>
+                          {arrematante.quantidadeParcelas && arrematante.quantidadeParcelas > 1 && (
+                            <span> &middot; {arrematante.quantidadeParcelas} parcelas</span>
+                          )}
+                          {arrematante.mesInicioPagamento && (
+                            <span> &middot; Início: {getMesLbl(arrematante.mesInicioPagamento)}</span>
+                          )}
+                          {arrematante.diaVencimentoMensal && (
+                            <span> &middot; Venc. dia {arrematante.diaVencimentoMensal}</span>
+                          )}
+                          {arrematante.dataVencimentoVista && (
+                            <span> &middot; Venc. {formatDate(arrematante.dataVencimentoVista)}</span>
+                          )}
+                          {arrematante.dataEntrada && (
+                            <span> &middot; Entrada: {formatDate(arrematante.dataEntrada)}</span>
+                          )}
                         </div>
-                ) : (
-                  <div style={{ background: '#f9fafb', borderRadius: '6px', padding: '16px', textAlign: 'center' }}>
-                    <p style={{ fontSize: '13px', color: '#9ca3af', margin: 0 }}>Nenhum lote cadastrado neste leilão</p>
-                  </div>
-                )}
+                      )}
+                    </div>
+                  );
+                })}
               </div>
-            </div>
-          ))}
-          
-          {leiloesAtivos.length > 3 && (
-            <div className="text-center py-6 px-8 mt-6" style={{ background: 'linear-gradient(to bottom, #f8fafc, #ffffff)', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
-              <div className="text-base font-medium text-slate-900 mb-2" style={{ letterSpacing: '0.02em' }}>
-                Visualização Parcial
-              </div>
-              <div className="text-sm text-slate-600 leading-relaxed" style={{ fontWeight: 300 }}>
-                Esta pré-visualização apresenta os primeiros 3 processos.
-                <br />
-                O documento PDF completo incluirá todos os {leiloesAtivos.length} processos licitatórios.
-              </div>
-            </div>
-          )}
-        </div>
+            )}
+          </div>
+        ))}
 
-        {/* Rodapé Corporativo */}
-        <div className="mt-12 pt-6" style={{ borderTop: '1px solid #e5e7eb', pageBreakInside: 'avoid' }}>
-          <div className="text-center mb-6">
-            <p className="text-xs text-slate-500 mb-4" style={{ fontWeight: 300, lineHeight: '1.6' }}>
-              Este documento foi gerado automaticamente pelo sistema de gestão de leilões.<br />
-              Informações atualizadas em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}.
+        {leiloesAtivos.length > 3 && (
+          <div style={{ textAlign: 'center', padding: '24px 0', marginTop: '24px' }}>
+            <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
+              Pré-visualização parcial &middot; O PDF completo incluirá todos os {leiloesAtivos.length} leilões.
             </p>
           </div>
+        )}
 
-        {/* Logos Elionx e Arthur Lira */}
-          <div className="flex justify-center items-center mt-6 -ml-20">
-          <img 
-            src="/logo-elionx-softwares.png" 
-            alt="Elionx Softwares" 
-              className="object-contain opacity-80"
-            style={{ maxHeight: '320px', maxWidth: '620px' }}
-          />
-          <img 
-            src="/arthur-lira-logo.png" 
-            alt="Arthur Lira Leilões" 
-              className="object-contain opacity-80 -mt-2 -ml-16"
-            style={{ maxHeight: '55px', maxWidth: '110px' }}
-          />
-        </div>
+        {/* Rodapé */}
+        <hr style={{ ...sSep, marginTop: '40px' }} />
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pageBreakInside: 'avoid' }}>
+          <p style={{ fontSize: '11px', color: '#bbb', margin: 0 }}>
+            Documento gerado automaticamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+          </p>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+            <img src="/logo-elionx-softwares.png" alt="Elionx" style={{ height: '28px', objectFit: 'contain', opacity: 0.6 }} />
+            <img src="/arthur-lira-logo.png" alt="Arthur Lira" style={{ height: '22px', objectFit: 'contain', opacity: 0.6 }} />
+          </div>
         </div>
       </div>
     );
