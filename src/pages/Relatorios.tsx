@@ -1165,7 +1165,7 @@ function Relatorios() {
       <div>
         {/* Dashboard de Análise */}
         <div>
-          <Card className="min-h-[480px]">
+          <Card>
             <CardContent className="p-4 sm:p-6 lg:p-8">
               <div>
                 {/* Gráfico */}
@@ -1288,9 +1288,9 @@ function Relatorios() {
                 </div>
 
                 
-                    <div className="h-96 mt-4 overflow-x-auto">
-                      <div className="min-w-full">
-                        <svg width="100%" height="100%" viewBox="0 0 1450 420" style={{ cursor: 'crosshair', minWidth: '100%' }}>
+                    <div className="mt-4 overflow-x-auto overflow-y-hidden">
+                      <div className="min-w-full" style={{ aspectRatio: '1450 / 420' }}>
+                        <svg width="100%" height="100%" viewBox="0 0 1450 420" preserveAspectRatio="xMidYMid meet" style={{ cursor: 'crosshair', display: 'block' }}>
                         {/* Grid horizontal - linhas sutis */}
                         {[0, 1, 2, 3, 4, 5, 6, 7].map((line) => (
                           <line
