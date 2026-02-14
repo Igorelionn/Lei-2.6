@@ -2864,21 +2864,17 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
     const diasAtrasoMedio = inadimplentes.length > 0 ? 
       inadimplentes.reduce((sum, auction) => sum + (auction.detalhesInadimplencia?.diasAtraso || 0), 0) / inadimplentes.length : 0;
 
-    const iSLabel = { fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 4px 0' } as React.CSSProperties;
-    const iSValue = { fontSize: '14px', color: '#1a1a1a', margin: 0, fontWeight: 500 } as React.CSSProperties;
-    const iSValueLg = { fontSize: '22px', fontWeight: 300, color: '#1a1a1a', margin: 0, letterSpacing: '-0.02em' } as React.CSSProperties;
-    const iSSep = { border: 'none', borderTop: '1px solid #eee', margin: '28px 0' } as React.CSSProperties;
-    const iSSection = { fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 16px 0' } as React.CSSProperties;
+    const sLabel = { fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 4px 0' } as React.CSSProperties;
+    const sValueLg = { fontSize: '22px', fontWeight: 300, color: '#1a1a1a', margin: 0, letterSpacing: '-0.02em' } as React.CSSProperties;
+    const sSep = { border: 'none', borderTop: '1px solid #eee', margin: '28px 0' } as React.CSSProperties;
+    const sSection = { fontSize: '11px', fontWeight: 600, color: '#999', textTransform: 'uppercase' as const, letterSpacing: '0.08em', margin: '0 0 16px 0' } as React.CSSProperties;
+    const sRow = { display: 'flex', fontSize: '12px', padding: '4px 0' } as React.CSSProperties;
+    const sRowLabel = { color: '#999', width: '120px', flexShrink: 0 } as React.CSSProperties;
+    const sRowValue = { color: '#1a1a1a', fontWeight: 500 } as React.CSSProperties;
 
-    const getTipoPagILabel = (tipo: string) => {
+    const getTipoPagLabel = (tipo: string) => {
       const l: Record<string, string> = { a_vista: 'À vista', parcelamento: 'Parcelamento', entrada_parcelamento: 'Entrada + Parcelamento' };
       return l[tipo] || tipo;
-    };
-
-    const getGravidade = (dias: number) => {
-      if (dias > 60) return { label: 'Crítica', color: '#991b1b' };
-      if (dias > 30) return { label: 'Alta', color: '#b91c1c' };
-      return { label: 'Moderada', color: '#dc2626' };
     };
 
     return (
@@ -2889,7 +2885,9 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           <h1 style={{ fontSize: '26px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 4px 0', letterSpacing: '-0.02em' }}>
             Relatório de Inadimplência
             {paymentTypeFilter !== 'todos' && (
-              <span style={{ fontSize: '16px', fontWeight: 400, color: '#999' }}> &middot; {getTipoPagILabel(paymentTypeFilter)}</span>
+              <span style={{ fontSize: '16px', fontWeight: 300, color: '#999' }}>
+                {' '}&middot; {paymentTypeFilter === 'a_vista' ? 'À Vista' : paymentTypeFilter === 'parcelamento' ? 'Parcelamento' : 'Entrada + Parcelamento'}
+              </span>
             )}
           </h1>
           <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
@@ -2897,283 +2895,307 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           </p>
         </div>
 
-        <hr style={iSSep} />
+        <hr style={sSep} />
 
         {/* Resumo */}
         {inadimplentes.length > 0 && (
           <div style={{ pageBreakInside: 'avoid' }}>
-            <p style={iSSection}>Resumo</p>
+            <p style={sSection}>Resumo</p>
             <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
               <div style={{ flex: '1 1 100px' }}>
-                <p style={iSLabel}>Casos</p>
-                <p style={{ ...iSValueLg, color: '#b91c1c' }}>{inadimplentes.length}</p>
+                <p style={sLabel}>Casos</p>
+                <p style={{ ...sValueLg, color: '#dc2626' }}>{inadimplentes.length}</p>
+              </div>
+              <div style={{ flex: '1 1 140px' }}>
+                <p style={sLabel}>Valor em Atraso</p>
+                <p style={{ ...sValueLg, color: '#dc2626' }}>{formatCurrency(valorTotalInadimplencia)}</p>
               </div>
               <div style={{ flex: '1 1 100px' }}>
-                <p style={iSLabel}>Valor em Atraso</p>
-                <p style={{ ...iSValueLg, color: '#b91c1c' }}>{formatCurrency(valorTotalInadimplencia)}</p>
+                <p style={sLabel}>Dias Médio</p>
+                <p style={{ ...sValueLg, color: '#dc2626' }}>{Math.round(diasAtrasoMedio)}</p>
               </div>
               <div style={{ flex: '1 1 100px' }}>
-                <p style={iSLabel}>Dias Médio</p>
-                <p style={{ ...iSValueLg, color: '#b91c1c' }}>{Math.round(diasAtrasoMedio)}</p>
-              </div>
-              <div style={{ flex: '1 1 100px' }}>
-                <p style={iSLabel}>Críticos (+30d)</p>
-                <p style={{ ...iSValueLg, color: '#b91c1c' }}>{inadimplentes.filter(a => a.detalhesInadimplencia?.diasAtraso > 30).length}</p>
+                <p style={sLabel}>Críticos (+30d)</p>
+                <p style={{ ...sValueLg, color: '#dc2626' }}>{inadimplentes.filter(a => a.detalhesInadimplencia?.diasAtraso > 30).length}</p>
               </div>
             </div>
           </div>
         )}
 
-        {/* Casos */}
+        {/* Lista de Inadimplentes */}
         {inadimplentes.length > 0 ? (
-          <>
+          <div>
             {inadimplentes.slice(0, 3).map((auction, index) => {
-              const det = auction.detalhesInadimplencia;
-              const arr = auction.arrematante;
-              const gravidade = getGravidade(det?.diasAtraso || 0);
-              const loteComprado = arr?.loteId ? auction.lotes?.find(lote => lote.id === arr.loteId) : null;
+              const loteComprado = auction.arrematante?.loteId ? auction.lotes?.find(lote => lote.id === auction.arrematante.loteId) : null;
               const tipoPagamento = loteComprado?.tipoPagamento || auction.tipoPagamento;
+              const gravidade = auction.detalhesInadimplencia?.diasAtraso > 60 ? 'Crítica' : auction.detalhesInadimplencia?.diasAtraso > 30 ? 'Alta' : 'Moderada';
 
               // Cálculo do valor total (mantido intacto)
               const calcValorTotal = () => {
-                if (!arr) return formatCurrency(0);
-                const valorBase = arr.valorPagarNumerico || parseFloat(arr.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0');
+                const arrematante = auction.arrematante;
+                if (!arrematante) return formatCurrency(0);
+                const valorBase = arrematante.valorPagarNumerico || parseFloat(arrematante.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0');
                 if (tipoPagamento === 'a_vista') {
-                  if (det && det.valorEmAtraso > 0) return formatCurrency(det.valorEmAtraso);
-                  return formatCurrency(valorBase);
+                  const detalhes = auction.detalhesInadimplencia;
+                  return formatCurrency(detalhes && detalhes.valorEmAtraso > 0 ? detalhes.valorEmAtraso : valorBase);
                 }
-                if (det && det.valorEmAtraso > 0) {
-                  const estruturaParcelas = calcularEstruturaParcelas(valorBase, arr.parcelasTriplas || 0, arr.parcelasDuplas || 0, arr.parcelasSimples || 0);
-                  const quantidadeParcelas = arr.quantidadeParcelas || 0;
-                  const parcelasPagas = arr.parcelasPagas || 0;
+                const detalhes = auction.detalhesInadimplencia;
+                if (detalhes && detalhes.valorEmAtraso > 0) {
+                  const estruturaParcelas = calcularEstruturaParcelas(valorBase, arrematante.parcelasTriplas || 0, arrematante.parcelasDuplas || 0, arrematante.parcelasSimples || 0);
+                  const quantidadeParcelas = arrematante.quantidadeParcelas || 0;
+                  const parcelasPagas = arrematante.parcelasPagas || 0;
                   let primeiraParcelaPendente = 0;
                   if (tipoPagamento === 'entrada_parcelamento') {
                     if (parcelasPagas === 0) {
                       let valorParcelasFuturas = 0;
                       for (let i = 0; i < quantidadeParcelas; i++) {
-                        const mesInicio = arr.mesInicioPagamento;
+                        const mesInicio = arrematante.mesInicioPagamento;
                         if (mesInicio) {
                           const [year, month] = mesInicio.split('-').map(Number);
-                          const parcelaDate = new Date(year, month - 1 + i, arr.diaVencimentoMensal || 15);
+                          const parcelaDate = new Date(year, month - 1 + i, arrematante.diaVencimentoMensal || 15);
                           if (new Date() <= parcelaDate) valorParcelasFuturas += estruturaParcelas[i]?.valor || 0;
                         }
                       }
-                      return formatCurrency(det.valorEmAtraso + valorParcelasFuturas);
-                    } else {
-                      primeiraParcelaPendente = parcelasPagas - 1;
-                    }
-                  } else {
-                    primeiraParcelaPendente = parcelasPagas;
-                  }
+                      return formatCurrency(detalhes.valorEmAtraso + valorParcelasFuturas);
+                    } else { primeiraParcelaPendente = parcelasPagas - 1; }
+                  } else { primeiraParcelaPendente = parcelasPagas; }
                   let valorParcelasFuturas = 0;
                   for (let i = primeiraParcelaPendente; i < quantidadeParcelas; i++) {
-                    const mesInicio = arr.mesInicioPagamento;
+                    const mesInicio = arrematante.mesInicioPagamento;
                     if (mesInicio) {
                       const [year, month] = mesInicio.split('-').map(Number);
-                      const parcelaDate = new Date(year, month - 1 + i, arr.diaVencimentoMensal || 15);
+                      const parcelaDate = new Date(year, month - 1 + i, arrematante.diaVencimentoMensal || 15);
                       if (new Date() <= parcelaDate) valorParcelasFuturas += estruturaParcelas[i]?.valor || 0;
                     }
                   }
-                  return formatCurrency(det.valorEmAtraso + valorParcelasFuturas);
+                  return formatCurrency(detalhes.valorEmAtraso + valorParcelasFuturas);
                 }
                 // Fallback
                 let valorTotalComJuros = 0;
-                const percentualJuros = arr.percentualJurosAtraso || 0;
+                const percentualJuros = arrematante.percentualJurosAtraso || 0;
                 const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
                 if (tipoPagamento === 'entrada_parcelamento') {
                   const valorEntrada = (valorBase * 30) / 100;
-                  const dataEntrada = arr.dataEntrada ? new Date(arr.dataEntrada + 'T00:00:00') : null;
-                  if (dataEntrada && dataEntrada < hoje) { valorTotalComJuros += calcularJurosProgressivos(valorEntrada, arr.dataEntrada || '', percentualJuros); }
-                  else { valorTotalComJuros += valorEntrada; }
+                  const dataEntrada = arrematante.dataEntrada ? new Date(arrematante.dataEntrada + 'T00:00:00') : null;
+                  valorTotalComJuros += (dataEntrada && dataEntrada < hoje) ? calcularJurosProgressivos(valorEntrada, arrematante.dataEntrada || '', percentualJuros) : valorEntrada;
                   const valorRestante = valorBase - valorEntrada;
-                  const qp = arr.quantidadeParcelas || 0; const vp = qp > 0 ? valorRestante / qp : 0;
-                  const pp = arr.parcelasPagas || 0; const mi = arr.mesInicioPagamento; const dv = arr.diaVencimentoMensal || 1;
-                  for (let i = pp; i < qp; i++) {
-                    if (mi) { const [a, m] = mi.split('-').map(Number); const d = new Date(a, m - 1 + i, dv);
-                      if (d < hoje) { valorTotalComJuros += calcularJurosProgressivos(vp, d.toISOString().split('T')[0], percentualJuros); }
-                      else { valorTotalComJuros += vp; }
+                  const qp = arrematante.quantidadeParcelas || 0;
+                  const vp = qp > 0 ? valorRestante / qp : 0;
+                  for (let i = (arrematante.parcelasPagas || 0); i < qp; i++) {
+                    if (arrematante.mesInicioPagamento) {
+                      const [ano, mes] = arrematante.mesInicioPagamento.split('-').map(Number);
+                      const d = new Date(ano, mes - 1 + i, arrematante.diaVencimentoMensal || 1);
+                      valorTotalComJuros += d < hoje ? calcularJurosProgressivos(vp, d.toISOString().split('T')[0], percentualJuros) : vp;
                     } else { valorTotalComJuros += vp; }
                   }
                 } else if (tipoPagamento === 'parcelamento') {
-                  const qp = arr.quantidadeParcelas || 0; const vp = qp > 0 ? valorBase / qp : 0;
-                  const pp = arr.parcelasPagas || 0; const mi = arr.mesInicioPagamento; const dv = arr.diaVencimentoMensal || 1;
-                  for (let i = pp; i < qp; i++) {
-                    if (mi) { const [a, m] = mi.split('-').map(Number); const d = new Date(a, m - 1 + i, dv);
-                      if (d < hoje) { valorTotalComJuros += calcularJurosProgressivos(vp, d.toISOString().split('T')[0], percentualJuros); }
-                      else { valorTotalComJuros += vp; }
+                  const qp = arrematante.quantidadeParcelas || 0;
+                  const vp = qp > 0 ? valorBase / qp : 0;
+                  for (let i = (arrematante.parcelasPagas || 0); i < qp; i++) {
+                    if (arrematante.mesInicioPagamento) {
+                      const [ano, mes] = arrematante.mesInicioPagamento.split('-').map(Number);
+                      const d = new Date(ano, mes - 1 + i, arrematante.diaVencimentoMensal || 1);
+                      valorTotalComJuros += d < hoje ? calcularJurosProgressivos(vp, d.toISOString().split('T')[0], percentualJuros) : vp;
                     } else { valorTotalComJuros += vp; }
                   }
                 }
                 return formatCurrency(valorTotalComJuros > 0 ? valorTotalComJuros : valorBase);
               };
 
-              // Status de entrada/parcelas (para entrada_parcelamento e parcelamento)
-              const calcStatusParcelas = () => {
-                const parcelasPagas = arr?.parcelasPagas || 0;
-                const quantidadeParcelas = arr?.quantidadeParcelas || 12;
-                const mesInicio = arr?.mesInicioPagamento;
-                const diaVencimento = arr?.diaVencimentoMensal || 15;
+              // Calcular status de entrada e parcelas para entrada_parcelamento
+              const calcEntradaParcelamento = () => {
+                const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
+                const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || 12;
                 const dataEntrada = loteComprado?.dataEntrada || auction.dataEntrada;
                 const hoje = new Date();
-                let statusEntrada = 'N/A';
-                let statusParcela = 'N/A';
-                let proximaData = 'N/A';
-
-                if (tipoPagamento === 'entrada_parcelamento' && dataEntrada) {
-                  const venc = new Date(dataEntrada); venc.setHours(23,59,59,999);
-                  if (parcelasPagas > 0) statusEntrada = 'Pago';
-                  else if (hoje > venc) statusEntrada = 'Atrasado';
-                  else statusEntrada = 'Pendente';
+                let statusEntrada = 'N/A'; let corEntrada = '#1a1a1a';
+                if (dataEntrada) {
+                  const v = new Date(dataEntrada); v.setHours(23, 59, 59, 999);
+                  if (parcelasPagas > 0) { statusEntrada = 'Pago'; corEntrada = '#16a34a'; }
+                  else if (hoje > v) { statusEntrada = 'ATRASADO'; corEntrada = '#dc2626'; }
+                  else { statusEntrada = 'Pendente'; corEntrada = '#d97706'; }
                 }
-
+                const mesInicio = auction.arrematante?.mesInicioPagamento;
+                const diaVenc = auction.arrematante?.diaVencimentoMensal || 15;
+                let proxData = 'N/A'; let statusProx = 'Aguardando';
                 if (mesInicio) {
                   try {
                     const [ano, mes] = mesInicio.split('-').map(Number);
-                    const idx = tipoPagamento === 'entrada_parcelamento' ? (parcelasPagas > 0 ? parcelasPagas - 1 : 0) : parcelasPagas;
-                    if (idx < quantidadeParcelas) {
-                      const d = new Date(ano, mes - 1 + idx, diaVencimento);
-                      proximaData = formatDate(d.toISOString().split('T')[0]);
-                      statusParcela = hoje > d ? 'Atrasado' : 'Pendente';
-                    } else { proximaData = 'Todas pagas'; statusParcela = 'Concluído'; }
-                  } catch { /* fallback */ }
+                    if (parcelasPagas === 0) {
+                      const d = new Date(ano, mes - 1, diaVenc);
+                      proxData = formatDate(d.toISOString().split('T')[0]);
+                      statusProx = (statusEntrada === 'ATRASADO' && hoje > d) ? 'ATRASADO' : statusEntrada === 'ATRASADO' ? 'Aguardando entrada' : hoje > d ? 'ATRASADO' : 'Aguardando entrada';
+                    } else {
+                      const idx = parcelasPagas - 1;
+                      if (idx < quantidadeParcelas) {
+                        const d = new Date(ano, mes - 1 + idx, diaVenc);
+                        proxData = formatDate(d.toISOString().split('T')[0]);
+                        statusProx = hoje > d ? 'ATRASADO' : 'Pendente';
+                      } else { proxData = 'Todas pagas'; statusProx = 'Concluído'; }
+                    }
+                  } catch { /* ignore */ }
                 }
-
-                return { statusEntrada, statusParcela, proximaData, parcelasPagas, quantidadeParcelas };
+                return { statusEntrada, corEntrada, dataEntrada, proxData, statusProx, parcelasPagas, quantidadeParcelas };
               };
 
-              const parcInfo = (tipoPagamento === 'entrada_parcelamento' || tipoPagamento === 'parcelamento') ? calcStatusParcelas() : null;
+              // Calcular status parcelas simples
+              const calcParcelamento = () => {
+                const mesInicio = auction.arrematante?.mesInicioPagamento;
+                const diaVenc = auction.arrematante?.diaVencimentoMensal || 15;
+                const pp = auction.arrematante?.parcelasPagas || 0;
+                const qp = auction.arrematante?.quantidadeParcelas || 12;
+                let proxData = 'N/A'; let statusProx = 'N/A';
+                if (mesInicio) {
+                  try {
+                    const [ano, mes] = mesInicio.split('-').map(Number);
+                    if (pp < qp) {
+                      const d = new Date(ano, mes - 1 + pp, diaVenc);
+                      proxData = formatDate(d.toISOString().split('T')[0]);
+                      statusProx = new Date() > d ? 'ATRASADO' : 'Pendente';
+                    } else { proxData = 'Todas pagas'; statusProx = 'Concluído'; }
+                  } catch { /* ignore */ }
+                }
+                return { proxData, statusProx, pp, qp };
+              };
+
+              const statusColor = (s: string) => s === 'ATRASADO' ? '#dc2626' : s === 'Pendente' ? '#d97706' : s === 'Concluído' || s === 'Pago' ? '#16a34a' : '#1a1a1a';
 
               return (
                 <div key={auction.id} style={{ pageBreakBefore: index > 0 ? 'auto' : 'avoid' }}>
-                  <hr style={{ ...iSSep, margin: '32px 0' }} />
-                  
+                  <hr style={{ ...sSep, margin: '32px 0' }} />
+
                   {/* Header do caso */}
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', pageBreakInside: 'avoid' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '4px', pageBreakInside: 'avoid' }}>
                     <div>
                       <p style={{ fontSize: '16px', fontWeight: 600, color: '#1a1a1a', margin: '0 0 2px 0' }}>
-                        {arr?.nome || 'Não informado'}
+                        {auction.identificacao ? `Processo Nº ${auction.identificacao}` : (auction.nome || 'Processo sem identificação')}
                       </p>
-                      <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
-                        {auction.identificacao && <span style={{ fontFamily: 'monospace' }}>#{auction.identificacao} &middot; </span>}
-                        {auction.nome} &middot; {formatDate(auction.dataInicio)}
-                      </p>
-                    </div>
-                    <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                      <p style={{ fontSize: '16px', fontWeight: 500, color: '#b91c1c', margin: '0 0 2px 0' }}>
-                        {formatCurrency(det?.valorEmAtraso)}
-                      </p>
-                      <p style={{ fontSize: '11px', fontWeight: 600, color: gravidade.color, margin: 0, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        {det?.diasAtraso}d &middot; {gravidade.label}
+                      <p style={{ fontSize: '12px', color: '#dc2626', margin: 0, fontWeight: 500 }}>
+                        {auction.detalhesInadimplencia?.tipoAtraso} &middot; {auction.detalhesInadimplencia?.diasAtraso} dias de atraso
                       </p>
                     </div>
+                    <span style={{
+                      fontSize: '10px', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em', padding: '3px 10px', borderRadius: '4px', flexShrink: 0,
+                      color: gravidade === 'Crítica' ? '#7f1d1d' : gravidade === 'Alta' ? '#991b1b' : '#b45309',
+                      background: gravidade === 'Crítica' ? '#fef2f2' : gravidade === 'Alta' ? '#fff7ed' : '#fffbeb',
+                      border: `1px solid ${gravidade === 'Crítica' ? '#fecaca' : gravidade === 'Alta' ? '#fed7aa' : '#fde68a'}`,
+                    }}>
+                      {gravidade}
+                    </span>
                   </div>
 
-                  {/* Detalhes do devedor */}
-                  <div style={{ pageBreakInside: 'avoid' }}>
-                    <p style={iSSection}>Devedor</p>
-                    <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap', fontSize: '12px' }}>
-                      <div style={{ flex: '1 1 200px' }}>
-                        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                          <tbody>
-                            <tr><td style={{ padding: '3px 0', color: '#999', width: '90px' }}>Documento</td><td style={{ padding: '3px 0', color: '#1a1a1a' }}>{arr?.documento || 'N/A'}</td></tr>
-                            <tr><td style={{ padding: '3px 0', color: '#999' }}>Telefone</td><td style={{ padding: '3px 0', color: '#1a1a1a' }}>{arr?.telefone || 'N/A'}</td></tr>
-                            <tr><td style={{ padding: '3px 0', color: '#999' }}>Email</td><td style={{ padding: '3px 0', color: '#1a1a1a' }}>{arr?.email || 'N/A'}</td></tr>
-                          </tbody>
-                        </table>
-                      </div>
-                      <div style={{ flex: '1 1 200px' }}>
-                        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                          <tbody>
-                            <tr><td style={{ padding: '3px 0', color: '#999', width: '90px' }}>Valor Total</td><td style={{ padding: '3px 0', color: '#1a1a1a', fontWeight: 500 }}>{calcValorTotal()}</td></tr>
-                            <tr><td style={{ padding: '3px 0', color: '#999' }}>Modalidade</td><td style={{ padding: '3px 0', color: '#1a1a1a' }}>{getTipoPagILabel(tipoPagamento || '')}</td></tr>
-                            {loteComprado && <tr><td style={{ padding: '3px 0', color: '#999' }}>Lote</td><td style={{ padding: '3px 0', color: '#1a1a1a' }}>#{loteComprado.numero} {loteComprado.descricao ? `- ${loteComprado.descricao}` : ''}</td></tr>}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Análise da inadimplência */}
+                  {/* Devedor */}
                   <div style={{ marginTop: '16px', pageBreakInside: 'avoid' }}>
-                    <p style={iSSection}>Inadimplência</p>
+                    <p style={sSection}>Devedor</p>
+                    <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+                      <div style={{ flex: '1 1 220px' }}>
+                        <div style={sRow}><span style={sRowLabel}>Nome</span><span style={sRowValue}>{auction.arrematante?.nome || 'N/I'}</span></div>
+                        <div style={sRow}><span style={sRowLabel}>Documento</span><span style={{ ...sRowValue, fontFamily: 'monospace' }}>{auction.arrematante?.documento || 'N/I'}</span></div>
+                        <div style={sRow}><span style={sRowLabel}>Telefone</span><span style={sRowValue}>{auction.arrematante?.telefone || 'N/I'}</span></div>
+                        <div style={sRow}><span style={sRowLabel}>Email</span><span style={sRowValue}>{auction.arrematante?.email || 'N/I'}</span></div>
+                      </div>
+                      <div style={{ flex: '1 1 220px' }}>
+                        <div style={sRow}><span style={sRowLabel}>Data Leilão</span><span style={sRowValue}>{formatDate(auction.dataInicio)}</span></div>
+                        <div style={sRow}><span style={sRowLabel}>Valor Total</span><span style={sRowValue}>{calcValorTotal()}</span></div>
+                        {loteComprado && (
+                          <div style={sRow}><span style={sRowLabel}>Lote</span><span style={sRowValue}>#{loteComprado.numero} - {loteComprado.descricao || 'Sem descrição'}</span></div>
+                        )}
+                        <div style={sRow}><span style={sRowLabel}>Modalidade</span><span style={sRowValue}>{getTipoPagLabel(tipoPagamento || '')}</span></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Inadimplência */}
+                  <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+                    <p style={sSection}>Inadimplência</p>
                     <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
                       <div style={{ flex: '1 1 140px' }}>
-                        <p style={iSLabel}>Tipo</p>
-                        <p style={{ ...iSValue, color: '#b91c1c' }}>{det?.tipoAtraso}</p>
+                        <p style={sLabel}>Valor em Atraso</p>
+                        <p style={{ ...sValueLg, fontSize: '18px', color: '#dc2626' }}>{formatCurrency(auction.detalhesInadimplencia?.valorEmAtraso)}</p>
+                        {auction.arrematante?.percentualJurosAtraso && auction.arrematante.percentualJurosAtraso > 0 && (
+                          <p style={{ fontSize: '11px', color: '#dc2626', margin: '2px 0 0 0' }}>Inclui juros de {auction.arrematante.percentualJurosAtraso}%/mês</p>
+                        )}
                       </div>
                       <div style={{ flex: '1 1 140px' }}>
-                        <p style={iSLabel}>Vencimento</p>
-                        <p style={iSValue}>{det?.dataVencimento ? formatDate(det.dataVencimento) : 'N/A'}</p>
+                        <p style={sLabel}>Vencimento</p>
+                        <p style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a1a', margin: 0 }}>
+                          {auction.detalhesInadimplencia?.dataVencimento ? formatDate(auction.detalhesInadimplencia.dataVencimento) : 'N/A'}
+                        </p>
                       </div>
-                      <div style={{ flex: '1 1 140px' }}>
-                        <p style={iSLabel}>Dias em Atraso</p>
-                        <p style={iSValue}>{det?.diasAtraso} dias</p>
+                      <div style={{ flex: '1 1 100px' }}>
+                        <p style={sLabel}>Dias Atraso</p>
+                        <p style={{ fontSize: '14px', fontWeight: 500, color: '#1a1a1a', margin: 0 }}>{auction.detalhesInadimplencia?.diasAtraso} dias</p>
                       </div>
-                      {det?.parcelasAtrasadas && det.parcelasAtrasadas > 1 && (
-                        <div style={{ flex: '1 1 140px' }}>
-                          <p style={iSLabel}>Pendências</p>
-                          <p style={iSValue}>{det.parcelasAtrasadas} pagamento(s)</p>
-                        </div>
-                      )}
                     </div>
-                    {arr?.percentualJurosAtraso && arr.percentualJurosAtraso > 0 && (
-                      <p style={{ fontSize: '11px', color: '#b91c1c', margin: '8px 0 0 0' }}>
-                        Inclui juros de {arr.percentualJurosAtraso}%/mês aplicados progressivamente
+                    {auction.detalhesInadimplencia?.parcelasAtrasadas > 1 && (
+                      <p style={{ fontSize: '11px', color: '#666', margin: '8px 0 0 0' }}>
+                        Total de pendências: {auction.detalhesInadimplencia.parcelasAtrasadas} pagamento(s) em atraso
                       </p>
                     )}
                   </div>
 
-                  {/* Status do Parcelamento */}
-                  {parcInfo && (
-                    <div style={{ marginTop: '16px', pageBreakInside: 'avoid' }}>
-                      <p style={iSSection}>{tipoPagamento === 'entrada_parcelamento' ? 'Entrada + Parcelamento' : 'Parcelamento'}</p>
-                      <div style={{ fontSize: '12px' }}>
-                        <table style={{ borderCollapse: 'collapse', width: '100%' }}>
-                          <tbody>
-                            {tipoPagamento === 'entrada_parcelamento' && (
-                              <>
-                                <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
-                                  <td style={{ padding: '4px 0', color: '#999', width: '140px' }}>Entrada</td>
-                                  <td style={{ padding: '4px 0', color: '#1a1a1a' }}>
-                                    {formatCurrency(det?.valorEntrada)}
-                                    <span style={{ color: parcInfo.statusEntrada === 'Pago' ? '#16a34a' : parcInfo.statusEntrada === 'Atrasado' ? '#b91c1c' : '#b45309', marginLeft: '8px', fontWeight: 500 }}>
-                                      {parcInfo.statusEntrada}
-                                    </span>
-                                  </td>
-                                </tr>
-                              </>
+                  {/* Detalhamento por tipo de pagamento */}
+                  {tipoPagamento === 'entrada_parcelamento' && (() => {
+                    const ep = calcEntradaParcelamento();
+                    return (
+                      <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+                        <p style={sSection}>Entrada + Parcelamento</p>
+                        {ep.statusEntrada !== 'Pago' && (
+                          <div style={{ marginBottom: '12px' }}>
+                            <p style={{ ...sLabel, marginBottom: '6px' }}>Entrada</p>
+                            <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', fontSize: '12px' }}>
+                              <div style={sRow}><span style={sRowLabel}>Valor</span><span style={sRowValue}>{formatCurrency(auction.detalhesInadimplencia?.valorEntrada)}{ep.statusEntrada === 'ATRASADO' && auction.arrematante?.percentualJurosAtraso ? ` (c/ juros ${auction.arrematante.percentualJurosAtraso}%/mês)` : ''}</span></div>
+                              <div style={sRow}><span style={sRowLabel}>Vencimento</span><span style={sRowValue}>{ep.dataEntrada ? formatDate(ep.dataEntrada) : 'N/A'}</span></div>
+                              <div style={sRow}><span style={sRowLabel}>Status</span><span style={{ ...sRowValue, color: ep.corEntrada }}>{ep.statusEntrada}{ep.statusEntrada === 'ATRASADO' && ep.dataEntrada ? ` (${calcularDiasAtraso(ep.dataEntrada)}d)` : ''}</span></div>
+                            </div>
+                          </div>
+                        )}
+                        <p style={{ ...sLabel, marginBottom: '6px' }}>Parcelas</p>
+                        <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: '1 1 220px' }}>
+                            <div style={sRow}><span style={sRowLabel}>Valor/Parcela</span><span style={sRowValue}>{formatCurrency(auction.detalhesInadimplencia?.valorParcela)}{ep.statusProx === 'ATRASADO' ? ' (base)' : ''}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Total Parcelas</span><span style={sRowValue}>{ep.quantidadeParcelas}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={sRowValue}>Dia {auction.arrematante?.diaVencimentoMensal || 'N/A'}</span></div>
+                          </div>
+                          <div style={{ flex: '1 1 220px' }}>
+                            <div style={sRow}><span style={sRowLabel}>Pagas</span><span style={sRowValue}>{ep.parcelasPagas > 0 ? ep.parcelasPagas - 1 : 0} de {ep.quantidadeParcelas}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Restantes</span><span style={sRowValue}>{ep.quantidadeParcelas - (ep.parcelasPagas > 0 ? ep.parcelasPagas - 1 : 0)}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Próxima</span><span style={sRowValue}>{ep.proxData}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Status</span><span style={{ ...sRowValue, color: statusColor(ep.statusProx) }}>{ep.statusProx}</span></div>
+                            {ep.statusProx === 'ATRASADO' && auction.detalhesInadimplencia?.parcelasAtrasadas > 1 && (
+                              <div style={sRow}><span style={sRowLabel}>Atrasadas</span><span style={{ ...sRowValue, color: '#dc2626' }}>{auction.detalhesInadimplencia.parcelasAtrasadas - (ep.statusEntrada === 'ATRASADO' ? 1 : 0)} parcela(s)</span></div>
                             )}
-                            <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
-                              <td style={{ padding: '4px 0', color: '#999' }}>Valor por Parcela</td>
-                              <td style={{ padding: '4px 0', color: '#1a1a1a', fontWeight: 500 }}>{formatCurrency(det?.valorParcela)}{parcInfo.statusParcela === 'Atrasado' && ' (base)'}</td>
-                            </tr>
-                            <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
-                              <td style={{ padding: '4px 0', color: '#999' }}>Parcelas</td>
-                              <td style={{ padding: '4px 0', color: '#1a1a1a' }}>
-                                {tipoPagamento === 'entrada_parcelamento' 
-                                  ? `${(parcInfo.parcelasPagas > 0 ? parcInfo.parcelasPagas - 1 : 0)} de ${parcInfo.quantidadeParcelas} pagas`
-                                  : `${parcInfo.parcelasPagas} de ${parcInfo.quantidadeParcelas} pagas`
-                                }
-                              </td>
-                            </tr>
-                            <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
-                              <td style={{ padding: '4px 0', color: '#999' }}>Venc. Mensal</td>
-                              <td style={{ padding: '4px 0', color: '#1a1a1a' }}>Dia {arr?.diaVencimentoMensal || 'N/A'}</td>
-                            </tr>
-                            <tr style={{ borderBottom: '1px solid #f5f5f5' }}>
-                              <td style={{ padding: '4px 0', color: '#999' }}>Próxima Parcela</td>
-                              <td style={{ padding: '4px 0', color: '#1a1a1a' }}>
-                                {parcInfo.proximaData}
-                                <span style={{ color: parcInfo.statusParcela === 'Atrasado' ? '#b91c1c' : parcInfo.statusParcela === 'Concluído' ? '#16a34a' : '#b45309', marginLeft: '8px', fontWeight: 500 }}>
-                                  {parcInfo.statusParcela}
-                                </span>
-                              </td>
-                            </tr>
-                          </tbody>
-                        </table>
+                          </div>
+                        </div>
+                        {ep.statusProx === 'ATRASADO' && auction.arrematante?.percentualJurosAtraso && auction.arrematante.percentualJurosAtraso > 0 && (
+                          <p style={{ fontSize: '11px', color: '#dc2626', margin: '10px 0 0 0' }}>
+                            Valor base da parcela. Juros de {auction.arrematante.percentualJurosAtraso}%/mês aplicados progressivamente. Valor total em atraso já inclui juros acumulados.
+                          </p>
+                        )}
                       </div>
-                    </div>
-                  )}
+                    );
+                  })()}
+
+                  {tipoPagamento === 'parcelamento' && (() => {
+                    const p = calcParcelamento();
+                    return (
+                      <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
+                        <p style={sSection}>Parcelamento</p>
+                        <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
+                          <div style={{ flex: '1 1 220px' }}>
+                            <div style={sRow}><span style={sRowLabel}>Valor/Parcela</span><span style={sRowValue}>{formatCurrency(auction.detalhesInadimplencia?.valorParcela)}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Pagas</span><span style={sRowValue}>{p.pp} de {p.qp}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Próxima</span><span style={sRowValue}>{p.proxData}</span></div>
+                          </div>
+                          <div style={{ flex: '1 1 220px' }}>
+                            <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={sRowValue}>Dia {auction.arrematante?.diaVencimentoMensal || 'N/A'}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Mês Início</span><span style={sRowValue}>{auction.arrematante?.mesInicioPagamento || 'N/A'}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Status</span><span style={{ ...sRowValue, color: statusColor(p.statusProx) }}>{p.statusProx}</span></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               );
             })}
@@ -3182,14 +3204,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               <div style={{ textAlign: 'center', padding: '24px 0', marginTop: '24px' }}>
                 <p style={{ fontSize: '12px', color: '#999', margin: 0 }}>
                   Pré-visualização parcial &middot; O PDF completo incluirá todos os {inadimplentes.length} casos.
-                  <br />
-                  <span style={{ fontSize: '11px', color: '#bbb' }}>
-                    Total: {formatCurrency(valorTotalInadimplencia)} &middot; Média: {Math.round(diasAtrasoMedio)}d &middot; Críticos: {inadimplentes.filter(a => a.detalhesInadimplencia?.diasAtraso > 30).length}
-                  </span>
+                </p>
+                <p style={{ fontSize: '11px', color: '#bbb', margin: '4px 0 0 0' }}>
+                  Total: {formatCurrency(valorTotalInadimplencia)} &middot; Média: {Math.round(diasAtrasoMedio)}d &middot; Críticos: {inadimplentes.filter(a => a.detalhesInadimplencia?.diasAtraso > 30).length}
                 </p>
               </div>
             )}
-          </>
+          </div>
         ) : (
           <div className="text-center p-12" style={{ background: 'linear-gradient(to bottom, #f0fdf4, #ffffff)', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
             <div className="text-lg font-medium text-green-900 tracking-tight">✓ Situação Regularizada</div>
@@ -3206,7 +3227,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         )}
 
         {/* Rodapé */}
-        <hr style={{ ...iSSep, marginTop: '40px' }} />
+        <hr style={{ ...sSep, marginTop: '40px' }} />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pageBreakInside: 'avoid' }}>
           <p style={{ fontSize: '11px', color: '#bbb', margin: 0 }}>
             Documento gerado automaticamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
