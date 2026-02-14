@@ -1516,75 +1516,115 @@ function Relatorios() {
                                 const tipoGrafico = config.periodo.inicio || 'mensal';
                                 
                                 
+                                // Função auxiliar para calcular o valor efetivamente pago por um arrematante
+                                const calcularValorPago = (arrematante, auction) => {
+                                  const parcelasPagas = arrematante?.parcelasPagas || 0;
+                                  const valorTotal = arrematante?.valorPagarNumerico || 0;
+                                  
+                                  // Se totalmente pago, retornar valor total
+                                  if (arrematante?.pago) {
+                                    return valorTotal;
+                                  }
+                                  
+                                  // Se não pagou nada, retornar 0
+                                  if (parcelasPagas <= 0) {
+                                    return 0;
+                                  }
+                                  
+                                  // Se parcialmente pago, calcular valor das parcelas pagas
+                                  const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
+                                  const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+                                  
+                                  if (tipoPagamento === 'entrada_parcelamento') {
+                                    const valorEntrada = arrematante?.valorEntrada ? 
+                                      (typeof arrematante.valorEntrada === 'string' ? 
+                                        parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
+                                        arrematante.valorEntrada) : 
+                                      valorTotal * 0.3;
+                                    
+                                    const estrutura = calcularEstruturaParcelas(
+                                      valorTotal,
+                                      arrematante.parcelasTriplas || 0,
+                                      arrematante.parcelasDuplas || 0,
+                                      arrematante.parcelasSimples || 0
+                                    );
+                                    
+                                    if (parcelasPagas >= 1) {
+                                      const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
+                                      const valorParcelasPagas = estrutura
+                                        .slice(0, parcelasEfetivasPagas)
+                                        .reduce((s, p) => s + p.valor, 0);
+                                      return valorEntrada + valorParcelasPagas;
+                                    }
+                                    return 0;
+                                  } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
+                                    const estrutura = calcularEstruturaParcelas(
+                                      valorTotal,
+                                      arrematante.parcelasTriplas || 0,
+                                      arrematante.parcelasDuplas || 0,
+                                      arrematante.parcelasSimples || 0
+                                    );
+                                    
+                                    return estrutura
+                                      .slice(0, parcelasPagas)
+                                      .reduce((s, p) => s + p.valor, 0);
+                                  } else if (tipoPagamento === 'a_vista') {
+                                    return parcelasPagas > 0 ? valorTotal : 0;
+                                  }
+                                  
+                                  return 0;
+                                };
+                                
                                 // Função para calcular valores de um período específico
                                 const calcularDadosPeriodo = (dataInicio, dataFim, label) => {
-                                   // FATURAMENTO = Total já recebido (incluindo pagamentos parciais)
-                                  const faturamentoPeriodo = auctions?.reduce((sum, auction) => {
+                                  // FATURAMENTO = Total já recebido, distinguindo lotes próprios de convidados
+                                  let faturamentoPeriodo = 0;
+                                  let comissaoCompraTotal = 0; // Comissão de compra (leiloeiro/assessor) como despesa
+                                  
+                                  auctions?.forEach(auction => {
                                     if (auction.arrematante && !auction.arquivado) {
-                                      // Corrigir problema de fuso horário - forçar interpretação como data local
                                       const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
                                       if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
                                         const arrematante = auction.arrematante;
-                                        const parcelasPagas = arrematante?.parcelasPagas || 0;
+                                        const valorPago = calcularValorPago(arrematante, auction);
                                         
-                                        // Se totalmente pago, contar valor total
-                                        if (arrematante?.pago) {
-                                          const valorTotal = arrematante?.valorPagarNumerico || 0;
-                                        return sum + valorTotal;
-                                        }
-                                        
-                                        // Se parcialmente pago, calcular valor das parcelas pagas
-                                        if (parcelasPagas > 0) {
+                                        if (valorPago > 0) {
+                                          // Identificar o lote do arrematante
                                           const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
-                                          const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
-                                          const valorTotal = arrematante?.valorPagarNumerico || 0;
                                           
-                                          if (tipoPagamento === 'entrada_parcelamento') {
-                                            // Para entrada + parcelamento: entrada + soma das parcelas pagas
-                                            const valorEntrada = arrematante?.valorEntrada ? 
-                                              (typeof arrematante.valorEntrada === 'string' ? 
-                                                parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
-                                                arrematante.valorEntrada) : 
-                                              valorTotal * 0.3;
+                                          if (loteArrematado?.isConvidado) {
+                                            // LOTE DE CONVIDADO: faturamento = apenas comissão de venda
+                                            const percVenda = loteArrematado.percentualComissaoVenda 
+                                              || arrematante.percentualComissaoVenda 
+                                              || auction.percentualComissaoVenda 
+                                              || 5; // Default 5%
+                                            faturamentoPeriodo += valorPago * (percVenda / 100);
                                             
-                                            // Usar estrutura real de parcelas
-                                            const estrutura = calcularEstruturaParcelas(
-                                              valorTotal,
-                                              arrematante.parcelasTriplas || 0,
-                                              arrematante.parcelasDuplas || 0,
-                                              arrematante.parcelasSimples || 0
-                                            );
-                                            
-                                            // Calcular valor recebido: entrada (1ª parcela) + parcelas pagas
-                                            if (parcelasPagas >= 1) {
-                                              const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
-                                              const valorParcelasPagas = estrutura
-                                                .slice(0, parcelasEfetivasPagas)
-                                                .reduce((s, p) => s + p.valor, 0);
-                                              return sum + valorEntrada + valorParcelasPagas;
+                                            // Comissão de compra (leiloeiro/assessor) = despesa
+                                            const percCompra = loteArrematado.percentualComissaoLeiloeiro 
+                                              || arrematante.percentualComissaoLeiloeiro 
+                                              || auction.percentualComissaoLeiloeiro 
+                                              || 0;
+                                            if (percCompra > 0) {
+                                              comissaoCompraTotal += valorPago * (percCompra / 100);
                                             }
-                                          } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
-                                            // Para parcelamento simples: usar estrutura real de parcelas
-                                            const estrutura = calcularEstruturaParcelas(
-                                              valorTotal,
-                                              arrematante.parcelasTriplas || 0,
-                                              arrematante.parcelasDuplas || 0,
-                                              arrematante.parcelasSimples || 0
-                                            );
+                                          } else {
+                                            // LOTE PRÓPRIO: faturamento = valor total pago
+                                            faturamentoPeriodo += valorPago;
                                             
-                                            const valorParcelasPagas = estrutura
-                                              .slice(0, parcelasPagas)
-                                              .reduce((s, p) => s + p.valor, 0);
-                                            return sum + valorParcelasPagas;
-                                          } else if (tipoPagamento === 'a_vista') {
-                                            // Para à vista, se parcelasPagas > 0, foi pago
-                                            return sum + (parcelasPagas > 0 ? valorTotal : 0);
+                                            // Comissão de compra (leiloeiro/assessor) = despesa mesmo em lote próprio
+                                            const percCompra = loteArrematado?.percentualComissaoLeiloeiro 
+                                              || arrematante.percentualComissaoLeiloeiro 
+                                              || auction.percentualComissaoLeiloeiro 
+                                              || 0;
+                                            if (percCompra > 0) {
+                                              comissaoCompraTotal += valorPago * (percCompra / 100);
+                                            }
                                           }
                                         }
                                       }
                                     }
-                                    return sum;
-                                  }, 0) || 0;
+                                  });
                                   
                                   // Adicionar patrocínios ao faturamento (total recebido de patrocinadores)
                                   // ✅ Considerar APENAS patrocínios confirmados como recebidos
@@ -1592,7 +1632,6 @@ function Relatorios() {
                                     if (!auction.arquivado) {
                                       const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
                                       if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                        // Somar apenas patrocínios que foram confirmados como recebidos
                                         const patrociniosRecebidos = (auction.detalhePatrocinios || [])
                                           .filter(p => p.recebido === true)
                                           .reduce((sumPatrocinios, p) => sumPatrocinios + (p.valorNumerico || 0), 0);
@@ -1604,13 +1643,11 @@ function Relatorios() {
                                   
                                   const faturamentoTotalPeriodo = faturamentoPeriodo + totalPatrocinios;
                                   
-                                  // DESPESAS = Custos de todos os leilões com custos definidos (passados ou futuros)
-                                  const despesasPeriodo = auctions?.reduce((sum, auction) => {
+                                  // DESPESAS = Custos cadastrados + comissões de compra (leiloeiro/assessor)
+                                  const custosCadastrados = auctions?.reduce((sum, auction) => {
                                     if (!auction.arquivado) {
-                                      // Corrigir problema de fuso horário - forçar interpretação como data local
                                       const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
                                       if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                        // Tentar múltiplas fontes de dados para custos
                                         let custos = 0;
                                         if (auction.custosNumerico !== undefined && auction.custosNumerico > 0) {
                                           custos = auction.custosNumerico;
@@ -1621,7 +1658,6 @@ function Relatorios() {
                                           custos = parsed;
                                         }
                                         
-                                        // Incluir despesas se há custos definidos, independente de ser passado ou futuro
                                         if (custos > 0) {
                                           return sum + custos;
                                         }
@@ -1629,6 +1665,9 @@ function Relatorios() {
                                     }
                                     return sum;
                                   }, 0) || 0;
+                                  
+                                  const despesasPeriodo = custosCadastrados + comissaoCompraTotal;
+                                  
                                   return {
                                     mes: label,
                                     faturamento: faturamentoTotalPeriodo,
