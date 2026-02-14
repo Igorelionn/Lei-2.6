@@ -2463,16 +2463,20 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           </div>
         )}
 
-        {/* Rodapé */}
-        <hr style={{ ...sSep, marginTop: '40px' }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pageBreakInside: 'avoid' }}>
-          <p style={{ fontSize: '11px', color: '#bbb', margin: 0 }}>
-            Documento gerado automaticamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/logo-elionx-softwares.png" alt="Elionx" style={{ height: '28px', objectFit: 'contain', opacity: 0.6 }} />
-            <img src="/arthur-lira-logo.png" alt="Arthur Lira" style={{ height: '22px', objectFit: 'contain', opacity: 0.6 }} />
-          </div>
+        {/* Logos Elionx e Arthur Lira */}
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20">
+          <img 
+            src="/logo-elionx-softwares.png" 
+            alt="Elionx Softwares" 
+            className="max-h-80 object-contain opacity-90"
+            style={{ maxHeight: '320px', maxWidth: '620px' }}
+          />
+          <img 
+            src="/arthur-lira-logo.png" 
+            alt="Arthur Lira Leilões" 
+            className="max-h-14 object-contain opacity-90 -mt-2 -ml-16"
+            style={{ maxHeight: '55px', maxWidth: '110px' }}
+          />
         </div>
       </div>
     );
@@ -3238,16 +3242,20 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           </div>
         )}
 
-        {/* Rodapé */}
-        <hr style={{ ...sSep, marginTop: '40px' }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pageBreakInside: 'avoid' }}>
-          <p style={{ fontSize: '11px', color: '#bbb', margin: 0 }}>
-            Documento gerado automaticamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/logo-elionx-softwares.png" alt="Elionx" style={{ height: '28px', objectFit: 'contain', opacity: 0.6 }} />
-            <img src="/arthur-lira-logo.png" alt="Arthur Lira" style={{ height: '22px', objectFit: 'contain', opacity: 0.6 }} />
-          </div>
+        {/* Logos Elionx e Arthur Lira */}
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20">
+          <img 
+            src="/logo-elionx-softwares.png" 
+            alt="Elionx Softwares" 
+            className="max-h-80 object-contain opacity-90"
+            style={{ maxHeight: '320px', maxWidth: '620px' }}
+          />
+          <img 
+            src="/arthur-lira-logo.png" 
+            alt="Arthur Lira Leilões" 
+            className="max-h-14 object-contain opacity-90 -mt-2 -ml-16"
+            style={{ maxHeight: '55px', maxWidth: '110px' }}
+          />
         </div>
       </div>
     );
@@ -3609,16 +3617,20 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           </div>
         )}
 
-        {/* Rodapé */}
-        <hr style={{ ...sSep, marginTop: '40px' }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pageBreakInside: 'avoid' }}>
-          <p style={{ fontSize: '11px', color: '#bbb', margin: 0 }}>
-            Documento gerado automaticamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/logo-elionx-softwares.png" alt="Elionx" style={{ height: '28px', objectFit: 'contain', opacity: 0.6 }} />
-            <img src="/arthur-lira-logo.png" alt="Arthur Lira" style={{ height: '22px', objectFit: 'contain', opacity: 0.6 }} />
-          </div>
+        {/* Logos Elionx e Arthur Lira */}
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20">
+          <img 
+            src="/logo-elionx-softwares.png" 
+            alt="Elionx Softwares" 
+            className="max-h-80 object-contain opacity-90"
+            style={{ maxHeight: '320px', maxWidth: '620px' }}
+          />
+          <img 
+            src="/arthur-lira-logo.png" 
+            alt="Arthur Lira Leilões" 
+            className="max-h-14 object-contain opacity-90 -mt-2 -ml-16"
+            style={{ maxHeight: '55px', maxWidth: '110px' }}
+          />
         </div>
       </div>
     );
@@ -3908,16 +3920,20 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           </div>
         )}
 
-        {/* Rodapé */}
-        <hr style={{ ...sSep, marginTop: '40px' }} />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', pageBreakInside: 'avoid' }}>
-          <p style={{ fontSize: '11px', color: '#bbb', margin: 0 }}>
-            Documento gerado automaticamente em {new Date().toLocaleDateString('pt-BR')} às {new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
-          </p>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-            <img src="/logo-elionx-softwares.png" alt="Elionx" style={{ height: '28px', objectFit: 'contain', opacity: 0.6 }} />
-            <img src="/arthur-lira-logo.png" alt="Arthur Lira" style={{ height: '22px', objectFit: 'contain', opacity: 0.6 }} />
-          </div>
+        {/* Logos Elionx e Arthur Lira */}
+        <div className="mt-4 sm:mt-6 lg:mt-8 flex justify-center items-center -ml-20">
+          <img 
+            src="/logo-elionx-softwares.png" 
+            alt="Elionx Softwares" 
+            className="max-h-80 object-contain opacity-90"
+            style={{ maxHeight: '320px', maxWidth: '620px' }}
+          />
+          <img 
+            src="/arthur-lira-logo.png" 
+            alt="Arthur Lira Leilões" 
+            className="max-h-14 object-contain opacity-90 -mt-2 -ml-16"
+            style={{ maxHeight: '55px', maxWidth: '110px' }}
+          />
         </div>
       </div>
     );
