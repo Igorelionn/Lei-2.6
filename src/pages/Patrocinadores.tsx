@@ -1,7 +1,9 @@
 import { useState, useMemo, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
+import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/lib/logger";
+import { useToast } from "@/hooks/use-toast";
 import { Handshake, Plus, Search, Eye, Edit, Archive, Building2, Check, X, ChevronRight, AlertCircle, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,10 +41,13 @@ interface PatrocinadorAgregado {
 
 export default function Patrocinadores() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInputValue, setSearchInputValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
   const [showArchived, setShowArchived] = useState(false);
+  const [isSavingPayments, setIsSavingPayments] = useState(false);
   
   // Estados para o modal de confirmação de pagamento
   const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -135,6 +140,10 @@ export default function Patrocinadores() {
         
         let numeroParcelaAtual = 1;
         
+        // ✅ CORREÇÃO: parcelasRecebidas inclui a entrada como 1º item.
+        // Então parcelas normais pagas = parcelasRecebidas - 1 (desconta a entrada)
+        const parcelasNormaisPagas = Math.max(0, parcelasRecebidas - 1);
+        
         // Adicionar parcelas triplas
         for (let i = 0; i < triplas; i++) {
           const dataVencimento = calcularDataVencimento(mesInicio, diaVencimento, numeroParcelaAtual);
@@ -142,7 +151,7 @@ export default function Patrocinadores() {
           statusArray.push({
             leilaoId: pat.leilaoId,
             leilaoNome: nomeParcela,
-            paid: numeroParcelaAtual <= parcelasRecebidas,
+            paid: numeroParcelaAtual <= parcelasNormaisPagas,
             dueDate: dataVencimento,
             valor: valorParcelaBase * 3, // ✅ Parcela tripla = base × 3
             tipo: 'parcela',
@@ -159,7 +168,7 @@ export default function Patrocinadores() {
           statusArray.push({
             leilaoId: pat.leilaoId,
             leilaoNome: nomeParcela,
-            paid: numeroParcelaAtual <= parcelasRecebidas,
+            paid: numeroParcelaAtual <= parcelasNormaisPagas,
             dueDate: dataVencimento,
             valor: valorParcelaBase * 2, // ✅ Parcela dupla = base × 2
             tipo: 'parcela',
@@ -175,7 +184,7 @@ export default function Patrocinadores() {
           statusArray.push({
             leilaoId: pat.leilaoId,
             leilaoNome: nomeParcela,
-            paid: numeroParcelaAtual <= parcelasRecebidas,
+            paid: numeroParcelaAtual <= parcelasNormaisPagas,
             dueDate: dataVencimento,
             valor: valorParcelaBase, // ✅ Parcela simples = base × 1
             tipo: 'parcela',
@@ -183,8 +192,83 @@ export default function Patrocinadores() {
           });
           numeroParcelaAtual++;
         }
+      } else if ((pat.formaPagamento === 'parcelado' || detalhesPatrocinio?.formaPagamento === 'parcelamento') && detalhesPatrocinio) {
+        // Parcelamento simples (sem entrada) - desmembrar em parcelas individuais
+        const valorLance = detalhesPatrocinio.valorLanceNumerico || 0;
+        const fator = detalhesPatrocinio.fatorMultiplicador || 1;
+        const triplas = detalhesPatrocinio.parcelasTriplas || 0;
+        const duplas = detalhesPatrocinio.parcelasDuplas || 0;
+        const simples = detalhesPatrocinio.parcelasSimples || 0;
+        const mesInicio = detalhesPatrocinio.mesInicioPagamento || '';
+        const diaVencimento = detalhesPatrocinio.diaVencimentoMensal || 15;
+        const parcelasRecebidas = detalhesPatrocinio.parcelasRecebidas || 0;
+        
+        const totalParcelas = valorLance * fator;
+        const totalParcelasSimples = (triplas * 3) + (duplas * 2) + (simples * 1);
+        const valorParcelaBase = totalParcelasSimples > 0 ? totalParcelas / totalParcelasSimples : 0;
+        
+        let numeroParcelaAtual = 1;
+        
+        // Adicionar parcelas triplas
+        for (let i = 0; i < triplas; i++) {
+          const dataVencimento = calcularDataVencimento(mesInicio, diaVencimento, numeroParcelaAtual);
+          const nomeParcela = formatarNomeParcela(mesInicio, diaVencimento, numeroParcelaAtual);
+          statusArray.push({
+            leilaoId: pat.leilaoId,
+            leilaoNome: nomeParcela,
+            paid: numeroParcelaAtual <= parcelasRecebidas,
+            dueDate: dataVencimento,
+            valor: valorParcelaBase * 3,
+            tipo: 'parcela',
+            numeroParcela: numeroParcelaAtual
+          });
+          numeroParcelaAtual++;
+        }
+        
+        // Adicionar parcelas duplas
+        for (let i = 0; i < duplas; i++) {
+          const dataVencimento = calcularDataVencimento(mesInicio, diaVencimento, numeroParcelaAtual);
+          const nomeParcela = formatarNomeParcela(mesInicio, diaVencimento, numeroParcelaAtual);
+          statusArray.push({
+            leilaoId: pat.leilaoId,
+            leilaoNome: nomeParcela,
+            paid: numeroParcelaAtual <= parcelasRecebidas,
+            dueDate: dataVencimento,
+            valor: valorParcelaBase * 2,
+            tipo: 'parcela',
+            numeroParcela: numeroParcelaAtual
+          });
+          numeroParcelaAtual++;
+        }
+        
+        // Adicionar parcelas simples
+        for (let i = 0; i < simples; i++) {
+          const dataVencimento = calcularDataVencimento(mesInicio, diaVencimento, numeroParcelaAtual);
+          const nomeParcela = formatarNomeParcela(mesInicio, diaVencimento, numeroParcelaAtual);
+          statusArray.push({
+            leilaoId: pat.leilaoId,
+            leilaoNome: nomeParcela,
+            paid: numeroParcelaAtual <= parcelasRecebidas,
+            dueDate: dataVencimento,
+            valor: valorParcelaBase,
+            tipo: 'parcela',
+            numeroParcela: numeroParcelaAtual
+          });
+          numeroParcelaAtual++;
+        }
+        
+        // Se não houver parcelas configuradas, mostrar como pagamento único
+        if (triplas === 0 && duplas === 0 && simples === 0) {
+          statusArray.push({
+            leilaoId: pat.leilaoId,
+            leilaoNome: pat.leilaoNome,
+            paid: pat.recebido,
+            dueDate: pat.dataVencimentoDate ? pat.dataVencimentoDate.toLocaleDateString('pt-BR') : '',
+            valor: pat.valor
+          });
+        }
       } else {
-        // À vista ou parcelamento simples - tratar como único pagamento
+        // À vista - tratar como único pagamento
         statusArray.push({
           leilaoId: pat.leilaoId,
           leilaoNome: pat.leilaoNome,
@@ -286,6 +370,8 @@ export default function Patrocinadores() {
   // Função para salvar pagamentos dos patrocínios
   const handleSavePayments = async () => {
     if (!selectedPatrocinadorForPayment) return;
+    
+    setIsSavingPayments(true);
 
     try {
       // Agrupar status de pagamento por leilão
@@ -324,8 +410,23 @@ export default function Patrocinadores() {
                 parcelasRecebidas,
                 recebido
               };
+            } else if (p.formaPagamento === 'parcelamento') {
+              // Parcelamento simples (sem entrada) - contar parcelas pagas
+              const parcelasPagas = statusDoLeilao.filter(s => s.tipo === 'parcela' && s.paid).length;
+              
+              // Calcular total de parcelas
+              const totalParcelas = (p.parcelasTriplas || 0) + (p.parcelasDuplas || 0) + (p.parcelasSimples || 0);
+              
+              // Marcar como recebido se todas as parcelas foram pagas
+              const recebido = totalParcelas > 0 ? parcelasPagas === totalParcelas : (statusDoLeilao[0]?.paid || false);
+              
+              return {
+                ...p,
+                parcelasRecebidas: parcelasPagas,
+                recebido
+              };
             } else {
-              // À vista ou parcelamento simples - usar primeiro status
+              // À vista - usar primeiro status
               const paid = statusDoLeilao[0]?.paid || false;
               return {
                 ...p,
@@ -345,13 +446,27 @@ export default function Patrocinadores() {
         });
       }
 
-      // Toast de sucesso removido - notificação silenciosa
+      // Forçar invalidação e refetch imediato dos dados
+      await queryClient.invalidateQueries({ queryKey: ['auctions'] });
+      await queryClient.refetchQueries({ queryKey: ['auctions'] });
+
+      toast({
+        title: "Pagamento atualizado",
+        description: `Status de pagamento de ${selectedPatrocinadorForPayment.empresa} salvo com sucesso.`,
+      });
 
       setIsPaymentModalOpen(false);
       setSelectedPatrocinadorForPayment(null);
       setPaymentStatus([]);
     } catch (error) {
       logger.error('Erro ao salvar pagamentos:', error);
+      toast({
+        title: "Erro ao salvar",
+        description: "Não foi possível salvar o pagamento. Tente novamente.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSavingPayments(false);
     }
   };
 
@@ -541,13 +656,72 @@ export default function Patrocinadores() {
     const leiloesPatrocinados = new Set(patrocinadores.flatMap(p => Array.from(p.leiloes))).size;
     const valorMedioGeral = leiloesPatrocinados > 0 ? totalInvestido / leiloesPatrocinados : 0;
     
-    // Calcular total recebido (apenas patrocínios confirmados)
-    const totalRecebido = patrocinadores.reduce((sum, p) => {
-      const valorRecebido = p.patrocinios
-        .filter(pat => pat.recebido)
-        .reduce((total, pat) => total + pat.valor, 0);
-      return sum + valorRecebido;
-    }, 0);
+    // Calcular total recebido (incluindo pagamentos parciais)
+    const totalRecebido = auctions?.reduce((sum, auction) => {
+      if (showArchived ? !auction.arquivado : auction.arquivado) return sum;
+      const patrocinios = auction.detalhePatrocinios || [];
+      return sum + patrocinios.reduce((subSum, p) => {
+        const valorLance = p.valorLanceNumerico || 0;
+        
+        if (p.formaPagamento === 'entrada_parcelamento') {
+          // Para entrada + parcelamento: calcular valor recebido baseado em parcelasRecebidas
+          const parcelasRecebidas = p.parcelasRecebidas || 0;
+          if (parcelasRecebidas === 0) return subSum;
+          
+          const valorEntrada = p.valorEntradaNumerico || 0;
+          
+          // Parcela 1 = entrada; parcelas 2+ = parcelas normais
+          let valorRecebido = 0;
+          if (parcelasRecebidas >= 1) {
+            valorRecebido += valorEntrada; // Entrada foi paga
+          }
+          
+          // Parcelas normais pagas (parcelasRecebidas - 1, pois a 1ª é a entrada)
+          const parcelasNormaisPagas = Math.max(0, parcelasRecebidas - 1);
+          if (parcelasNormaisPagas > 0) {
+            const triplas = p.parcelasTriplas || 0;
+            const duplas = p.parcelasDuplas || 0;
+            const simples = p.parcelasSimples || 0;
+            
+            // Gerar estrutura de parcelas (triplas primeiro, depois duplas, depois simples)
+            const estrutura: number[] = [];
+            for (let i = 0; i < triplas; i++) estrutura.push(valorLance * 3);
+            for (let i = 0; i < duplas; i++) estrutura.push(valorLance * 2);
+            for (let i = 0; i < simples; i++) estrutura.push(valorLance * 1);
+            
+            valorRecebido += estrutura.slice(0, parcelasNormaisPagas).reduce((s, v) => s + v, 0);
+          }
+          
+          return subSum + valorRecebido;
+        } else if (p.formaPagamento === 'parcelamento') {
+          // Para parcelamento simples: calcular valor recebido baseado em parcelasRecebidas
+          const parcelasRecebidas = p.parcelasRecebidas || 0;
+          if (parcelasRecebidas === 0) {
+            // Fallback: se não tem parcelasRecebidas mas tem recebido = true, contar tudo
+            return p.recebido ? subSum + (p.valorNumerico || 0) : subSum;
+          }
+          
+          const triplas = p.parcelasTriplas || 0;
+          const duplas = p.parcelasDuplas || 0;
+          const simples = p.parcelasSimples || 0;
+          
+          // Gerar estrutura de parcelas
+          const estrutura: number[] = [];
+          for (let i = 0; i < triplas; i++) estrutura.push(valorLance * 3);
+          for (let i = 0; i < duplas; i++) estrutura.push(valorLance * 2);
+          for (let i = 0; i < simples; i++) estrutura.push(valorLance * 1);
+          
+          const valorRecebido = estrutura.slice(0, parcelasRecebidas).reduce((s, v) => s + v, 0);
+          return subSum + valorRecebido;
+        } else {
+          // À vista: se recebido, contar valor total
+          if (p.recebido) {
+            return subSum + (p.valorNumerico || 0);
+          }
+        }
+        return subSum;
+      }, 0);
+    }, 0) || 0;
 
     return {
       total,
@@ -557,7 +731,7 @@ export default function Patrocinadores() {
       leiloesPatrocinados,
       valorMedioGeral
     };
-  }, [patrocinadores]);
+  }, [patrocinadores, auctions]);
 
   // Filtrar patrocinadores
   const filteredPatrocinadores = useMemo(() => {
@@ -1144,14 +1318,23 @@ export default function Patrocinadores() {
                 </div>
               </div>
 
-              {/* Rodapé Simples */}
-              <div className="flex justify-between items-center pt-4 border-gray-200">
-                <div className="text-sm text-gray-600">
-                  Total: R$ {paymentStatus.reduce((sum, s) => sum + s.valor, 0).toLocaleString('pt-BR', { 
-                    minimumFractionDigits: 2, 
-                    maximumFractionDigits: 2 
-                  })}
+              {/* Rodapé com resumo */}
+              <div className="space-y-3 pt-4 border-t border-gray-200">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Total</span>
+                  <span className="font-medium text-gray-900">R$ {paymentStatus.reduce((sum, s) => sum + s.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                 </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-green-600">Recebido</span>
+                  <span className="font-medium text-green-600">R$ {paymentStatus.filter(s => s.paid).reduce((sum, s) => sum + s.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-amber-600">A receber</span>
+                  <span className="font-medium text-amber-600">R$ {paymentStatus.filter(s => !s.paid).reduce((sum, s) => sum + s.valor, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end items-center pt-2">
                 
                 <div className="flex gap-3">
                   <Button 
@@ -1168,8 +1351,9 @@ export default function Patrocinadores() {
                   <Button 
                     onClick={handleSavePayments}
                     className="bg-black text-white hover:bg-gray-800"
+                    disabled={isSavingPayments}
                   >
-                    Confirmar Pagamentos
+                    {isSavingPayments ? 'Salvando...' : 'Confirmar Pagamentos'}
                   </Button>
                 </div>
               </div>
