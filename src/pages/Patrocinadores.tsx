@@ -3,7 +3,6 @@ import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 import { logger } from "@/lib/logger";
-import { useToast } from "@/hooks/use-toast";
 import { Handshake, Plus, Search, Eye, Edit, Archive, Building2, Check, X, ChevronRight, AlertCircle, Gavel } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -42,7 +41,6 @@ interface PatrocinadorAgregado {
 export default function Patrocinadores() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [searchInputValue, setSearchInputValue] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("todos");
@@ -450,11 +448,6 @@ export default function Patrocinadores() {
       window.location.reload();
     } catch (error) {
       logger.error('Erro ao salvar pagamentos:', error);
-      toast({
-        title: "Erro ao salvar",
-        description: "Não foi possível salvar o pagamento. Tente novamente.",
-        variant: "destructive",
-      });
     } finally {
       setIsSavingPayments(false);
     }
