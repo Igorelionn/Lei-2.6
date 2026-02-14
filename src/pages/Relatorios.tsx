@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
@@ -268,6 +268,40 @@ function Relatorios() {
   
   // Estado para o gráfico de evolução
   const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string } | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const dadosGraficoRef = useRef<Array<{ faturamento: number; despesas: number; mes: string; x?: number; y?: number; label?: string }>>([]);
+  
+  // Handler fluido de mouse para o gráfico
+  const handleChartMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
+    const svg = svgRef.current;
+    if (!svg || dadosGraficoRef.current.length === 0) return;
+    
+    const rect = svg.getBoundingClientRect();
+    const scaleX = 1450 / rect.width;
+    const mouseX = (e.clientX - rect.left) * scaleX;
+    
+    const dados = dadosGraficoRef.current;
+    const quantidadePeriodos = dados.length;
+    const larguraDisponivel = 1430 - 80;
+    const larguraSegmento = larguraDisponivel / quantidadePeriodos;
+    
+    // Descobrir em qual segmento o mouse está
+    const segmentoIndex = Math.floor((mouseX - 80) / larguraSegmento);
+    
+    if (segmentoIndex >= 0 && segmentoIndex < quantidadePeriodos && mouseX >= 80 && mouseX <= 1430) {
+      const d = dados[segmentoIndex];
+      // Só atualizar se mudou de índice para evitar re-renders desnecessários
+      if (!hoveredPoint || hoveredPoint.index !== segmentoIndex) {
+        setHoveredPoint({ index: segmentoIndex, ...d });
+      }
+    } else {
+      if (hoveredPoint) setHoveredPoint(null);
+    }
+  }, [hoveredPoint]);
+  
+  const handleChartMouseLeave = useCallback(() => {
+    setHoveredPoint(null);
+  }, []);
   
   // Estados para o modal de PDF temporário (invisível)
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
@@ -1290,7 +1324,16 @@ function Relatorios() {
                 
                     <div className="mt-4 overflow-x-auto overflow-y-hidden">
                       <div className="min-w-full" style={{ aspectRatio: '1450 / 420' }}>
-                        <svg width="100%" height="100%" viewBox="0 0 1450 420" preserveAspectRatio="xMidYMid meet" style={{ cursor: 'crosshair', display: 'block' }}>
+                        <svg 
+                          ref={svgRef}
+                          width="100%" 
+                          height="100%" 
+                          viewBox="0 0 1450 420" 
+                          preserveAspectRatio="xMidYMid meet" 
+                          style={{ cursor: 'crosshair', display: 'block' }}
+                          onMouseMove={handleChartMouseMove}
+                          onMouseLeave={handleChartMouseLeave}
+                        >
                         {/* Grid horizontal - linhas sutis */}
                         {[0, 1, 2, 3, 4, 5, 6, 7].map((line) => (
                           <line
@@ -1715,6 +1758,8 @@ function Relatorios() {
                                 // Usar dadosGrafico ao invés de dadosMensais
                                 const dadosMensais = dadosGrafico;
                                 
+                                // Salvar dados na ref para o handler de mouse fluido
+                                dadosGraficoRef.current = dadosMensais;
                                 
                                 // Função para converter valor em coordenada Y baseada na nova escala
                                 const valorParaY = (valor) => {
@@ -1790,24 +1835,36 @@ function Relatorios() {
                                 
                                 return (
                                   <>
+                                    {/* Highlight de fundo no segmento ativo */}
+                                    {hoveredPoint && (
+                                      <rect
+                                        x={80 + (hoveredPoint.index * larguraSegmento)}
+                                        y="25"
+                                        width={larguraSegmento}
+                                        height="350"
+                                        fill="#6366F1"
+                                        fillOpacity="0.04"
+                                        style={{ pointerEvents: 'none', transition: 'x 0.15s ease-out, opacity 0.15s ease-out' }}
+                                      />
+                                    )}
+                                    
                                     {/* Barras de Faturamento */}
                                     {dadosMensais.map((dados, i) => {
                                       const alturaFaturamento = 375 - valorParaY(dados.faturamento);
+                                      const isActive = hoveredPoint?.index === i;
                                       return (
                                         <rect
                                           key={`faturamento-${i}`}
                                           x={calcularXBarra(i, true)}
                                           y={valorParaY(dados.faturamento)}
                                           width={larguraBarra}
-                                          height={Math.max(alturaFaturamento, 3)} // Altura mínima de 3px para hover
-                                          fill="#6366F1"
-                                          fillOpacity={alturaFaturamento < 3 ? "0.3" : "1"} // Transparente se altura mínima
+                                          height={Math.max(alturaFaturamento, 3)}
+                                          fill={isActive ? "#4F46E5" : "#6366F1"}
+                                          fillOpacity={alturaFaturamento < 3 ? "0.3" : isActive ? "1" : "0.85"}
                                           rx="4"
                                           ry="4"
                                           stroke="none"
-                                          onMouseEnter={() => setHoveredPoint({ index: i, ...dados })}
-                                          onMouseLeave={() => setHoveredPoint(null)}
-                                          style={{ cursor: 'crosshair' }}
+                                          style={{ pointerEvents: 'none', transition: 'fill 0.15s ease, fill-opacity 0.15s ease' }}
                                         />
                                       );
                                     })}
@@ -1815,42 +1872,23 @@ function Relatorios() {
                                     {/* Barras de Despesas */}
                                     {dadosMensais.map((dados, i) => {
                                       const alturaDespesas = 375 - valorParaY(dados.despesas);
+                                      const isActive = hoveredPoint?.index === i;
                                       return (
                                         <rect
                                           key={`despesas-${i}`}
                                           x={calcularXBarra(i, false)}
                                           y={valorParaY(dados.despesas)}
                                           width={larguraBarra}
-                                          height={Math.max(alturaDespesas, 3)} // Altura mínima de 3px para hover
-                                          fill="#9CA3AF"
-                                          fillOpacity={alturaDespesas < 3 ? "0.3" : "1"} // Transparente se altura mínima
+                                          height={Math.max(alturaDespesas, 3)}
+                                          fill={isActive ? "#6B7280" : "#9CA3AF"}
+                                          fillOpacity={alturaDespesas < 3 ? "0.3" : isActive ? "1" : "0.85"}
                                           rx="4"
                                           ry="4"
                                           stroke="none"
-                                          onMouseEnter={() => setHoveredPoint({ index: i, ...dados })}
-                                          onMouseLeave={() => setHoveredPoint(null)}
-                                          style={{ cursor: 'crosshair' }}
+                                          style={{ pointerEvents: 'none', transition: 'fill 0.15s ease, fill-opacity 0.15s ease' }}
                                         />
                                       );
                                     })}
-                                    
-                                    
-                                    {/* Áreas interativas para hover */}
-                                    {dadosMensais.map((dados, i) => (
-                                      <g key={i}>
-                                        {/* Área invisível para hover cobrindo todo o segmento do período */}
-                                        <rect
-                                          x={80 + (i * larguraSegmento)}
-                                          y="25"
-                                          width={larguraSegmento}
-                                          height="350"
-                                          fill="transparent"
-                                          onMouseEnter={() => setHoveredPoint({ index: i, ...dados })}
-                                          onMouseLeave={() => setHoveredPoint(null)}
-                                          style={{ cursor: 'crosshair' }}
-                                        />
-                                      </g>
-                                    ))}
                                     
                                     {/* Linha vertical no hover */}
                                     {hoveredPoint && (
@@ -1860,14 +1898,15 @@ function Relatorios() {
                                         x2={calcularCentroPeriodo(hoveredPoint.index)}
                                         y2="375"
                                         stroke="#9CA3AF"
-                                        strokeWidth="1.5"
+                                        strokeWidth="1"
                                         strokeDasharray="4,4"
+                                        style={{ pointerEvents: 'none', transition: 'x1 0.1s ease-out, x2 0.1s ease-out' }}
                                       />
                                     )}
                                     
                                     {/* Tooltip */}
                                     {hoveredPoint && (
-                                      <g>
+                                      <g style={{ pointerEvents: 'none' }}>
                                         {(() => {
                                           const pontoX = calcularCentroPeriodo(hoveredPoint.index);
                                           const larguraGrafico = 1400;
@@ -1892,16 +1931,27 @@ function Relatorios() {
                                           
                                           return (
                                             <>
+                                              {/* Sombra do tooltip */}
+                                              <rect
+                                                x={tooltipX + 2}
+                                                y="7"
+                                                width="200"
+                                                height={alturaTooltip}
+                                                rx="10"
+                                                fill="black"
+                                                fillOpacity="0.06"
+                                                style={{ filter: 'blur(6px)' }}
+                                              />
                                               <rect
                                                 x={tooltipX}
                                                 y="4"
                                                 width="200"
                                                 height={alturaTooltip}
-                                                rx="8"
+                                                rx="10"
                                                 fill="white"
-                                                fillOpacity="0.85"
+                                                fillOpacity="0.95"
                                                 stroke="#E5E7EB"
-                                                strokeWidth="1"
+                                                strokeWidth="0.5"
                                               />
                                               <text
                                                 x={textoPrincipalX}
