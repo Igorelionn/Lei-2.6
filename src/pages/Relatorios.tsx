@@ -1835,18 +1835,22 @@ function Relatorios() {
                                 
                                 return (
                                   <>
-                                    {/* Highlight de fundo no segmento ativo */}
-                                    {hoveredPoint && (
-                                      <rect
-                                        x={80 + (hoveredPoint.index * larguraSegmento)}
-                                        y="25"
-                                        width={larguraSegmento}
-                                        height="350"
-                                        fill="#6366F1"
-                                        fillOpacity="0.04"
-                                        style={{ pointerEvents: 'none', transition: 'x 0.15s ease-out, opacity 0.15s ease-out' }}
-                                      />
-                                    )}
+                                    {/* Highlight de fundo no segmento ativo - cor baseada no resultado */}
+                                    {hoveredPoint && (() => {
+                                      const lucroHover = hoveredPoint.faturamento - hoveredPoint.despesas;
+                                      const corHighlight = lucroHover > 0 ? "#22C55E" : lucroHover < 0 ? "#EF4444" : "#9CA3AF";
+                                      return (
+                                        <rect
+                                          x={80 + (hoveredPoint.index * larguraSegmento)}
+                                          y="25"
+                                          width={larguraSegmento}
+                                          height="350"
+                                          fill={corHighlight}
+                                          fillOpacity="0.06"
+                                          style={{ pointerEvents: 'none', transition: 'x 0.15s ease-out, opacity 0.15s ease-out' }}
+                                        />
+                                      );
+                                    })()}
                                     
                                     {/* Barras de Faturamento */}
                                     {dadosMensais.map((dados, i) => {
