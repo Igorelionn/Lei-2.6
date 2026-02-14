@@ -1314,75 +1314,40 @@ function Relatorios() {
                       )}
                 </div>
 
-                {/* Legenda */}
-                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mt-3 mb-1">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600 font-medium">Faturamento</span>
+                {/* Legenda + Filtros de consideração */}
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between mt-3 mb-2 gap-2">
+                  {/* Legenda (esquerda) */}
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-full"></div>
+                      <span className="text-xs text-gray-500">Faturamento</span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 bg-gray-400 rounded-full"></div>
+                      <span className="text-xs text-gray-500">Despesas</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                    <span className="text-sm text-gray-600 font-medium">Despesas</span>
+                  
+                  {/* Toggles (direita) */}
+                  <div className="flex items-center gap-1">
+                    {[
+                      { key: 'venda', label: '% Venda', active: considerarComissaoVenda, toggle: () => setConsiderarComissaoVenda(!considerarComissaoVenda) },
+                      { key: 'compra', label: '% Compra', active: considerarComissaoCompra, toggle: () => setConsiderarComissaoCompra(!considerarComissaoCompra) },
+                      { key: 'patrocinios', label: 'Patrocínios', active: considerarPatrocinios, toggle: () => setConsiderarPatrocinios(!considerarPatrocinios) },
+                    ].map(item => (
+                      <button
+                        key={item.key}
+                        onClick={item.toggle}
+                        className={`px-2.5 py-1 rounded-full text-xs font-medium transition-all duration-200 border ${
+                          item.active
+                            ? 'bg-gray-900 text-white border-gray-900'
+                            : 'bg-white text-gray-400 border-gray-200 hover:border-gray-300 hover:text-gray-500'
+                        }`}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
-                </div>
-                
-                {/* Toggles de consideração */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 mb-2">
-                  <span className="text-xs text-gray-400 font-medium uppercase tracking-wide">Considerar:</span>
-                  
-                  <button
-                    onClick={() => setConsiderarComissaoVenda(!considerarComissaoVenda)}
-                    className="flex items-center gap-1.5 group"
-                  >
-                    <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
-                      considerarComissaoVenda 
-                        ? 'border-indigo-500 bg-indigo-500' 
-                        : 'border-gray-300 bg-white group-hover:border-gray-400'
-                    }`}>
-                      {considerarComissaoVenda && (
-                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                      )}
-                    </div>
-                    <span className={`text-xs font-medium transition-colors ${
-                      considerarComissaoVenda ? 'text-gray-700' : 'text-gray-400'
-                    }`}>% Venda (Convidados)</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setConsiderarComissaoCompra(!considerarComissaoCompra)}
-                    className="flex items-center gap-1.5 group"
-                  >
-                    <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
-                      considerarComissaoCompra 
-                        ? 'border-gray-500 bg-gray-500' 
-                        : 'border-gray-300 bg-white group-hover:border-gray-400'
-                    }`}>
-                      {considerarComissaoCompra && (
-                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                      )}
-                    </div>
-                    <span className={`text-xs font-medium transition-colors ${
-                      considerarComissaoCompra ? 'text-gray-700' : 'text-gray-400'
-                    }`}>% Compra (Leiloeiro)</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => setConsiderarPatrocinios(!considerarPatrocinios)}
-                    className="flex items-center gap-1.5 group"
-                  >
-                    <div className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 flex items-center justify-center ${
-                      considerarPatrocinios 
-                        ? 'border-emerald-500 bg-emerald-500' 
-                        : 'border-gray-300 bg-white group-hover:border-gray-400'
-                    }`}>
-                      {considerarPatrocinios && (
-                        <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                      )}
-                    </div>
-                    <span className={`text-xs font-medium transition-colors ${
-                      considerarPatrocinios ? 'text-gray-700' : 'text-gray-400'
-                    }`}>Patrocínios</span>
-                  </button>
                 </div>
 
                 
