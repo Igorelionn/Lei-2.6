@@ -3115,6 +3115,20 @@ function Arrematantes() {
                             const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction?.tipoPagamento || "parcelamento";
                             const now = new Date();
                             
+                            // ✅ Se totalmente pago, exibir valor total quitado (sem valor de parcela avulso)
+                            if (arrematante.pago) {
+                              return (
+                                <>
+                                  <span className="font-semibold text-black">
+                                    R$ {valorTotalComJuros.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                  </span>
+                                  <span className="text-xs text-green-600">
+                                    Quitado
+                                  </span>
+                                </>
+                              );
+                            }
+                            
                             let valorParcelaExibir = valorTotalComJuros;
                             
                             if (tipoPagamento === 'parcelamento') {

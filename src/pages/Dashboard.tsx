@@ -499,7 +499,7 @@ export default function Dashboard() {
     return 0;
   };
 
-  // Comissão A RECEBER = sobre o valor que FALTA ser pago
+  // Comissão A RECEBER = sobre o valor BASE (sem comissão) que FALTA ser pago
   const totalComissaoAReceber = todosArrematantes
     .filter(({ arrematante }) => !arrematante.pago)
     .reduce((total, { auction, arrematante }) => {
@@ -510,13 +510,20 @@ export default function Dashboard() {
         const valorTotal = arrematante?.valorPagarNumerico || 0;
         const valorRecebido = calcularValorRecebidoBase(arrematante, auction);
         const valorPendente = valorTotal - valorRecebido;
-        const valorComissao = valorPendente * (percentualComissao / 100);
+        // ✅ valorPendente já inclui comissão quando usaFatorMultiplicador
+        // Extrair a comissão real: comissão = valorComComissao * taxa / (100 + taxa)
+        let valorComissao: number;
+        if (arrematante?.usaFatorMultiplicador) {
+          valorComissao = valorPendente * percentualComissao / (100 + percentualComissao);
+        } else {
+          valorComissao = valorPendente * (percentualComissao / 100);
+        }
         return total + Math.max(0, valorComissao);
       }
       return total;
     }, 0);
 
-  // Comissão RECEBIDA = sobre o valor que JÁ foi pago
+  // Comissão RECEBIDA = sobre o valor BASE (sem comissão) que JÁ foi pago
   const totalComissaoRecebida = todosArrematantes
     .filter(({ arrematante }) => arrematante.pago || (arrematante.parcelasPagas && arrematante.parcelasPagas > 0))
     .reduce((total, { auction, arrematante }) => {
@@ -525,7 +532,14 @@ export default function Dashboard() {
       
       if (percentualComissao > 0) {
         const valorRecebido = calcularValorRecebidoBase(arrematante, auction);
-        const valorComissao = valorRecebido * (percentualComissao / 100);
+        // ✅ valorRecebido já inclui comissão quando usaFatorMultiplicador
+        // Extrair a comissão real: comissão = valorComComissao * taxa / (100 + taxa)
+        let valorComissao: number;
+        if (arrematante?.usaFatorMultiplicador) {
+          valorComissao = valorRecebido * percentualComissao / (100 + percentualComissao);
+        } else {
+          valorComissao = valorRecebido * (percentualComissao / 100);
+        }
         return total + valorComissao;
       }
       return total;
