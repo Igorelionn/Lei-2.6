@@ -269,13 +269,6 @@ function Relatorios() {
   // Estado para o gráfico de evolução
   const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string } | null>(null);
   
-  // Filtros de composição do faturamento no gráfico
-  const [chartFilters, setChartFilters] = useState({
-    arrematacoes: true,       // Valor das arrematações (lotes próprios)
-    comissaoVenda: false,     // % Comissão de Venda (sobre lotes de convidados)
-    comissaoCompra: false,    // % Comissão de Compra (leiloeiro/assessor)
-    patrocinios: true,        // Patrocínios recebidos
-  });
   const svgRef = useRef<SVGSVGElement>(null);
   const dadosGraficoRef = useRef<Array<{ faturamento: number; despesas: number; mes: string; x?: number; y?: number; label?: string }>>([]);
   
@@ -1318,7 +1311,7 @@ function Relatorios() {
                 </div>
 
                 {/* Legenda */}
-                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mt-3 mb-1">
+                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mt-3 mb-2">
                   <div className="flex items-center gap-2">
                     <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
                     <span className="text-sm text-gray-600 font-medium">Faturamento</span>
@@ -1327,37 +1320,6 @@ function Relatorios() {
                     <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
                     <span className="text-sm text-gray-600 font-medium">Despesas</span>
                   </div>
-                </div>
-                
-                {/* Filtros de composição do faturamento */}
-                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mb-2">
-                  <span className="text-xs text-gray-400 font-medium uppercase tracking-wider">Considerar:</span>
-                  {[
-                    { key: 'arrematacoes' as const, label: 'Arrematações', color: '#6366F1' },
-                    { key: 'comissaoVenda' as const, label: '% Comissão de Venda', color: '#F59E0B' },
-                    { key: 'comissaoCompra' as const, label: '% Comissão de Compra', color: '#8B5CF6' },
-                    { key: 'patrocinios' as const, label: 'Patrocínios', color: '#10B981' },
-                  ].map(({ key, label, color }) => (
-                    <button
-                      key={key}
-                      onClick={() => setChartFilters(prev => ({ ...prev, [key]: !prev[key] }))}
-                      className="flex items-center gap-1.5 py-1 text-xs font-medium transition-all duration-150 hover:opacity-80"
-                      style={{ color: chartFilters[key] ? color : '#9CA3AF' }}
-                    >
-                      <span
-                        className="w-3 h-3 rounded-full border-2 flex items-center justify-center transition-all duration-150"
-                        style={{
-                          borderColor: chartFilters[key] ? color : '#D1D5DB',
-                          backgroundColor: chartFilters[key] ? color : 'transparent',
-                        }}
-                      >
-                        {chartFilters[key] && (
-                          <span className="w-1.5 h-1.5 rounded-full bg-white" />
-                        )}
-                      </span>
-                      {label}
-                    </button>
-                  ))}
                 </div>
 
                 
@@ -1557,129 +1519,99 @@ function Relatorios() {
                                 
                                 // Função para calcular valores de um período específico
                                 const calcularDadosPeriodo = (dataInicio, dataFim, label) => {
-                                  // Função auxiliar para calcular valor recebido de um arrematante
-                                  const calcularValorRecebido = (arrematante, auction) => {
-                                    if (!arrematante) return 0;
-                                    const parcelasPagas = arrematante?.parcelasPagas || 0;
-                                    const valorTotal = arrematante?.valorPagarNumerico || 0;
-                                    
-                                    if (arrematante?.pago) return valorTotal;
-                                    
-                                    if (parcelasPagas > 0) {
-                                      const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
-                                      const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
-                                      
-                                      if (tipoPagamento === 'entrada_parcelamento') {
-                                        const valorEntrada = arrematante?.valorEntrada ? 
-                                          (typeof arrematante.valorEntrada === 'string' ? 
-                                            parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
-                                            arrematante.valorEntrada) : 
-                                          valorTotal * 0.3;
+                                   // FATURAMENTO = Total já recebido (incluindo pagamentos parciais)
+                                  const faturamentoPeriodo = auctions?.reduce((sum, auction) => {
+                                    if (auction.arrematante && !auction.arquivado) {
+                                      // Corrigir problema de fuso horário - forçar interpretação como data local
+                                      const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
+                                      if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
+                                        const arrematante = auction.arrematante;
+                                        const parcelasPagas = arrematante?.parcelasPagas || 0;
                                         
-                                        const estrutura = calcularEstruturaParcelas(
-                                          valorTotal,
-                                          arrematante.parcelasTriplas || 0,
-                                          arrematante.parcelasDuplas || 0,
-                                          arrematante.parcelasSimples || 0
-                                        );
-                                        
-                                        if (parcelasPagas >= 1) {
-                                          const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
-                                          const valorParcelasPagas = estrutura
-                                            .slice(0, parcelasEfetivasPagas)
-                                            .reduce((s, p) => s + p.valor, 0);
-                                          return valorEntrada + valorParcelasPagas;
+                                        // Se totalmente pago, contar valor total
+                                        if (arrematante?.pago) {
+                                          const valorTotal = arrematante?.valorPagarNumerico || 0;
+                                        return sum + valorTotal;
                                         }
-                                      } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
-                                        const estrutura = calcularEstruturaParcelas(
-                                          valorTotal,
-                                          arrematante.parcelasTriplas || 0,
-                                          arrematante.parcelasDuplas || 0,
-                                          arrematante.parcelasSimples || 0
-                                        );
-                                        return estrutura.slice(0, parcelasPagas).reduce((s, p) => s + p.valor, 0);
-                                      } else if (tipoPagamento === 'a_vista') {
-                                        return parcelasPagas > 0 ? valorTotal : 0;
+                                        
+                                        // Se parcialmente pago, calcular valor das parcelas pagas
+                                        if (parcelasPagas > 0) {
+                                          const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
+                                          const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+                                          const valorTotal = arrematante?.valorPagarNumerico || 0;
+                                          
+                                          if (tipoPagamento === 'entrada_parcelamento') {
+                                            // Para entrada + parcelamento: entrada + soma das parcelas pagas
+                                            const valorEntrada = arrematante?.valorEntrada ? 
+                                              (typeof arrematante.valorEntrada === 'string' ? 
+                                                parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
+                                                arrematante.valorEntrada) : 
+                                              valorTotal * 0.3;
+                                            
+                                            // Usar estrutura real de parcelas
+                                            const estrutura = calcularEstruturaParcelas(
+                                              valorTotal,
+                                              arrematante.parcelasTriplas || 0,
+                                              arrematante.parcelasDuplas || 0,
+                                              arrematante.parcelasSimples || 0
+                                            );
+                                            
+                                            // Calcular valor recebido: entrada (1ª parcela) + parcelas pagas
+                                            if (parcelasPagas >= 1) {
+                                              const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
+                                              const valorParcelasPagas = estrutura
+                                                .slice(0, parcelasEfetivasPagas)
+                                                .reduce((s, p) => s + p.valor, 0);
+                                              return sum + valorEntrada + valorParcelasPagas;
+                                            }
+                                          } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
+                                            // Para parcelamento simples: usar estrutura real de parcelas
+                                            const estrutura = calcularEstruturaParcelas(
+                                              valorTotal,
+                                              arrematante.parcelasTriplas || 0,
+                                              arrematante.parcelasDuplas || 0,
+                                              arrematante.parcelasSimples || 0
+                                            );
+                                            
+                                            const valorParcelasPagas = estrutura
+                                              .slice(0, parcelasPagas)
+                                              .reduce((s, p) => s + p.valor, 0);
+                                            return sum + valorParcelasPagas;
+                                          } else if (tipoPagamento === 'a_vista') {
+                                            // Para à vista, se parcelasPagas > 0, foi pago
+                                            return sum + (parcelasPagas > 0 ? valorTotal : 0);
+                                          }
+                                        }
                                       }
                                     }
-                                    return 0;
-                                  };
+                                    return sum;
+                                  }, 0) || 0;
                                   
-                                  let faturamentoTotal = 0;
-                                  
-                                  // 1) ARREMATAÇÕES (lotes próprios) - valor recebido das arrematações
-                                  if (chartFilters.arrematacoes) {
-                                    const valorArrematacoes = auctions?.reduce((sum, auction) => {
-                                      if (auction.arrematante && !auction.arquivado) {
-                                        const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
-                                        if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                          return sum + calcularValorRecebido(auction.arrematante, auction);
-                                        }
-                                      }
-                                      return sum;
-                                    }, 0) || 0;
-                                    faturamentoTotal += valorArrematacoes;
-                                  }
-                                  
-                                  // 2) COMISSÃO DE VENDA (% sobre valor arrematado de lotes de convidados)
-                                  if (chartFilters.comissaoVenda) {
-                                    const valorComissaoVenda = auctions?.reduce((sum, auction) => {
-                                      if (!auction.arquivado) {
-                                        const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
-                                        if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                          // Percentual de comissão de venda do leilão
-                                          const percVenda = auction.percentualComissaoVenda || 0;
-                                          if (percVenda > 0 && auction.arrematante) {
-                                            const valorRecebido = calcularValorRecebido(auction.arrematante, auction);
-                                            return sum + (valorRecebido * percVenda / 100);
-                                          }
-                                        }
-                                      }
-                                      return sum;
-                                    }, 0) || 0;
-                                    faturamentoTotal += valorComissaoVenda;
-                                  }
-                                  
-                                  // 3) COMISSÃO DE COMPRA (% sobre valor arrematado - leiloeiro/assessor)
-                                  if (chartFilters.comissaoCompra) {
-                                    const valorComissaoCompra = auctions?.reduce((sum, auction) => {
-                                      if (!auction.arquivado) {
-                                        const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
-                                        if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                          const percCompra = auction.percentualComissaoLeiloeiro || 0;
-                                          if (percCompra > 0 && auction.arrematante) {
-                                            const valorRecebido = calcularValorRecebido(auction.arrematante, auction);
-                                            return sum + (valorRecebido * percCompra / 100);
-                                          }
-                                        }
-                                      }
-                                      return sum;
-                                    }, 0) || 0;
-                                    faturamentoTotal += valorComissaoCompra;
-                                  }
-                                  
-                                  // 4) PATROCÍNIOS recebidos
-                                  if (chartFilters.patrocinios) {
-                                    const totalPatrocinios = auctions?.reduce((sum, auction) => {
-                                      if (!auction.arquivado) {
-                                        const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
-                                        if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                          const patrociniosRecebidos = (auction.detalhePatrocinios || [])
-                                            .filter(p => p.recebido === true)
-                                            .reduce((sumP, p) => sumP + (p.valorNumerico || 0), 0);
-                                          return sum + patrociniosRecebidos;
-                                        }
-                                      }
-                                      return sum;
-                                    }, 0) || 0;
-                                    faturamentoTotal += totalPatrocinios;
-                                  }
-                                  
-                                  // DESPESAS = Custos de todos os leilões com custos definidos
-                                  const despesasPeriodo = auctions?.reduce((sum, auction) => {
+                                  // Adicionar patrocínios ao faturamento (total recebido de patrocinadores)
+                                  // ✅ Considerar APENAS patrocínios confirmados como recebidos
+                                  const totalPatrocinios = auctions?.reduce((sum, auction) => {
                                     if (!auction.arquivado) {
                                       const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
                                       if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
+                                        // Somar apenas patrocínios que foram confirmados como recebidos
+                                        const patrociniosRecebidos = (auction.detalhePatrocinios || [])
+                                          .filter(p => p.recebido === true)
+                                          .reduce((sumPatrocinios, p) => sumPatrocinios + (p.valorNumerico || 0), 0);
+                                        return sum + patrociniosRecebidos;
+                                      }
+                                    }
+                                    return sum;
+                                  }, 0) || 0;
+                                  
+                                  const faturamentoTotalPeriodo = faturamentoPeriodo + totalPatrocinios;
+                                  
+                                  // DESPESAS = Custos de todos os leilões com custos definidos (passados ou futuros)
+                                  const despesasPeriodo = auctions?.reduce((sum, auction) => {
+                                    if (!auction.arquivado) {
+                                      // Corrigir problema de fuso horário - forçar interpretação como data local
+                                      const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
+                                      if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
+                                        // Tentar múltiplas fontes de dados para custos
                                         let custos = 0;
                                         if (auction.custosNumerico !== undefined && auction.custosNumerico > 0) {
                                           custos = auction.custosNumerico;
@@ -1689,15 +1621,18 @@ function Relatorios() {
                                           const parsed = parseFloat(auction.custos.replace(/[^\d,]/g, '').replace(',', '.')) || 0;
                                           custos = parsed;
                                         }
-                                        if (custos > 0) return sum + custos;
+                                        
+                                        // Incluir despesas se há custos definidos, independente de ser passado ou futuro
+                                        if (custos > 0) {
+                                          return sum + custos;
+                                        }
                                       }
                                     }
                                     return sum;
                                   }, 0) || 0;
-                                  
                                   return {
                                     mes: label,
-                                    faturamento: faturamentoTotal,
+                                    faturamento: faturamentoTotalPeriodo,
                                     despesas: despesasPeriodo
                                   };
                                 };
@@ -1981,41 +1916,29 @@ function Relatorios() {
                                           const pontoX = calcularCentroPeriodo(hoveredPoint.index);
                                           const larguraGrafico = 1400;
                                           const metadeGrafico = larguraGrafico / 2;
-                                          const larguraTooltip = 240;
-                                          
-                                          // Montar linhas do tooltip dinamicamente
-                                          const linhas: Array<{ label: string; valor: number; cor: string; bold?: boolean }> = [];
-                                          linhas.push({ label: 'Faturamento', valor: hoveredPoint.faturamento, cor: '#6366F1' });
-                                          linhas.push({ label: 'Despesas', valor: hoveredPoint.despesas, cor: '#9CA3AF' });
                                           
                                           const lucro = hoveredPoint.faturamento - hoveredPoint.despesas;
-                                          const corLucro = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
-                                          linhas.push({ label: lucro >= 0 ? 'Lucro' : 'Prejuízo', valor: Math.abs(lucro), cor: corLucro, bold: true });
+                                          const corBolaLucro = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
+                                          const alturaTooltip = 150;
                                           
-                                          // Filtros ativos como sub-info
-                                          const filtrosAtivos: string[] = [];
-                                          if (chartFilters.arrematacoes) filtrosAtivos.push('Arrematações');
-                                          if (chartFilters.comissaoVenda) filtrosAtivos.push('% Venda');
-                                          if (chartFilters.comissaoCompra) filtrosAtivos.push('% Compra');
-                                          if (chartFilters.patrocinios) filtrosAtivos.push('Patrocínios');
-                                          
-                                          const alturaTooltip = 35 + (linhas.length * 28) + (filtrosAtivos.length > 0 ? 22 : 0);
-                                          
+                                          // Se estiver na metade direita, posicionar à esquerda do ponto
                                           const estaDoLadoDireito = pontoX > metadeGrafico;
                                           const tooltipX = estaDoLadoDireito 
-                                            ? pontoX - larguraTooltip - 15
-                                            : pontoX + 5;
+                                            ? pontoX - 200 - 15  // À esquerda do ponto
+                                            : pontoX + 5;                   // À direita do ponto
                                           
-                                          const textoCirculoX = tooltipX + (estaDoLadoDireito ? larguraTooltip - 25 : 25);
-                                          const textoLabelX = tooltipX + (estaDoLadoDireito ? larguraTooltip - 35 : 35);
+                                          const textoPrincipalX = tooltipX + (estaDoLadoDireito ? 175 : 25);
+                                          const textoCirculoX = tooltipX + (estaDoLadoDireito ? 175 : 25);
+                                          const textoLabelX = tooltipX + (estaDoLadoDireito ? 165 : 35);
                                           const textAnchor = estaDoLadoDireito ? "end" : "start";
                                           
                                           return (
                                             <>
+                                              {/* Sombra do tooltip */}
                                               <rect
                                                 x={tooltipX + 2}
                                                 y="7"
-                                                width={larguraTooltip}
+                                                width="200"
                                                 height={alturaTooltip}
                                                 rx="10"
                                                 fill="black"
@@ -2025,7 +1948,7 @@ function Relatorios() {
                                               <rect
                                                 x={tooltipX}
                                                 y="4"
-                                                width={larguraTooltip}
+                                                width="200"
                                                 height={alturaTooltip}
                                                 rx="10"
                                                 fill="white"
@@ -2034,46 +1957,69 @@ function Relatorios() {
                                                 strokeWidth="0.5"
                                               />
                                               <text
-                                                x={textoCirculoX}
-                                                y="28"
+                                                x={textoPrincipalX}
+                                                y="35"
                                                 fill="#111827"
-                                                fontSize="14"
+                                                fontSize="15"
                                                 fontWeight="600"
                                                 textAnchor={textAnchor}
                                               >
                                                 {hoveredPoint.mes}
                                               </text>
-                                              {linhas.map((linha, idx) => (
-                                                <g key={idx}>
-                                                  <circle
-                                                    cx={textoCirculoX}
-                                                    cy={50 + idx * 28}
-                                                    r="4"
-                                                    fill={linha.cor}
-                                                  />
-                                                  <text
-                                                    x={textoLabelX}
-                                                    y={55 + idx * 28}
-                                                    fill="#111827"
-                                                    fontSize="13"
-                                                    fontWeight={linha.bold ? "600" : "500"}
-                                                    textAnchor={textAnchor}
-                                                  >
-                                                    {linha.label}: {formatCurrency(linha.valor)}
-                                                  </text>
-                                                </g>
-                                              ))}
-                                              {filtrosAtivos.length > 0 && (
+                                              <g>
+                                                <circle
+                                                  cx={textoCirculoX}
+                                                  cy="60"
+                                                  r="4"
+                                                  fill="#6366F1"
+                                                />
                                                 <text
-                                                  x={textoCirculoX}
-                                                  y={55 + linhas.length * 28}
-                                                  fill="#9CA3AF"
-                                                  fontSize="10"
+                                                  x={textoLabelX}
+                                                  y="65"
+                                                  fill="#111827"
+                                                  fontSize="14"
+                                                  fontWeight="500"
                                                   textAnchor={textAnchor}
                                                 >
-                                                  {filtrosAtivos.join(' · ')}
+                                                  Faturamento: {formatCurrency(hoveredPoint.faturamento)}
                                                 </text>
-                                              )}
+                                              </g>
+                                              <g>
+                                                <circle
+                                                  cx={textoCirculoX}
+                                                  cy="90"
+                                                  r="4"
+                                                  fill="#9CA3AF"
+                                                />
+                                                <text
+                                                  x={textoLabelX}
+                                                  y="95"
+                                                  fill="#111827"
+                                                  fontSize="14"
+                                                  fontWeight="500"
+                                                  textAnchor={textAnchor}
+                                                >
+                                                  Despesas: {formatCurrency(hoveredPoint.despesas)}
+                                                </text>
+                                              </g>
+                                              <g>
+                                                <circle
+                                                  cx={textoCirculoX}
+                                                  cy="120"
+                                                  r="4"
+                                                  fill={corBolaLucro}
+                                                />
+                                                <text
+                                                  x={textoLabelX}
+                                                  y="125"
+                                                  fill="#111827"
+                                                  fontSize="14"
+                                                  fontWeight="600"
+                                                  textAnchor={textAnchor}
+                                                >
+                                                  {lucro >= 0 ? 'Lucro' : 'Prejuízo'}: {formatCurrency(Math.abs(lucro))}
+                                                </text>
+                                              </g>
                                             </>
                                           );
                                         })()}
