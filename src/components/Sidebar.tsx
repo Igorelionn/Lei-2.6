@@ -189,11 +189,12 @@ function DesktopSidebar() {
         className={cn(
           "group/toggle absolute -right-3.5 top-[45%] -translate-y-1/2 z-50",
           "h-7 w-7 rounded-full",
-          "bg-gray-900 border-2 border-white",
-          "shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
-          "hover:bg-gray-700 hover:shadow-[0_3px_12px_rgba(0,0,0,0.3)]",
-          "hover:scale-110",
-          "active:scale-95 active:bg-gray-800",
+          "bg-white",
+          "border border-gray-200",
+          "shadow-[0_1px_3px_rgba(0,0,0,0.1),0_1px_2px_rgba(0,0,0,0.06)]",
+          "hover:shadow-[0_4px_12px_rgba(0,0,0,0.1)]",
+          "hover:border-gray-300",
+          "active:scale-95",
           "flex items-center justify-center",
           "transition-all duration-200 ease-out",
           "cursor-pointer"
@@ -201,9 +202,9 @@ function DesktopSidebar() {
         title={isCollapsed ? "Expandir menu" : "Retrair menu"}
       >
         {isCollapsed ? (
-          <ChevronsRight className="h-3.5 w-3.5 text-white" />
+          <ChevronsRight className="h-3.5 w-3.5 text-gray-500 group-hover/toggle:text-gray-800 transition-colors duration-150" />
         ) : (
-          <ChevronsLeft className="h-3.5 w-3.5 text-white" />
+          <ChevronsLeft className="h-3.5 w-3.5 text-gray-500 group-hover/toggle:text-gray-800 transition-colors duration-150" />
         )}
       </button>
 
