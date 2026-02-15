@@ -1316,62 +1316,39 @@ function Relatorios() {
 
                 {/* Legenda e Filtros */}
                 <div className="flex items-center justify-between mt-3 mb-2">
-                  <div className="flex items-center gap-3 sm:gap-4 lg:gap-6">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                      <span className="text-sm text-gray-600 font-medium">Faturamento</span>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-[3px]"></div>
+                      <span className="text-xs text-gray-500 font-medium tracking-wide uppercase">Faturamento</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                      <span className="text-sm text-gray-600 font-medium">Despesas</span>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-2.5 h-2.5 bg-gray-400 rounded-[3px]"></div>
+                      <span className="text-xs text-gray-500 font-medium tracking-wide uppercase">Despesas</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => setIncluirPatrocinios(!incluirPatrocinios)}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
-                        incluirPatrocinios
-                          ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-2 h-2 rounded-full transition-colors duration-200",
-                        incluirPatrocinios ? "bg-indigo-500" : "bg-gray-300"
-                      )} />
-                      Patrocínios
-                    </button>
-                    <button
-                      onClick={() => setDescontarComissaoCompra(!descontarComissaoCompra)}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
-                        descontarComissaoCompra
-                          ? "bg-amber-50 text-amber-700 border-amber-200"
-                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-2 h-2 rounded-full transition-colors duration-200",
-                        descontarComissaoCompra ? "bg-amber-500" : "bg-gray-300"
-                      )} />
-                      % Compra
-                    </button>
-                    <button
-                      onClick={() => setIncluirComissaoVenda(!incluirComissaoVenda)}
-                      className={cn(
-                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
-                        incluirComissaoVenda
-                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
-                      )}
-                    >
-                      <div className={cn(
-                        "w-2 h-2 rounded-full transition-colors duration-200",
-                        incluirComissaoVenda ? "bg-emerald-500" : "bg-gray-300"
-                      )} />
-                      % Venda
-                    </button>
+                  <div className="flex items-center gap-1.5">
+                    {[
+                      { active: incluirPatrocinios, toggle: () => setIncluirPatrocinios(!incluirPatrocinios), label: 'Patrocínios' },
+                      { active: descontarComissaoCompra, toggle: () => setDescontarComissaoCompra(!descontarComissaoCompra), label: '% Compra' },
+                      { active: incluirComissaoVenda, toggle: () => setIncluirComissaoVenda(!incluirComissaoVenda), label: '% Venda' },
+                    ].map((item, idx) => (
+                      <button
+                        key={idx}
+                        onClick={item.toggle}
+                        className={cn(
+                          "relative flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150",
+                          item.active
+                            ? "bg-gray-900 text-white shadow-sm"
+                            : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                        )}
+                      >
+                        <div className={cn(
+                          "w-1.5 h-1.5 rounded-full transition-colors duration-150",
+                          item.active ? "bg-white" : "bg-gray-300"
+                        )} />
+                        {item.label}
+                      </button>
+                    ))}
                   </div>
                 </div>
 
