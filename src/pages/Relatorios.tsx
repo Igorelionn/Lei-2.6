@@ -2177,9 +2177,9 @@ function Relatorios() {
                                         y1="25"
                                         x2={calcularCentroPeriodo(hoveredPoint.index)}
                                         y2="375"
-                                        stroke="#D1D5DB"
-                                        strokeWidth="0.75"
-                                        strokeDasharray="3,5"
+                                        stroke="#9CA3AF"
+                                        strokeWidth="1"
+                                        strokeDasharray="4,4"
                                         style={{ pointerEvents: 'none', transition: 'x1 0.1s ease-out, x2 0.1s ease-out' }}
                                       />
                                     )}
@@ -2193,177 +2193,183 @@ function Relatorios() {
                                           const metadeGrafico = larguraGrafico / 2;
                                           
                                           const lucro = hoveredPoint.faturamento - hoveredPoint.despesas;
-                                          const corLucro = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
+                                          const corResultado = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
+                                          const labelResultado = lucro > 0 ? 'Lucro' : lucro < 0 ? 'Prejuízo' : 'Neutro';
                                           
-                                          // Construir linhas do tooltip
+                                          // Montar lista de itens do tooltip
                                           const temPatrocinios = incluirPatrocinios && (hoveredPoint.faturamentoPatrocinios || 0) > 0;
                                           const temArrematantes = (hoveredPoint.faturamentoArrematantes || 0) > 0;
                                           const temComissaoCompra = descontarComissaoCompra && (hoveredPoint.comissaoCompra || 0) > 0;
                                           const temComissaoVenda = incluirComissaoVenda && (hoveredPoint.valorConvidados || 0) > 0;
-                                          
-                                          // Montar array de itens do tooltip
-                                          type TooltipItem = { label: string; value: string; color: string; isSub?: boolean; isSeparator?: boolean; isBold?: boolean };
-                                          const items: TooltipItem[] = [];
-                                          
-                                          // Faturamento
-                                          items.push({ label: 'Faturamento', value: formatCurrency(hoveredPoint.faturamento), color: '#6366F1', isBold: false });
+                                          const temSubItens = (incluirPatrocinios && (temArrematantes || temPatrocinios)) || temComissaoCompra || temComissaoVenda;
                                           
                                           // Sub-itens do faturamento
+                                          const subItems: { label: string; value: string; color: string }[] = [];
                                           if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
                                             let valorArr = hoveredPoint.faturamentoArrematantes || 0;
                                             if (descontarComissaoCompra) valorArr -= (hoveredPoint.comissaoCompra || 0);
                                             if (incluirComissaoVenda) valorArr = valorArr - (hoveredPoint.valorConvidados || 0) + (hoveredPoint.comissaoVenda || 0);
-                                            items.push({ label: 'Arrematantes', value: formatCurrency(valorArr), color: '#9CA3AF', isSub: true });
-                                            items.push({ label: 'Patrocínios', value: formatCurrency(hoveredPoint.faturamentoPatrocinios || 0), color: '#9CA3AF', isSub: true });
+                                            subItems.push({ label: 'Arrematantes', value: formatCurrency(valorArr), color: '#9CA3AF' });
+                                            subItems.push({ label: 'Patrocínios', value: formatCurrency(hoveredPoint.faturamentoPatrocinios || 0), color: '#9CA3AF' });
                                           }
                                           if (temComissaoCompra) {
-                                            items.push({ label: 'Comissão compra', value: '- ' + formatCurrency(hoveredPoint.comissaoCompra || 0), color: '#D97706', isSub: true });
+                                            subItems.push({ label: 'Comissão de compra', value: '- ' + formatCurrency(hoveredPoint.comissaoCompra || 0), color: '#D97706' });
                                           }
                                           if (temComissaoVenda) {
-                                            items.push({ label: 'Convidados', value: '- ' + formatCurrency(hoveredPoint.valorConvidados || 0), color: '#DC2626', isSub: true });
-                                            items.push({ label: 'Comissão venda', value: '+ ' + formatCurrency(hoveredPoint.comissaoVenda || 0), color: '#059669', isSub: true });
+                                            subItems.push({ label: 'Convidados removidos', value: '- ' + formatCurrency(hoveredPoint.valorConvidados || 0), color: '#EF4444' });
+                                            subItems.push({ label: 'Comissão de venda', value: formatCurrency(hoveredPoint.comissaoVenda || 0), color: '#10B981' });
                                           }
                                           
-                                          // Despesas
-                                          items.push({ label: 'Despesas', value: formatCurrency(hoveredPoint.despesas), color: '#9CA3AF', isBold: false });
-                                          
-                                          // Separador e Resultado
-                                          items.push({ label: '', value: '', color: '', isSeparator: true });
-                                          items.push({ label: lucro >= 0 ? 'Lucro' : 'Prejuízo', value: formatCurrency(Math.abs(lucro)), color: corLucro, isBold: true });
-                                          
-                                          // Dimensões
-                                          const lineH = 22;
-                                          const subLineH = 17;
-                                          const sepH = 10;
-                                          const paddingY = 20;
-                                          const paddingX = 22;
-                                          
-                                          let contentHeight = 24; // título
-                                          items.forEach(item => {
-                                            if (item.isSeparator) contentHeight += sepH;
-                                            else if (item.isSub) contentHeight += subLineH;
-                                            else contentHeight += lineH;
-                                          });
-                                          
-                                          const alturaTooltip = contentHeight + paddingY * 2;
-                                          const tooltipWidth = 250;
+                                          // Calcular dimensões
+                                          const lineH = 20;
+                                          const subLineH = 16;
+                                          const padding = 20;
+                                          const headerH = 32;
+                                          const separatorH = 12;
+                                          const mainRowsH = 3 * lineH; // faturamento, despesas, resultado
+                                          const subItemsH = subItems.length * subLineH;
+                                          const sepCount = temSubItens ? 2 : 1; // separador antes resultado + antes sub-itens
+                                          const tooltipH = padding + headerH + mainRowsH + subItemsH + (sepCount * separatorH) + padding - 8;
+                                          const tooltipW = temSubItens ? 260 : 220;
                                           
                                           const estaDoLadoDireito = pontoX > metadeGrafico;
-                                          const tooltipX = estaDoLadoDireito 
-                                            ? pontoX - tooltipWidth - 20
-                                            : pontoX + 15;
-                                          const tooltipY = 10;
+                                          const tX = estaDoLadoDireito ? pontoX - tooltipW - 18 : pontoX + 18;
+                                          const anchor = estaDoLadoDireito ? "end" : "start";
+                                          const labelX = tX + (estaDoLadoDireito ? tooltipW - padding : padding);
+                                          const valueX = tX + (estaDoLadoDireito ? padding : tooltipW - padding);
+                                          const valueAnchor = estaDoLadoDireito ? "start" : "end";
+                                          const subLabelX = tX + (estaDoLadoDireito ? tooltipW - padding - 8 : padding + 8);
                                           
-                                          let currentY = tooltipY + paddingY;
+                                          let cy = 10; // tooltip Y start
                                           
                                           return (
                                             <>
-                                              {/* Sombra suave */}
+                                              {/* Sombra */}
                                               <rect
-                                                x={tooltipX}
-                                                y={tooltipY + 3}
-                                                width={tooltipWidth}
-                                                height={alturaTooltip}
-                                                rx="12"
-                                                fill="black"
-                                                fillOpacity="0.04"
+                                                x={tX + 1} y={cy + 3}
+                                                width={tooltipW} height={tooltipH}
+                                                rx="8" fill="black" fillOpacity="0.04"
                                                 style={{ filter: 'blur(8px)' }}
                                               />
-                                              {/* Fundo principal */}
+                                              {/* Fundo */}
                                               <rect
-                                                x={tooltipX}
-                                                y={tooltipY}
-                                                width={tooltipWidth}
-                                                height={alturaTooltip}
-                                                rx="12"
-                                                fill="white"
-                                                fillOpacity="0.98"
-                                                stroke="#F3F4F6"
-                                                strokeWidth="1"
+                                                x={tX} y={cy}
+                                                width={tooltipW} height={tooltipH}
+                                                rx="8" fill="white" fillOpacity="0.98"
+                                                stroke="#F3F4F6" strokeWidth="1"
+                                              />
+                                              {/* Barra superior colorida */}
+                                              <rect
+                                                x={tX} y={cy}
+                                                width={tooltipW} height="3"
+                                                rx="8" fill={corResultado} fillOpacity="0.6"
+                                              />
+                                              <rect
+                                                x={tX} y={cy + 2}
+                                                width={tooltipW} height="6"
+                                                fill="white" fillOpacity="0.98"
                                               />
                                               
-                                              {/* Título - período */}
-                                              <text
-                                                x={tooltipX + paddingX}
-                                                y={currentY + 4}
-                                                fill="#9CA3AF"
-                                                fontSize="11"
-                                                fontWeight="500"
-                                                letterSpacing="0.05em"
-                                                textAnchor="start"
-                                              >
-                                                {(hoveredPoint.mes || '').toUpperCase()}
-                                              </text>
-                                              
-                                              {/* Itens */}
+                                              {/* Header - período */}
                                               {(() => {
-                                                let y = currentY + 24;
-                                                return items.map((item, idx) => {
-                                                  if (item.isSeparator) {
-                                                    const sepY = y + sepH / 2;
-                                                    y += sepH;
-                                                    return (
-                                                      <line
-                                                        key={idx}
-                                                        x1={tooltipX + paddingX}
-                                                        y1={sepY}
-                                                        x2={tooltipX + tooltipWidth - paddingX}
-                                                        y2={sepY}
-                                                        stroke="#F3F4F6"
-                                                        strokeWidth="1"
-                                                      />
-                                                    );
-                                                  }
-                                                  
-                                                  const itemY = y;
-                                                  const h = item.isSub ? subLineH : lineH;
-                                                  y += h;
-                                                  
-                                                  const fontSize = item.isSub ? "11" : item.isBold ? "13" : "12.5";
-                                                  const fontWeight = item.isBold ? "600" : item.isSub ? "400" : "500";
-                                                  const labelColor = item.isSub ? "#D1D5DB" : item.isBold ? item.color : "#6B7280";
-                                                  const valueColor = item.isSub ? item.color : item.isBold ? item.color : "#111827";
-                                                  const labelX = tooltipX + paddingX + (item.isSub ? 8 : 0);
-                                                  
-                                                  return (
-                                                    <g key={idx}>
-                                                      {/* Indicador */}
-                                                      {!item.isSub && (
-                                                        <rect
-                                                          x={tooltipX + paddingX}
-                                                          y={itemY - 4}
-                                                          width="3"
-                                                          height="12"
-                                                          rx="1.5"
-                                                          fill={item.color}
-                                                          fillOpacity={item.isBold ? "1" : "0.6"}
-                                                        />
-                                                      )}
-                                                      {/* Label */}
-                                                      <text
-                                                        x={!item.isSub ? labelX + 10 : labelX}
-                                                        y={itemY + 5}
-                                                        fill={labelColor}
-                                                        fontSize={fontSize}
-                                                        fontWeight={fontWeight}
-                                                        textAnchor="start"
-                                                      >
-                                                        {item.label}
-                                                      </text>
-                                                      {/* Valor */}
-                                                      <text
-                                                        x={tooltipX + tooltipWidth - paddingX}
-                                                        y={itemY + 5}
-                                                        fill={valueColor}
-                                                        fontSize={fontSize}
-                                                        fontWeight={item.isBold ? "700" : item.isSub ? "500" : "600"}
-                                                        textAnchor="end"
-                                                      >
-                                                        {item.value}
-                                                      </text>
-                                                    </g>
-                                                  );
-                                                });
+                                                cy += padding;
+                                                return (
+                                                  <text
+                                                    x={labelX} y={cy + 4}
+                                                    fill="#374151" fontSize="11"
+                                                    fontWeight="700" textAnchor={anchor}
+                                                    style={{ letterSpacing: '0.08em', textTransform: 'uppercase' } as React.CSSProperties}
+                                                  >
+                                                    {hoveredPoint.mes}
+                                                  </text>
+                                                );
+                                              })()}
+                                              
+                                              {/* Linha divisória header */}
+                                              {(() => {
+                                                cy += 18;
+                                                return (
+                                                  <line
+                                                    x1={tX + padding} y1={cy}
+                                                    x2={tX + tooltipW - padding} y2={cy}
+                                                    stroke="#F3F4F6" strokeWidth="1"
+                                                  />
+                                                );
+                                              })()}
+                                              
+                                              {/* Faturamento */}
+                                              {(() => {
+                                                cy += lineH;
+                                                return (
+                                                  <g>
+                                                    <rect x={labelX - (estaDoLadoDireito ? 0 : 2)} y={cy - 4} width="3" height="12" rx="1.5" fill="#6366F1" />
+                                                    <text x={labelX + (estaDoLadoDireito ? -8 : 8)} y={cy + 6} fill="#6B7280" fontSize="12" fontWeight="500" textAnchor={anchor}>
+                                                      Faturamento
+                                                    </text>
+                                                    <text x={valueX} y={cy + 6} fill="#111827" fontSize="13" fontWeight="600" textAnchor={valueAnchor}>
+                                                      {formatCurrency(hoveredPoint.faturamento)}
+                                                    </text>
+                                                  </g>
+                                                );
+                                              })()}
+                                              
+                                              {/* Sub-itens do faturamento */}
+                                              {subItems.map((item, idx) => {
+                                                cy += subLineH;
+                                                return (
+                                                  <g key={`sub-${idx}`}>
+                                                    <text x={subLabelX} y={cy + 6} fill={item.color} fontSize="10" fontWeight="400" textAnchor={anchor}>
+                                                      {item.label}
+                                                    </text>
+                                                    <text x={valueX} y={cy + 6} fill={item.color} fontSize="10" fontWeight="500" textAnchor={valueAnchor}>
+                                                      {item.value}
+                                                    </text>
+                                                  </g>
+                                                );
+                                              })}
+                                              
+                                              {/* Despesas */}
+                                              {(() => {
+                                                cy += lineH;
+                                                return (
+                                                  <g>
+                                                    <rect x={labelX - (estaDoLadoDireito ? 0 : 2)} y={cy - 4} width="3" height="12" rx="1.5" fill="#9CA3AF" />
+                                                    <text x={labelX + (estaDoLadoDireito ? -8 : 8)} y={cy + 6} fill="#6B7280" fontSize="12" fontWeight="500" textAnchor={anchor}>
+                                                      Despesas
+                                                    </text>
+                                                    <text x={valueX} y={cy + 6} fill="#111827" fontSize="13" fontWeight="600" textAnchor={valueAnchor}>
+                                                      {formatCurrency(hoveredPoint.despesas)}
+                                                    </text>
+                                                  </g>
+                                                );
+                                              })()}
+                                              
+                                              {/* Separador antes do resultado */}
+                                              {(() => {
+                                                cy += lineH;
+                                                return (
+                                                  <line
+                                                    x1={tX + padding} y1={cy}
+                                                    x2={tX + tooltipW - padding} y2={cy}
+                                                    stroke="#F3F4F6" strokeWidth="1"
+                                                  />
+                                                );
+                                              })()}
+                                              
+                                              {/* Resultado (Lucro/Prejuízo) */}
+                                              {(() => {
+                                                cy += separatorH + 4;
+                                                return (
+                                                  <g>
+                                                    <rect x={labelX - (estaDoLadoDireito ? 0 : 2)} y={cy - 4} width="3" height="12" rx="1.5" fill={corResultado} />
+                                                    <text x={labelX + (estaDoLadoDireito ? -8 : 8)} y={cy + 6} fill={corResultado} fontSize="12" fontWeight="600" textAnchor={anchor}>
+                                                      {labelResultado}
+                                                    </text>
+                                                    <text x={valueX} y={cy + 6} fill={corResultado} fontSize="14" fontWeight="700" textAnchor={valueAnchor}>
+                                                      {formatCurrency(Math.abs(lucro))}
+                                                    </text>
+                                                  </g>
+                                                );
                                               })()}
                                             </>
                                           );
