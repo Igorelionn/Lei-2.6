@@ -184,30 +184,28 @@ function DesktopSidebar() {
   return (
     <div className="relative flex-shrink-0 hidden md:block">
       {/* Botão toggle no nível mais alto, acima de tudo */}
-      <div className="group/edge absolute -right-4 top-[45%] -translate-y-1/2 z-50 flex items-center justify-center">
-        <button
-          onClick={toggleSidebar}
-          className={cn(
-            "group/toggle relative",
-            "h-8 w-8 rounded-full",
-            "bg-white border border-gray-200 shadow-sm",
-            "opacity-60 group-hover/edge:opacity-100",
-            "group-hover/edge:shadow-md group-hover/edge:border-gray-300",
-            "hover:!bg-gray-100 hover:!border-gray-400 hover:!shadow-lg",
-            "active:scale-90 active:shadow-sm",
-            "flex items-center justify-center",
-            "transition-all duration-200 ease-out",
-            "cursor-pointer"
-          )}
-          title={isCollapsed ? "Expandir menu" : "Retrair menu"}
-        >
-          {isCollapsed ? (
-            <ChevronsRight className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
-          ) : (
-            <ChevronsLeft className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
-          )}
-        </button>
-      </div>
+      <button
+        onClick={toggleSidebar}
+        className={cn(
+          "group/toggle absolute -right-3.5 top-[45%] -translate-y-1/2 z-50",
+          "h-7 w-7 rounded-full",
+          "bg-gray-900 border-2 border-white",
+          "shadow-[0_2px_8px_rgba(0,0,0,0.25)]",
+          "hover:bg-gray-700 hover:shadow-[0_3px_12px_rgba(0,0,0,0.3)]",
+          "hover:scale-110",
+          "active:scale-95 active:bg-gray-800",
+          "flex items-center justify-center",
+          "transition-all duration-200 ease-out",
+          "cursor-pointer"
+        )}
+        title={isCollapsed ? "Expandir menu" : "Retrair menu"}
+      >
+        {isCollapsed ? (
+          <ChevronsRight className="h-3.5 w-3.5 text-white" />
+        ) : (
+          <ChevronsLeft className="h-3.5 w-3.5 text-white" />
+        )}
+      </button>
 
       <div className={cn(
         "bg-card border-r border-border h-screen flex flex-col transition-all duration-300 ease-in-out",
