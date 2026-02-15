@@ -270,10 +270,11 @@ function Relatorios() {
   // Estado para o gráfico de evolução
   const [incluirPatrocinios, setIncluirPatrocinios] = useState(false);
   const [descontarComissaoCompra, setDescontarComissaoCompra] = useState(false);
-  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string; faturamentoArrematantes?: number; faturamentoPatrocinios?: number; comissaoCompra?: number } | null>(null);
+  const [incluirComissaoVenda, setIncluirComissaoVenda] = useState(false);
+  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string; faturamentoArrematantes?: number; faturamentoPatrocinios?: number; comissaoCompra?: number; comissaoVenda?: number; valorConvidados?: number } | null>(null);
   
   const svgRef = useRef<SVGSVGElement>(null);
-  const dadosGraficoRef = useRef<Array<{ faturamento: number; despesas: number; mes: string; faturamentoArrematantes: number; faturamentoPatrocinios: number; comissaoCompra: number; x?: number; y?: number; label?: string }>>([]);
+  const dadosGraficoRef = useRef<Array<{ faturamento: number; despesas: number; mes: string; faturamentoArrematantes: number; faturamentoPatrocinios: number; comissaoCompra: number; comissaoVenda: number; valorConvidados: number; x?: number; y?: number; label?: string }>>([]);
   
   // Handler fluido de mouse para o gráfico
   const handleChartMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -1356,6 +1357,21 @@ function Relatorios() {
                       )} />
                       % Compra
                     </button>
+                    <button
+                      onClick={() => setIncluirComissaoVenda(!incluirComissaoVenda)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
+                        incluirComissaoVenda
+                          ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-2 h-2 rounded-full transition-colors duration-200",
+                        incluirComissaoVenda ? "bg-emerald-500" : "bg-gray-300"
+                      )} />
+                      % Venda
+                    </button>
                   </div>
                 </div>
 
@@ -1760,9 +1776,80 @@ function Relatorios() {
                                     return sum;
                                   }, 0) || 0;
                                   
-                                  // Calcular faturamento total: base - comissão (se filtro ativo) + patrocínios (se filtro ativo)
+                                  // COMISSÃO DE VENDA = Valor recebido de arrematantes de lotes de CONVIDADOS × % de venda
+                                  // Quando ativo: remove o valor total dos convidados do faturamento e adiciona só a comissão
+                                  const dadosComissaoVenda = auctions?.reduce((acc, auction) => {
+                                    if (auction.arrematante && !auction.arquivado) {
+                                      const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
+                                      if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
+                                        const arrematante = auction.arrematante;
+                                        const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
+                                        
+                                        // Só considerar se o lote é de convidado
+                                        if (!loteArrematado?.isConvidado) return acc;
+                                        
+                                        const percentualVenda = arrematante?.percentualComissaoVenda ?? loteArrematado?.percentualComissaoVenda ?? auction.percentualComissaoVenda ?? 0;
+                                        
+                                        // Calcular valor recebido deste arrematante de convidado
+                                        let valorRecebidoArr = 0;
+                                        const parcelasPagas = arrematante?.parcelasPagas || 0;
+                                        
+                                        if (arrematante?.pago) {
+                                          valorRecebidoArr = arrematante?.valorPagarNumerico || 0;
+                                        } else if (parcelasPagas > 0) {
+                                          const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+                                          const valorTotal = arrematante?.valorPagarNumerico || 0;
+                                          
+                                          if (tipoPagamento === 'entrada_parcelamento') {
+                                            const valorEntrada = arrematante?.valorEntrada ? 
+                                              (typeof arrematante.valorEntrada === 'string' ? 
+                                                parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
+                                                arrematante.valorEntrada) : 
+                                              valorTotal * 0.3;
+                                            const estrutura = calcularEstruturaParcelas(
+                                              valorTotal,
+                                              arrematante.parcelasTriplas || 0,
+                                              arrematante.parcelasDuplas || 0,
+                                              arrematante.parcelasSimples || 0
+                                            );
+                                            if (parcelasPagas >= 1) {
+                                              valorRecebidoArr = valorEntrada;
+                                              const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
+                                              valorRecebidoArr += estrutura.slice(0, parcelasEfetivasPagas).reduce((s, p) => s + p.valor, 0);
+                                            }
+                                          } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
+                                            const estrutura = calcularEstruturaParcelas(
+                                              valorTotal,
+                                              arrematante.parcelasTriplas || 0,
+                                              arrematante.parcelasDuplas || 0,
+                                              arrematante.parcelasSimples || 0
+                                            );
+                                            valorRecebidoArr = estrutura.slice(0, parcelasPagas).reduce((s, p) => s + p.valor, 0);
+                                          } else if (tipoPagamento === 'a_vista') {
+                                            valorRecebidoArr = parcelasPagas > 0 ? (arrematante?.valorPagarNumerico || 0) : 0;
+                                          }
+                                        }
+                                        
+                                        // Comissão de venda = percentual sobre o valor recebido do convidado
+                                        const comissao = percentualVenda > 0 ? valorRecebidoArr * (percentualVenda / 100) : 0;
+                                        
+                                        acc.valorConvidados += valorRecebidoArr;
+                                        acc.comissaoVenda += comissao;
+                                      }
+                                    }
+                                    return acc;
+                                  }, { valorConvidados: 0, comissaoVenda: 0 }) || { valorConvidados: 0, comissaoVenda: 0 };
+                                  
+                                  const comissaoVendaPeriodo = dadosComissaoVenda.comissaoVenda;
+                                  const valorConvidadosPeriodo = dadosComissaoVenda.valorConvidados;
+                                  
+                                  // Calcular faturamento total:
+                                  // base - comissão compra (se filtro ativo) + patrocínios (se filtro ativo)
+                                  // Se comissão venda ativa: remover valor integral dos convidados e adicionar só a comissão
                                   const faturamentoTotalPeriodo = faturamentoPeriodo 
                                     - (descontarComissaoCompra ? comissaoCompraPeriodo : 0) 
+                                    - (incluirComissaoVenda ? valorConvidadosPeriodo : 0)
+                                    + (incluirComissaoVenda ? comissaoVendaPeriodo : 0)
                                     + (incluirPatrocinios ? totalPatrocinios : 0);
                                   
                                   // DESPESAS = Custos de todos os leilões com custos definidos (passados ou futuros)
@@ -1796,6 +1883,8 @@ function Relatorios() {
                                     faturamentoArrematantes: faturamentoPeriodo,
                                     faturamentoPatrocinios: totalPatrocinios,
                                     comissaoCompra: comissaoCompraPeriodo,
+                                    comissaoVenda: comissaoVendaPeriodo,
+                                    valorConvidados: valorConvidadosPeriodo,
                                     despesas: despesasPeriodo
                                   };
                                 };
@@ -2086,19 +2175,23 @@ function Relatorios() {
                                           // Calcular linhas do tooltip dinamicamente
                                           const temPatrocinios = incluirPatrocinios && (hoveredPoint.faturamentoPatrocinios || 0) > 0;
                                           const temArrematantes = (hoveredPoint.faturamentoArrematantes || 0) > 0;
-                                          const temComissao = descontarComissaoCompra && (hoveredPoint.comissaoCompra || 0) > 0;
+                                          const temComissaoCompra = descontarComissaoCompra && (hoveredPoint.comissaoCompra || 0) > 0;
+                                          const temComissaoVenda = incluirComissaoVenda && (hoveredPoint.valorConvidados || 0) > 0;
                                           
                                           // Linhas extras: sub-itens de faturamento
                                           let linhasExtras = 0;
                                           if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
                                             linhasExtras = 2; // Arrematantes + Patrocínios
                                           }
-                                          if (temComissao) {
+                                          if (temComissaoCompra) {
                                             linhasExtras += 1; // Comissão de Compra
+                                          }
+                                          if (temComissaoVenda) {
+                                            linhasExtras += 2; // Convidados removidos + Comissão de Venda adicionada
                                           }
                                           
                                           const alturaTooltip = 150 + (linhasExtras * 18);
-                                          const tooltipWidth = 240;
+                                          const tooltipWidth = linhasExtras > 2 ? 270 : 240;
                                           
                                           // Se estiver na metade direita, posicionar à esquerda do ponto
                                           const estaDoLadoDireito = pontoX > metadeGrafico;
@@ -2161,14 +2254,21 @@ function Relatorios() {
                                                 const subItems: { label: string; value: number; color: string }[] = [];
                                                 
                                                 if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
-                                                  // Mostrar arrematantes (sem comissão se filtro ativo)
-                                                  const valorArr = (hoveredPoint.faturamentoArrematantes || 0) - (descontarComissaoCompra ? (hoveredPoint.comissaoCompra || 0) : 0);
+                                                  // Mostrar arrematantes ajustados
+                                                  let valorArr = hoveredPoint.faturamentoArrematantes || 0;
+                                                  if (descontarComissaoCompra) valorArr -= (hoveredPoint.comissaoCompra || 0);
+                                                  if (incluirComissaoVenda) valorArr = valorArr - (hoveredPoint.valorConvidados || 0) + (hoveredPoint.comissaoVenda || 0);
                                                   subItems.push({ label: 'Arrematantes', value: valorArr, color: '#6B7280' });
                                                   subItems.push({ label: 'Patrocínios', value: hoveredPoint.faturamentoPatrocinios || 0, color: '#6B7280' });
                                                 }
                                                 
-                                                if (temComissao) {
+                                                if (temComissaoCompra) {
                                                   subItems.push({ label: 'Comissão de compra', value: -(hoveredPoint.comissaoCompra || 0), color: '#D97706' });
+                                                }
+                                                
+                                                if (temComissaoVenda) {
+                                                  subItems.push({ label: 'Convidados removidos', value: -(hoveredPoint.valorConvidados || 0), color: '#DC2626' });
+                                                  subItems.push({ label: 'Comissão de venda', value: hoveredPoint.comissaoVenda || 0, color: '#059669' });
                                                 }
                                                 
                                                 return subItems.map((item, idx) => (
