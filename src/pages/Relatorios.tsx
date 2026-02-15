@@ -1316,39 +1316,85 @@ function Relatorios() {
 
                 {/* Legenda e Filtros */}
                 <div className="flex items-center justify-between mt-3 mb-2">
-                  <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 bg-indigo-500 rounded-[3px]"></div>
-                      <span className="text-xs text-gray-500 font-medium tracking-wide uppercase">Faturamento</span>
+                  <div className="flex items-center gap-3 sm:gap-4 lg:gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                      <span className="text-sm text-gray-600 font-medium">Faturamento</span>
                     </div>
-                    <div className="flex items-center gap-1.5">
-                      <div className="w-2.5 h-2.5 bg-gray-400 rounded-[3px]"></div>
-                      <span className="text-xs text-gray-500 font-medium tracking-wide uppercase">Despesas</span>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                      <span className="text-sm text-gray-600 font-medium">Despesas</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1 bg-gray-50/80 rounded-lg p-0.5">
-                    {[
-                      { label: 'Patrocínios', active: incluirPatrocinios, toggle: () => setIncluirPatrocinios(!incluirPatrocinios), dotColor: 'bg-indigo-400' },
-                      { label: '% Compra', active: descontarComissaoCompra, toggle: () => setDescontarComissaoCompra(!descontarComissaoCompra), dotColor: 'bg-amber-400' },
-                      { label: '% Venda', active: incluirComissaoVenda, toggle: () => setIncluirComissaoVenda(!incluirComissaoVenda), dotColor: 'bg-emerald-400' },
-                    ].map((filter) => (
-                      <button
-                        key={filter.label}
-                        onClick={filter.toggle}
-                        className={cn(
-                          "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150",
-                          filter.active
-                            ? "bg-white text-gray-800 shadow-sm"
-                            : "text-gray-400 hover:text-gray-600"
-                        )}
-                      >
-                        <div className={cn(
-                          "w-1.5 h-1.5 rounded-full transition-all duration-150",
-                          filter.active ? filter.dotColor : "bg-gray-300"
-                        )} />
-                        {filter.label}
-                      </button>
-                    ))}
+                  <div className="flex items-center gap-2">
+                    {/* Botão Patrocínios */}
+                    <button
+                      onClick={() => setIncluirPatrocinios(!incluirPatrocinios)}
+                      className={cn(
+                        "group relative flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-300",
+                        incluirPatrocinios
+                          ? "text-indigo-700"
+                          : "text-gray-400 hover:text-gray-700"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                        incluirPatrocinios ? "bg-indigo-500 scale-110" : "bg-gray-300"
+                      )} />
+                      <span>Patrocínios</span>
+                      <div className={cn(
+                        "absolute bottom-0 left-0 h-0.5 bg-indigo-500 transition-all duration-300",
+                        incluirPatrocinios ? "w-full" : "w-0 group-hover:w-full"
+                      )} />
+                    </button>
+                    
+                    {/* Separador vertical */}
+                    <div className="h-4 w-px bg-gray-200" />
+                    
+                    {/* Botão % Compra */}
+                    <button
+                      onClick={() => setDescontarComissaoCompra(!descontarComissaoCompra)}
+                      className={cn(
+                        "group relative flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-300",
+                        descontarComissaoCompra
+                          ? "text-amber-700"
+                          : "text-gray-400 hover:text-gray-700"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                        descontarComissaoCompra ? "bg-amber-500 scale-110" : "bg-gray-300"
+                      )} />
+                      <span>% Compra</span>
+                      <div className={cn(
+                        "absolute bottom-0 left-0 h-0.5 bg-amber-500 transition-all duration-300",
+                        descontarComissaoCompra ? "w-full" : "w-0 group-hover:w-full"
+                      )} />
+                    </button>
+                    
+                    {/* Separador vertical */}
+                    <div className="h-4 w-px bg-gray-200" />
+                    
+                    {/* Botão % Venda */}
+                    <button
+                      onClick={() => setIncluirComissaoVenda(!incluirComissaoVenda)}
+                      className={cn(
+                        "group relative flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-300",
+                        incluirComissaoVenda
+                          ? "text-emerald-700"
+                          : "text-gray-400 hover:text-gray-700"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-1.5 h-1.5 rounded-full transition-all duration-300",
+                        incluirComissaoVenda ? "bg-emerald-500 scale-110" : "bg-gray-300"
+                      )} />
+                      <span>% Venda</span>
+                      <div className={cn(
+                        "absolute bottom-0 left-0 h-0.5 bg-emerald-500 transition-all duration-300",
+                        incluirComissaoVenda ? "w-full" : "w-0 group-hover:w-full"
+                      )} />
+                    </button>
                   </div>
                 </div>
 
