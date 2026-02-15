@@ -269,10 +269,11 @@ function Relatorios() {
   
   // Estado para o gráfico de evolução
   const [incluirPatrocinios, setIncluirPatrocinios] = useState(false);
-  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string; faturamentoArrematantes?: number; faturamentoPatrocinios?: number } | null>(null);
+  const [descontarComissaoCompra, setDescontarComissaoCompra] = useState(false);
+  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string; faturamentoArrematantes?: number; faturamentoPatrocinios?: number; comissaoCompra?: number } | null>(null);
   
   const svgRef = useRef<SVGSVGElement>(null);
-  const dadosGraficoRef = useRef<Array<{ faturamento: number; despesas: number; mes: string; faturamentoArrematantes: number; faturamentoPatrocinios: number; x?: number; y?: number; label?: string }>>([]);
+  const dadosGraficoRef = useRef<Array<{ faturamento: number; despesas: number; mes: string; faturamentoArrematantes: number; faturamentoPatrocinios: number; comissaoCompra: number; x?: number; y?: number; label?: string }>>([]);
   
   // Handler fluido de mouse para o gráfico
   const handleChartMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -1324,21 +1325,38 @@ function Relatorios() {
                       <span className="text-sm text-gray-600 font-medium">Despesas</span>
                     </div>
                   </div>
-                  <button
-                    onClick={() => setIncluirPatrocinios(!incluirPatrocinios)}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
-                      incluirPatrocinios
-                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
-                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
-                    )}
-                  >
-                    <div className={cn(
-                      "w-2 h-2 rounded-full transition-colors duration-200",
-                      incluirPatrocinios ? "bg-indigo-500" : "bg-gray-300"
-                    )} />
-                    Patrocínios
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={() => setIncluirPatrocinios(!incluirPatrocinios)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
+                        incluirPatrocinios
+                          ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-2 h-2 rounded-full transition-colors duration-200",
+                        incluirPatrocinios ? "bg-indigo-500" : "bg-gray-300"
+                      )} />
+                      Patrocínios
+                    </button>
+                    <button
+                      onClick={() => setDescontarComissaoCompra(!descontarComissaoCompra)}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
+                        descontarComissaoCompra
+                          ? "bg-amber-50 text-amber-700 border-amber-200"
+                          : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
+                      )}
+                    >
+                      <div className={cn(
+                        "w-2 h-2 rounded-full transition-colors duration-200",
+                        descontarComissaoCompra ? "bg-amber-500" : "bg-gray-300"
+                      )} />
+                      % Compra
+                    </button>
+                  </div>
                 </div>
 
                 
@@ -1672,7 +1690,80 @@ function Relatorios() {
                                     return sum;
                                   }, 0) || 0;
                                   
-                                  const faturamentoTotalPeriodo = faturamentoPeriodo + (incluirPatrocinios ? totalPatrocinios : 0);
+                                  // COMISSÃO DE COMPRA = Porcentagem de compra embutida no faturamento recebido
+                                  // Cada leilão pode ter sua própria porcentagem de comissão
+                                  const comissaoCompraPeriodo = auctions?.reduce((sum, auction) => {
+                                    if (auction.arrematante && !auction.arquivado) {
+                                      const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
+                                      if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
+                                        const arrematante = auction.arrematante;
+                                        const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante.loteId);
+                                        const percentualComissao = arrematante?.percentualComissaoLeiloeiro ?? loteArrematado?.percentualComissaoLeiloeiro ?? auction.percentualComissaoLeiloeiro ?? 0;
+                                        
+                                        if (percentualComissao <= 0) return sum;
+                                        
+                                        // Calcular o valor recebido desse arrematante (mesmo cálculo do faturamento)
+                                        let valorRecebidoArr = 0;
+                                        const parcelasPagas = arrematante?.parcelasPagas || 0;
+                                        
+                                        if (arrematante?.pago) {
+                                          valorRecebidoArr = arrematante?.valorPagarNumerico || 0;
+                                        } else if (parcelasPagas > 0) {
+                                          const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+                                          const valorTotal = arrematante?.valorPagarNumerico || 0;
+                                          
+                                          if (tipoPagamento === 'entrada_parcelamento') {
+                                            const valorEntrada = arrematante?.valorEntrada ? 
+                                              (typeof arrematante.valorEntrada === 'string' ? 
+                                                parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
+                                                arrematante.valorEntrada) : 
+                                              valorTotal * 0.3;
+                                            const estrutura = calcularEstruturaParcelas(
+                                              valorTotal,
+                                              arrematante.parcelasTriplas || 0,
+                                              arrematante.parcelasDuplas || 0,
+                                              arrematante.parcelasSimples || 0
+                                            );
+                                            if (parcelasPagas >= 1) {
+                                              valorRecebidoArr = valorEntrada;
+                                              const parcelasEfetivasPagas = Math.max(0, parcelasPagas - 1);
+                                              valorRecebidoArr += estrutura.slice(0, parcelasEfetivasPagas).reduce((s, p) => s + p.valor, 0);
+                                            }
+                                          } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
+                                            const estrutura = calcularEstruturaParcelas(
+                                              valorTotal,
+                                              arrematante.parcelasTriplas || 0,
+                                              arrematante.parcelasDuplas || 0,
+                                              arrematante.parcelasSimples || 0
+                                            );
+                                            valorRecebidoArr = estrutura.slice(0, parcelasPagas).reduce((s, p) => s + p.valor, 0);
+                                          } else if (tipoPagamento === 'a_vista') {
+                                            valorRecebidoArr = parcelasPagas > 0 ? (arrematante?.valorPagarNumerico || 0) : 0;
+                                          }
+                                        }
+                                        
+                                        // Extrair comissão: se usaFatorMultiplicador, o valor já inclui comissão
+                                        // Fórmula: comissão = valorRecebido * taxa / (100 + taxa)
+                                        // Caso contrário: comissão = valorRecebido * taxa / 100
+                                        let comissao = 0;
+                                        if (valorRecebidoArr > 0) {
+                                          if (arrematante?.usaFatorMultiplicador) {
+                                            comissao = valorRecebidoArr * percentualComissao / (100 + percentualComissao);
+                                          } else {
+                                            comissao = valorRecebidoArr * (percentualComissao / 100);
+                                          }
+                                        }
+                                        
+                                        return sum + comissao;
+                                      }
+                                    }
+                                    return sum;
+                                  }, 0) || 0;
+                                  
+                                  // Calcular faturamento total: base - comissão (se filtro ativo) + patrocínios (se filtro ativo)
+                                  const faturamentoTotalPeriodo = faturamentoPeriodo 
+                                    - (descontarComissaoCompra ? comissaoCompraPeriodo : 0) 
+                                    + (incluirPatrocinios ? totalPatrocinios : 0);
                                   
                                   // DESPESAS = Custos de todos os leilões com custos definidos (passados ou futuros)
                                   const despesasPeriodo = auctions?.reduce((sum, auction) => {
@@ -1704,6 +1795,7 @@ function Relatorios() {
                                     faturamento: faturamentoTotalPeriodo,
                                     faturamentoArrematantes: faturamentoPeriodo,
                                     faturamentoPatrocinios: totalPatrocinios,
+                                    comissaoCompra: comissaoCompraPeriodo,
                                     despesas: despesasPeriodo
                                   };
                                 };
@@ -1994,14 +2086,18 @@ function Relatorios() {
                                           // Calcular linhas do tooltip dinamicamente
                                           const temPatrocinios = incluirPatrocinios && (hoveredPoint.faturamentoPatrocinios || 0) > 0;
                                           const temArrematantes = (hoveredPoint.faturamentoArrematantes || 0) > 0;
+                                          const temComissao = descontarComissaoCompra && (hoveredPoint.comissaoCompra || 0) > 0;
                                           
-                                          // Linhas extras: sub-itens de faturamento quando incluirPatrocinios está ativo
+                                          // Linhas extras: sub-itens de faturamento
                                           let linhasExtras = 0;
                                           if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
                                             linhasExtras = 2; // Arrematantes + Patrocínios
                                           }
+                                          if (temComissao) {
+                                            linhasExtras += 1; // Comissão de Compra
+                                          }
                                           
-                                          const alturaTooltip = 150 + (linhasExtras * 22);
+                                          const alturaTooltip = 150 + (linhasExtras * 18);
                                           const tooltipWidth = 240;
                                           
                                           // Se estiver na metade direita, posicionar à esquerda do ponto
@@ -2060,28 +2156,38 @@ function Relatorios() {
                                                   Faturamento: {formatCurrency(hoveredPoint.faturamento)}
                                                 </text>
                                               </g>
-                                              {/* Sub-itens do faturamento quando filtro de patrocínios ativo */}
-                                              {incluirPatrocinios && (temArrematantes || temPatrocinios) && (
-                                                <>
-                                                  <text x={textoSubLabelX} y={yPos + 50} fill="#6B7280" fontSize="12" fontWeight="400" textAnchor={textAnchor}>
-                                                    Arrematantes: {formatCurrency(hoveredPoint.faturamentoArrematantes || 0)}
+                                              {/* Sub-itens do faturamento */}
+                                              {(() => {
+                                                const subItems: { label: string; value: number; color: string }[] = [];
+                                                
+                                                if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
+                                                  // Mostrar arrematantes (sem comissão se filtro ativo)
+                                                  const valorArr = (hoveredPoint.faturamentoArrematantes || 0) - (descontarComissaoCompra ? (hoveredPoint.comissaoCompra || 0) : 0);
+                                                  subItems.push({ label: 'Arrematantes', value: valorArr, color: '#6B7280' });
+                                                  subItems.push({ label: 'Patrocínios', value: hoveredPoint.faturamentoPatrocinios || 0, color: '#6B7280' });
+                                                }
+                                                
+                                                if (temComissao) {
+                                                  subItems.push({ label: '% Compra descontada', value: -(hoveredPoint.comissaoCompra || 0), color: '#D97706' });
+                                                }
+                                                
+                                                return subItems.map((item, idx) => (
+                                                  <text key={idx} x={textoSubLabelX} y={yPos + 50 + (idx * 18)} fill={item.color} fontSize="12" fontWeight="400" textAnchor={textAnchor}>
+                                                    {item.label}: {item.value < 0 ? '-' : ''}{formatCurrency(Math.abs(item.value))}
                                                   </text>
-                                                  <text x={textoSubLabelX} y={yPos + 68} fill="#6B7280" fontSize="12" fontWeight="400" textAnchor={textAnchor}>
-                                                    Patrocínios: {formatCurrency(hoveredPoint.faturamentoPatrocinios || 0)}
-                                                  </text>
-                                                </>
-                                              )}
+                                                ));
+                                              })()}
                                               {/* Despesas */}
                                               <g>
-                                                <circle cx={textoCirculoX} cy={yPos + 25 + 30 + (linhasExtras * 22)} r="4" fill="#9CA3AF" />
-                                                <text x={textoLabelX} y={yPos + 30 + 30 + (linhasExtras * 22)} fill="#111827" fontSize="14" fontWeight="500" textAnchor={textAnchor}>
+                                                <circle cx={textoCirculoX} cy={yPos + 25 + 30 + (linhasExtras * 18)} r="4" fill="#9CA3AF" />
+                                                <text x={textoLabelX} y={yPos + 30 + 30 + (linhasExtras * 18)} fill="#111827" fontSize="14" fontWeight="500" textAnchor={textAnchor}>
                                                   Despesas: {formatCurrency(hoveredPoint.despesas)}
                                                 </text>
                                               </g>
                                               {/* Lucro/Prejuízo */}
                                               <g>
-                                                <circle cx={textoCirculoX} cy={yPos + 25 + 60 + (linhasExtras * 22)} r="4" fill={corBolaLucro} />
-                                                <text x={textoLabelX} y={yPos + 30 + 60 + (linhasExtras * 22)} fill="#111827" fontSize="14" fontWeight="600" textAnchor={textAnchor}>
+                                                <circle cx={textoCirculoX} cy={yPos + 25 + 60 + (linhasExtras * 18)} r="4" fill={corBolaLucro} />
+                                                <text x={textoLabelX} y={yPos + 30 + 60 + (linhasExtras * 18)} fill="#111827" fontSize="14" fontWeight="600" textAnchor={textAnchor}>
                                                   {lucro >= 0 ? 'Lucro' : 'Prejuízo'}: {formatCurrency(Math.abs(lucro))}
                                                 </text>
                                               </g>
