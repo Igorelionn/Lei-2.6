@@ -1,6 +1,6 @@
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useState } from "react";
+import React, { useState } from "react";
 import {
   Home,
   Gavel,
@@ -51,7 +51,7 @@ const menuItems: MenuItem[] = [
 ];
 
 /** Conteúdo compartilhado do sidebar (usado desktop e mobile) */
-function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
+function SidebarContent({ collapsed, onNavigate, toggleButton }: { collapsed: boolean; onNavigate?: () => void; toggleButton?: React.ReactNode }) {
   const location = useLocation();
   const { logout } = useAuth();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
@@ -64,8 +64,11 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
   return (
     <>
       <nav className="flex-1 p-3 xl:p-4 flex flex-col overflow-y-auto">
-        <ul className="space-y-1 xl:space-y-2 flex-1">
-          {menuItems.map((item) => {
+        {/* Wrapper relativo apenas dos itens do menu - o toggleButton fica centralizado aqui */}
+        <div className="relative">
+          {toggleButton}
+          <ul className="space-y-1 xl:space-y-2">
+            {menuItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             const hasSubitems = item.subitems && item.subitems.length > 0;
@@ -152,7 +155,11 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
               </li>
             );
           })}
-        </ul>
+          </ul>
+        </div>
+        
+        {/* Spacer para empurrar o logout para baixo */}
+        <div className="flex-1" />
         
         {/* Botão de Logout */}
         <div className="mt-4 pt-4 border-t border-border">
@@ -204,36 +211,35 @@ function DesktopSidebar() {
           )}
         </div>
         
-        {/* Área de navegação com botão toggle centralizado entre os itens do menu */}
-        <div className="relative flex-1 flex flex-col min-h-0">
-          {/* Botão toggle posicionado na borda direita, centralizado na área do menu */}
-          <div className="group/edge absolute -right-4 top-0 bottom-0 w-8 z-10 flex items-center justify-center">
-            <button
-              onClick={toggleSidebar}
-              className={cn(
-                "group/toggle relative",
-                "h-8 w-8 rounded-full",
-                "bg-white border border-gray-200 shadow-sm",
-                "opacity-60 group-hover/edge:opacity-100",
-                "group-hover/edge:shadow-md group-hover/edge:border-gray-300",
-                "hover:!bg-gray-100 hover:!border-gray-400 hover:!shadow-lg",
-                "active:scale-90 active:shadow-sm",
-                "flex items-center justify-center",
-                "transition-all duration-200 ease-out",
-                "cursor-pointer"
-              )}
-              title={isCollapsed ? "Expandir menu" : "Retrair menu"}
-            >
-              {isCollapsed ? (
-                <ChevronsRight className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
-              ) : (
-                <ChevronsLeft className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
-              )}
-            </button>
-          </div>
-          
-          <SidebarContent collapsed={isCollapsed} />
-        </div>
+        <SidebarContent 
+          collapsed={isCollapsed} 
+          toggleButton={
+            <div className="group/edge absolute -right-7 top-0 bottom-0 w-8 z-10 flex items-center justify-center">
+              <button
+                onClick={toggleSidebar}
+                className={cn(
+                  "group/toggle relative",
+                  "h-8 w-8 rounded-full",
+                  "bg-white border border-gray-200 shadow-sm",
+                  "opacity-60 group-hover/edge:opacity-100",
+                  "group-hover/edge:shadow-md group-hover/edge:border-gray-300",
+                  "hover:!bg-gray-100 hover:!border-gray-400 hover:!shadow-lg",
+                  "active:scale-90 active:shadow-sm",
+                  "flex items-center justify-center",
+                  "transition-all duration-200 ease-out",
+                  "cursor-pointer"
+                )}
+                title={isCollapsed ? "Expandir menu" : "Retrair menu"}
+              >
+                {isCollapsed ? (
+                  <ChevronsRight className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
+                ) : (
+                  <ChevronsLeft className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
+                )}
+              </button>
+            </div>
+          }
+        />
       </div>
     </div>
   );
