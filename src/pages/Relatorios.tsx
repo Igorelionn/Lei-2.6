@@ -267,10 +267,11 @@ function Relatorios() {
   const [paymentTypeFilter, setPaymentTypeFilter] = useState<'todos' | 'a_vista' | 'parcelamento' | 'entrada_parcelamento'>('todos');
   
   // Estado para o gráfico de evolução
-  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string } | null>(null);
+  const [incluirPatrocinios, setIncluirPatrocinios] = useState(false);
+  const [hoveredPoint, setHoveredPoint] = useState<{ x: number; y: number; label: string; index: number; faturamento: number; despesas: number; mes?: string; faturamentoArrematantes?: number; faturamentoPatrocinios?: number } | null>(null);
   
   const svgRef = useRef<SVGSVGElement>(null);
-  const dadosGraficoRef = useRef<Array<{ faturamento: number; despesas: number; mes: string; x?: number; y?: number; label?: string }>>([]);
+  const dadosGraficoRef = useRef<Array<{ faturamento: number; despesas: number; mes: string; faturamentoArrematantes: number; faturamentoPatrocinios: number; x?: number; y?: number; label?: string }>>([]);
   
   // Handler fluido de mouse para o gráfico
   const handleChartMouseMove = useCallback((e: React.MouseEvent<SVGSVGElement>) => {
@@ -1310,16 +1311,33 @@ function Relatorios() {
                       )}
                 </div>
 
-                {/* Legenda */}
-                <div className="flex items-center gap-3 sm:gap-4 lg:gap-6 mt-3 mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
-                    <span className="text-sm text-gray-600 font-medium">Faturamento</span>
+                {/* Legenda e Filtros */}
+                <div className="flex items-center justify-between mt-3 mb-2">
+                  <div className="flex items-center gap-3 sm:gap-4 lg:gap-6">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-indigo-500 rounded-full"></div>
+                      <span className="text-sm text-gray-600 font-medium">Faturamento</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                      <span className="text-sm text-gray-600 font-medium">Despesas</span>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
-                    <span className="text-sm text-gray-600 font-medium">Despesas</span>
-                  </div>
+                  <button
+                    onClick={() => setIncluirPatrocinios(!incluirPatrocinios)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all duration-200 border",
+                      incluirPatrocinios
+                        ? "bg-indigo-50 text-indigo-700 border-indigo-200"
+                        : "bg-white text-gray-500 border-gray-200 hover:border-gray-300 hover:text-gray-700"
+                    )}
+                  >
+                    <div className={cn(
+                      "w-2 h-2 rounded-full transition-colors duration-200",
+                      incluirPatrocinios ? "bg-indigo-500" : "bg-gray-300"
+                    )} />
+                    Patrocínios
+                  </button>
                 </div>
 
                 
@@ -1603,7 +1621,7 @@ function Relatorios() {
                                     return sum;
                                   }, 0) || 0;
                                   
-                                  const faturamentoTotalPeriodo = faturamentoPeriodo + totalPatrocinios;
+                                  const faturamentoTotalPeriodo = faturamentoPeriodo + (incluirPatrocinios ? totalPatrocinios : 0);
                                   
                                   // DESPESAS = Custos de todos os leilões com custos definidos (passados ou futuros)
                                   const despesasPeriodo = auctions?.reduce((sum, auction) => {
@@ -1633,6 +1651,8 @@ function Relatorios() {
                                   return {
                                     mes: label,
                                     faturamento: faturamentoTotalPeriodo,
+                                    faturamentoArrematantes: faturamentoPeriodo,
+                                    faturamentoPatrocinios: totalPatrocinios,
                                     despesas: despesasPeriodo
                                   };
                                 };
@@ -1919,18 +1939,33 @@ function Relatorios() {
                                           
                                           const lucro = hoveredPoint.faturamento - hoveredPoint.despesas;
                                           const corBolaLucro = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
-                                          const alturaTooltip = 150;
+                                          
+                                          // Calcular linhas do tooltip dinamicamente
+                                          const temPatrocinios = incluirPatrocinios && (hoveredPoint.faturamentoPatrocinios || 0) > 0;
+                                          const temArrematantes = (hoveredPoint.faturamentoArrematantes || 0) > 0;
+                                          
+                                          // Linhas extras: sub-itens de faturamento quando incluirPatrocinios está ativo
+                                          let linhasExtras = 0;
+                                          if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
+                                            linhasExtras = 2; // Arrematantes + Patrocínios
+                                          }
+                                          
+                                          const alturaTooltip = 150 + (linhasExtras * 22);
+                                          const tooltipWidth = 240;
                                           
                                           // Se estiver na metade direita, posicionar à esquerda do ponto
                                           const estaDoLadoDireito = pontoX > metadeGrafico;
                                           const tooltipX = estaDoLadoDireito 
-                                            ? pontoX - 200 - 15  // À esquerda do ponto
-                                            : pontoX + 5;                   // À direita do ponto
+                                            ? pontoX - tooltipWidth - 15
+                                            : pontoX + 5;
                                           
-                                          const textoPrincipalX = tooltipX + (estaDoLadoDireito ? 175 : 25);
-                                          const textoCirculoX = tooltipX + (estaDoLadoDireito ? 175 : 25);
-                                          const textoLabelX = tooltipX + (estaDoLadoDireito ? 165 : 35);
+                                          const textoPrincipalX = tooltipX + (estaDoLadoDireito ? tooltipWidth - 25 : 25);
+                                          const textoCirculoX = tooltipX + (estaDoLadoDireito ? tooltipWidth - 25 : 25);
+                                          const textoLabelX = tooltipX + (estaDoLadoDireito ? tooltipWidth - 35 : 35);
+                                          const textoSubLabelX = tooltipX + (estaDoLadoDireito ? tooltipWidth - 45 : 45);
                                           const textAnchor = estaDoLadoDireito ? "end" : "start";
+                                          
+                                          let yPos = 35; // Posição Y inicial
                                           
                                           return (
                                             <>
@@ -1938,7 +1973,7 @@ function Relatorios() {
                                               <rect
                                                 x={tooltipX + 2}
                                                 y="7"
-                                                width="200"
+                                                width={tooltipWidth}
                                                 height={alturaTooltip}
                                                 rx="10"
                                                 fill="black"
@@ -1948,7 +1983,7 @@ function Relatorios() {
                                               <rect
                                                 x={tooltipX}
                                                 y="4"
-                                                width="200"
+                                                width={tooltipWidth}
                                                 height={alturaTooltip}
                                                 rx="10"
                                                 fill="white"
@@ -1956,9 +1991,10 @@ function Relatorios() {
                                                 stroke="#E5E7EB"
                                                 strokeWidth="0.5"
                                               />
+                                              {/* Título do período */}
                                               <text
                                                 x={textoPrincipalX}
-                                                y="35"
+                                                y={yPos}
                                                 fill="#111827"
                                                 fontSize="15"
                                                 fontWeight="600"
@@ -1966,57 +2002,35 @@ function Relatorios() {
                                               >
                                                 {hoveredPoint.mes}
                                               </text>
+                                              {/* Faturamento total */}
                                               <g>
-                                                <circle
-                                                  cx={textoCirculoX}
-                                                  cy="60"
-                                                  r="4"
-                                                  fill="#6366F1"
-                                                />
-                                                <text
-                                                  x={textoLabelX}
-                                                  y="65"
-                                                  fill="#111827"
-                                                  fontSize="14"
-                                                  fontWeight="500"
-                                                  textAnchor={textAnchor}
-                                                >
+                                                <circle cx={textoCirculoX} cy={yPos + 25} r="4" fill="#6366F1" />
+                                                <text x={textoLabelX} y={yPos + 30} fill="#111827" fontSize="14" fontWeight="500" textAnchor={textAnchor}>
                                                   Faturamento: {formatCurrency(hoveredPoint.faturamento)}
                                                 </text>
                                               </g>
+                                              {/* Sub-itens do faturamento quando filtro de patrocínios ativo */}
+                                              {incluirPatrocinios && (temArrematantes || temPatrocinios) && (
+                                                <>
+                                                  <text x={textoSubLabelX} y={yPos + 50} fill="#6B7280" fontSize="12" fontWeight="400" textAnchor={textAnchor}>
+                                                    Arrematantes: {formatCurrency(hoveredPoint.faturamentoArrematantes || 0)}
+                                                  </text>
+                                                  <text x={textoSubLabelX} y={yPos + 68} fill="#6B7280" fontSize="12" fontWeight="400" textAnchor={textAnchor}>
+                                                    Patrocínios: {formatCurrency(hoveredPoint.faturamentoPatrocinios || 0)}
+                                                  </text>
+                                                </>
+                                              )}
+                                              {/* Despesas */}
                                               <g>
-                                                <circle
-                                                  cx={textoCirculoX}
-                                                  cy="90"
-                                                  r="4"
-                                                  fill="#9CA3AF"
-                                                />
-                                                <text
-                                                  x={textoLabelX}
-                                                  y="95"
-                                                  fill="#111827"
-                                                  fontSize="14"
-                                                  fontWeight="500"
-                                                  textAnchor={textAnchor}
-                                                >
+                                                <circle cx={textoCirculoX} cy={yPos + 25 + 30 + (linhasExtras * 22)} r="4" fill="#9CA3AF" />
+                                                <text x={textoLabelX} y={yPos + 30 + 30 + (linhasExtras * 22)} fill="#111827" fontSize="14" fontWeight="500" textAnchor={textAnchor}>
                                                   Despesas: {formatCurrency(hoveredPoint.despesas)}
                                                 </text>
                                               </g>
+                                              {/* Lucro/Prejuízo */}
                                               <g>
-                                                <circle
-                                                  cx={textoCirculoX}
-                                                  cy="120"
-                                                  r="4"
-                                                  fill={corBolaLucro}
-                                                />
-                                                <text
-                                                  x={textoLabelX}
-                                                  y="125"
-                                                  fill="#111827"
-                                                  fontSize="14"
-                                                  fontWeight="600"
-                                                  textAnchor={textAnchor}
-                                                >
+                                                <circle cx={textoCirculoX} cy={yPos + 25 + 60 + (linhasExtras * 22)} r="4" fill={corBolaLucro} />
+                                                <text x={textoLabelX} y={yPos + 30 + 60 + (linhasExtras * 22)} fill="#111827" fontSize="14" fontWeight="600" textAnchor={textAnchor}>
                                                   {lucro >= 0 ? 'Lucro' : 'Prejuízo'}: {formatCurrency(Math.abs(lucro))}
                                                 </text>
                                               </g>
