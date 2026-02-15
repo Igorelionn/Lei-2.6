@@ -1326,27 +1326,27 @@ function Relatorios() {
                       <span className="text-xs text-gray-500 font-medium tracking-wide uppercase">Despesas</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-1 bg-gray-50/80 rounded-lg p-0.5">
                     {[
-                      { active: incluirPatrocinios, toggle: () => setIncluirPatrocinios(!incluirPatrocinios), label: 'Patrocínios' },
-                      { active: descontarComissaoCompra, toggle: () => setDescontarComissaoCompra(!descontarComissaoCompra), label: '% Compra' },
-                      { active: incluirComissaoVenda, toggle: () => setIncluirComissaoVenda(!incluirComissaoVenda), label: '% Venda' },
-                    ].map((item, idx) => (
+                      { label: 'Patrocínios', active: incluirPatrocinios, toggle: () => setIncluirPatrocinios(!incluirPatrocinios), dotColor: 'bg-indigo-400' },
+                      { label: '% Compra', active: descontarComissaoCompra, toggle: () => setDescontarComissaoCompra(!descontarComissaoCompra), dotColor: 'bg-amber-400' },
+                      { label: '% Venda', active: incluirComissaoVenda, toggle: () => setIncluirComissaoVenda(!incluirComissaoVenda), dotColor: 'bg-emerald-400' },
+                    ].map((filter) => (
                       <button
-                        key={idx}
-                        onClick={item.toggle}
+                        key={filter.label}
+                        onClick={filter.toggle}
                         className={cn(
-                          "relative flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150",
-                          item.active
-                            ? "bg-gray-900 text-white shadow-sm"
-                            : "text-gray-400 hover:text-gray-600 hover:bg-gray-50"
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium transition-all duration-150",
+                          filter.active
+                            ? "bg-white text-gray-800 shadow-sm"
+                            : "text-gray-400 hover:text-gray-600"
                         )}
                       >
                         <div className={cn(
-                          "w-1.5 h-1.5 rounded-full transition-colors duration-150",
-                          item.active ? "bg-white" : "bg-gray-300"
+                          "w-1.5 h-1.5 rounded-full transition-all duration-150",
+                          filter.active ? filter.dotColor : "bg-gray-300"
                         )} />
-                        {item.label}
+                        {filter.label}
                       </button>
                     ))}
                   </div>
