@@ -2168,12 +2168,12 @@ function Relatorios() {
                                                 }
                                                 
                                                 if (temComissao) {
-                                                  subItems.push({ label: '% Compra descontada', value: -(hoveredPoint.comissaoCompra || 0), color: '#D97706' });
+                                                  subItems.push({ label: 'Comissão de compra', value: -(hoveredPoint.comissaoCompra || 0), color: '#D97706' });
                                                 }
                                                 
                                                 return subItems.map((item, idx) => (
                                                   <text key={idx} x={textoSubLabelX} y={yPos + 50 + (idx * 18)} fill={item.color} fontSize="12" fontWeight="400" textAnchor={textAnchor}>
-                                                    {item.label}: {item.value < 0 ? '-' : ''}{formatCurrency(Math.abs(item.value))}
+                                                    {item.label}: {item.value < 0 ? '- ' : ''}{formatCurrency(Math.abs(item.value))}
                                                   </text>
                                                 ));
                                               })()}
