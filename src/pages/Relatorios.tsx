@@ -2177,9 +2177,9 @@ function Relatorios() {
                                         y1="25"
                                         x2={calcularCentroPeriodo(hoveredPoint.index)}
                                         y2="375"
-                                        stroke="#9CA3AF"
-                                        strokeWidth="1"
-                                        strokeDasharray="4,4"
+                                        stroke="#D1D5DB"
+                                        strokeWidth="0.75"
+                                        strokeDasharray="3,5"
                                         style={{ pointerEvents: 'none', transition: 'x1 0.1s ease-out, x2 0.1s ease-out' }}
                                       />
                                     )}
@@ -2193,127 +2193,163 @@ function Relatorios() {
                                           const metadeGrafico = larguraGrafico / 2;
                                           
                                           const lucro = hoveredPoint.faturamento - hoveredPoint.despesas;
-                                          const corBolaLucro = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
+                                          const corLucro = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
+                                          const bgLucro = lucro > 0 ? "#ECFDF5" : lucro < 0 ? "#FEF2F2" : "#F9FAFB";
                                           
-                                          // Calcular linhas do tooltip dinamicamente
+                                          // Sub-itens dinâmicos
                                           const temPatrocinios = incluirPatrocinios && (hoveredPoint.faturamentoPatrocinios || 0) > 0;
                                           const temArrematantes = (hoveredPoint.faturamentoArrematantes || 0) > 0;
                                           const temComissaoCompra = descontarComissaoCompra && (hoveredPoint.comissaoCompra || 0) > 0;
                                           const temComissaoVenda = incluirComissaoVenda && (hoveredPoint.valorConvidados || 0) > 0;
                                           
-                                          // Linhas extras: sub-itens de faturamento
-                                          let linhasExtras = 0;
+                                          const subItems: { label: string; value: string; color: string }[] = [];
                                           if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
-                                            linhasExtras = 2; // Arrematantes + Patrocínios
+                                            let valorArr = hoveredPoint.faturamentoArrematantes || 0;
+                                            if (descontarComissaoCompra) valorArr -= (hoveredPoint.comissaoCompra || 0);
+                                            if (incluirComissaoVenda) valorArr = valorArr - (hoveredPoint.valorConvidados || 0) + (hoveredPoint.comissaoVenda || 0);
+                                            subItems.push({ label: 'Arrematantes', value: formatCurrency(valorArr), color: '#9CA3AF' });
+                                            subItems.push({ label: 'Patrocínios', value: formatCurrency(hoveredPoint.faturamentoPatrocinios || 0), color: '#9CA3AF' });
                                           }
                                           if (temComissaoCompra) {
-                                            linhasExtras += 1; // Comissão de Compra
+                                            subItems.push({ label: 'Comissão de compra', value: '- ' + formatCurrency(hoveredPoint.comissaoCompra || 0), color: '#D97706' });
                                           }
                                           if (temComissaoVenda) {
-                                            linhasExtras += 2; // Convidados removidos + Comissão de Venda adicionada
+                                            subItems.push({ label: 'Convidados removidos', value: '- ' + formatCurrency(hoveredPoint.valorConvidados || 0), color: '#DC2626' });
+                                            subItems.push({ label: 'Comissão de venda', value: formatCurrency(hoveredPoint.comissaoVenda || 0), color: '#059669' });
                                           }
                                           
-                                          const alturaTooltip = 150 + (linhasExtras * 18);
-                                          const tooltipWidth = linhasExtras > 2 ? 270 : 240;
+                                          // Dimensões do tooltip
+                                          const paddingV = 20;
+                                          const tituloH = 28;
+                                          const separadorH = 16;
+                                          const linhaH = 26;
+                                          const subLinhaH = 18;
+                                          const lucroAreaH = 38;
+                                          const tooltipWidth = subItems.length > 0 ? 260 : 220;
+                                          const alturaTooltip = paddingV + tituloH + separadorH + (linhaH * 2) + (subItems.length * subLinhaH) + (subItems.length > 0 ? 8 : 0) + separadorH + lucroAreaH + paddingV;
                                           
-                                          // Se estiver na metade direita, posicionar à esquerda do ponto
                                           const estaDoLadoDireito = pontoX > metadeGrafico;
                                           const tooltipX = estaDoLadoDireito 
-                                            ? pontoX - tooltipWidth - 15
-                                            : pontoX + 5;
+                                            ? pontoX - tooltipWidth - 18
+                                            : pontoX + 18;
+                                          const tooltipY = 10;
                                           
-                                          const textoPrincipalX = tooltipX + (estaDoLadoDireito ? tooltipWidth - 25 : 25);
-                                          const textoCirculoX = tooltipX + (estaDoLadoDireito ? tooltipWidth - 25 : 25);
-                                          const textoLabelX = tooltipX + (estaDoLadoDireito ? tooltipWidth - 35 : 35);
-                                          const textoSubLabelX = tooltipX + (estaDoLadoDireito ? tooltipWidth - 45 : 45);
-                                          const textAnchor = estaDoLadoDireito ? "end" : "start";
+                                          // Posições X para conteúdo
+                                          const padX = 20;
+                                          const contentLeft = tooltipX + padX;
+                                          const contentRight = tooltipX + tooltipWidth - padX;
                                           
-                                          let yPos = 35; // Posição Y inicial
+                                          let cursorY = tooltipY + paddingV;
                                           
                                           return (
                                             <>
-                                              {/* Sombra do tooltip */}
+                                              {/* Sombra suave */}
                                               <rect
-                                                x={tooltipX + 2}
-                                                y="7"
+                                                x={tooltipX + 1}
+                                                y={tooltipY + 2}
                                                 width={tooltipWidth}
                                                 height={alturaTooltip}
-                                                rx="10"
+                                                rx="12"
                                                 fill="black"
-                                                fillOpacity="0.06"
-                                                style={{ filter: 'blur(6px)' }}
+                                                fillOpacity="0.04"
+                                                style={{ filter: 'blur(8px)' }}
                                               />
+                                              {/* Card principal */}
                                               <rect
                                                 x={tooltipX}
-                                                y="4"
+                                                y={tooltipY}
                                                 width={tooltipWidth}
                                                 height={alturaTooltip}
-                                                rx="10"
+                                                rx="12"
                                                 fill="white"
-                                                fillOpacity="0.95"
-                                                stroke="#E5E7EB"
-                                                strokeWidth="0.5"
+                                                stroke="#F3F4F6"
+                                                strokeWidth="1"
                                               />
-                                              {/* Título do período */}
+                                              
+                                              {/* Título - período */}
                                               <text
-                                                x={textoPrincipalX}
-                                                y={yPos}
-                                                fill="#111827"
-                                                fontSize="15"
+                                                x={contentLeft}
+                                                y={cursorY + 14}
+                                                fill="#6B7280"
+                                                fontSize="11"
                                                 fontWeight="600"
-                                                textAnchor={textAnchor}
+                                                letterSpacing="0.08em"
                                               >
-                                                {hoveredPoint.mes}
+                                                {(hoveredPoint.mes || '').toUpperCase()}
                                               </text>
-                                              {/* Faturamento total */}
-                                              <g>
-                                                <circle cx={textoCirculoX} cy={yPos + 25} r="4" fill="#6366F1" />
-                                                <text x={textoLabelX} y={yPos + 30} fill="#111827" fontSize="14" fontWeight="500" textAnchor={textAnchor}>
-                                                  Faturamento: {formatCurrency(hoveredPoint.faturamento)}
-                                                </text>
-                                              </g>
-                                              {/* Sub-itens do faturamento */}
-                                              {(() => {
-                                                const subItems: { label: string; value: number; color: string }[] = [];
-                                                
-                                                if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
-                                                  // Mostrar arrematantes ajustados
-                                                  let valorArr = hoveredPoint.faturamentoArrematantes || 0;
-                                                  if (descontarComissaoCompra) valorArr -= (hoveredPoint.comissaoCompra || 0);
-                                                  if (incluirComissaoVenda) valorArr = valorArr - (hoveredPoint.valorConvidados || 0) + (hoveredPoint.comissaoVenda || 0);
-                                                  subItems.push({ label: 'Arrematantes', value: valorArr, color: '#6B7280' });
-                                                  subItems.push({ label: 'Patrocínios', value: hoveredPoint.faturamentoPatrocinios || 0, color: '#6B7280' });
-                                                }
-                                                
-                                                if (temComissaoCompra) {
-                                                  subItems.push({ label: 'Comissão de compra', value: -(hoveredPoint.comissaoCompra || 0), color: '#D97706' });
-                                                }
-                                                
-                                                if (temComissaoVenda) {
-                                                  subItems.push({ label: 'Convidados removidos', value: -(hoveredPoint.valorConvidados || 0), color: '#DC2626' });
-                                                  subItems.push({ label: 'Comissão de venda', value: hoveredPoint.comissaoVenda || 0, color: '#059669' });
-                                                }
-                                                
-                                                return subItems.map((item, idx) => (
-                                                  <text key={idx} x={textoSubLabelX} y={yPos + 50 + (idx * 18)} fill={item.color} fontSize="12" fontWeight="400" textAnchor={textAnchor}>
-                                                    {item.label}: {item.value < 0 ? '- ' : ''}{formatCurrency(Math.abs(item.value))}
-                                                  </text>
-                                                ));
-                                              })()}
+                                              
+                                              {/* Linha separadora sutil */}
+                                              {(() => { cursorY += tituloH; return null; })()}
+                                              <line
+                                                x1={contentLeft}
+                                                y1={cursorY}
+                                                x2={contentRight}
+                                                y2={cursorY}
+                                                stroke="#F3F4F6"
+                                                strokeWidth="1"
+                                              />
+                                              {(() => { cursorY += separadorH; return null; })()}
+                                              
+                                              {/* Faturamento */}
+                                              <text x={contentLeft} y={cursorY + 12} fill="#9CA3AF" fontSize="11" fontWeight="500" letterSpacing="0.03em">
+                                                Faturamento
+                                              </text>
+                                              <text x={contentRight} y={cursorY + 12} fill="#111827" fontSize="13" fontWeight="600" textAnchor="end">
+                                                {formatCurrency(hoveredPoint.faturamento)}
+                                              </text>
+                                              {(() => { cursorY += linhaH; return null; })()}
+                                              
+                                              {/* Sub-itens */}
+                                              {subItems.map((item, idx) => {
+                                                const itemY = cursorY + (idx * subLinhaH);
+                                                return (
+                                                  <g key={idx}>
+                                                    <text x={contentLeft + 8} y={itemY + 12} fill={item.color} fontSize="10" fontWeight="400" letterSpacing="0.02em">
+                                                      {item.label}
+                                                    </text>
+                                                    <text x={contentRight} y={itemY + 12} fill={item.color} fontSize="10" fontWeight="500" textAnchor="end">
+                                                      {item.value}
+                                                    </text>
+                                                  </g>
+                                                );
+                                              })}
+                                              {(() => { cursorY += (subItems.length * subLinhaH) + (subItems.length > 0 ? 8 : 0); return null; })()}
+                                              
                                               {/* Despesas */}
-                                              <g>
-                                                <circle cx={textoCirculoX} cy={yPos + 25 + 30 + (linhasExtras * 18)} r="4" fill="#9CA3AF" />
-                                                <text x={textoLabelX} y={yPos + 30 + 30 + (linhasExtras * 18)} fill="#111827" fontSize="14" fontWeight="500" textAnchor={textAnchor}>
-                                                  Despesas: {formatCurrency(hoveredPoint.despesas)}
-                                                </text>
-                                              </g>
-                                              {/* Lucro/Prejuízo */}
-                                              <g>
-                                                <circle cx={textoCirculoX} cy={yPos + 25 + 60 + (linhasExtras * 18)} r="4" fill={corBolaLucro} />
-                                                <text x={textoLabelX} y={yPos + 30 + 60 + (linhasExtras * 18)} fill="#111827" fontSize="14" fontWeight="600" textAnchor={textAnchor}>
-                                                  {lucro >= 0 ? 'Lucro' : 'Prejuízo'}: {formatCurrency(Math.abs(lucro))}
-                                                </text>
-                                              </g>
+                                              <text x={contentLeft} y={cursorY + 12} fill="#9CA3AF" fontSize="11" fontWeight="500" letterSpacing="0.03em">
+                                                Despesas
+                                              </text>
+                                              <text x={contentRight} y={cursorY + 12} fill="#111827" fontSize="13" fontWeight="600" textAnchor="end">
+                                                {formatCurrency(hoveredPoint.despesas)}
+                                              </text>
+                                              {(() => { cursorY += linhaH; return null; })()}
+                                              
+                                              {/* Separador antes do resultado */}
+                                              <line
+                                                x1={contentLeft}
+                                                y1={cursorY}
+                                                x2={contentRight}
+                                                y2={cursorY}
+                                                stroke="#F3F4F6"
+                                                strokeWidth="1"
+                                              />
+                                              {(() => { cursorY += separadorH; return null; })()}
+                                              
+                                              {/* Resultado final - Lucro/Prejuízo com fundo colorido */}
+                                              <rect
+                                                x={tooltipX + 10}
+                                                y={cursorY - 4}
+                                                width={tooltipWidth - 20}
+                                                height={28}
+                                                rx="6"
+                                                fill={bgLucro}
+                                              />
+                                              <text x={contentLeft + 2} y={cursorY + 14} fill={corLucro} fontSize="11" fontWeight="600" letterSpacing="0.03em">
+                                                {lucro >= 0 ? 'Lucro' : 'Prejuízo'}
+                                              </text>
+                                              <text x={contentRight - 2} y={cursorY + 14} fill={corLucro} fontSize="13" fontWeight="700" textAnchor="end">
+                                                {formatCurrency(Math.abs(lucro))}
+                                              </text>
                                             </>
                                           );
                                         })()}
