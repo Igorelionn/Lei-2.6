@@ -2417,32 +2417,32 @@ function Relatorios() {
                                                 strokeWidth="1"
                                               />
                                               
-                                              {/* Resultado - Lucro/Prejuízo com fundo colorido */}
-                                              {(() => { cursorY += 6; return null; })()}
+                                              {/* Resultado - Lucro/Prejuízo */}
+                                              {(() => { cursorY += 8; return null; })()}
                                               <rect
-                                                x={contentLeft - 6}
-                                                y={cursorY}
-                                                width={tooltipW - (padding * 2) + 12}
-                                                height="28"
-                                                rx="6"
-                                                fill={bgLucro}
+                                                x={contentLeft - 2}
+                                                y={cursorY + 3}
+                                                width="3"
+                                                height="14"
+                                                rx="1.5"
+                                                fill={corLucro}
                                               />
                                               <text
-                                                x={contentLeft + 4}
-                                                y={cursorY + 18}
-                                                fill={corLucro}
+                                                x={contentLeft + 10}
+                                                y={cursorY + 14}
+                                                fill="#6B7280"
                                                 fontSize="11"
-                                                fontWeight="600"
+                                                fontWeight="500"
                                                 textAnchor="start"
                                               >
                                                 {lucro >= 0 ? 'Lucro' : 'Prejuízo'}
                                               </text>
                                               <text
-                                                x={contentRight - 4}
-                                                y={cursorY + 18}
+                                                x={contentRight}
+                                                y={cursorY + 14}
                                                 fill={corLucro}
-                                                fontSize="14"
-                                                fontWeight="700"
+                                                fontSize="13"
+                                                fontWeight="600"
                                                 textAnchor="end"
                                               >
                                                 {lucro < 0 ? '− ' : ''}{formatCurrency(Math.abs(lucro))}
