@@ -1606,17 +1606,67 @@ function Relatorios() {
                                     return sum;
                                   }, 0) || 0;
                                   
-                                  // Adicionar patrocínios ao faturamento (total recebido de patrocinadores)
-                                  // ✅ Considerar APENAS patrocínios confirmados como recebidos
+                                  // Adicionar patrocínios ao faturamento (total EFETIVAMENTE recebido, incluindo parciais)
                                   const totalPatrocinios = auctions?.reduce((sum, auction) => {
                                     if (!auction.arquivado) {
                                       const dataLeilao = new Date(auction.dataInicio + 'T00:00:00.000');
                                       if (dataLeilao >= dataInicio && dataLeilao <= dataFim) {
-                                        // Somar apenas patrocínios que foram confirmados como recebidos
-                                        const patrociniosRecebidos = (auction.detalhePatrocinios || [])
-                                          .filter(p => p.recebido === true)
-                                          .reduce((sumPatrocinios, p) => sumPatrocinios + (p.valorNumerico || 0), 0);
-                                        return sum + patrociniosRecebidos;
+                                        const patrocinios = auction.detalhePatrocinios || [];
+                                        const valorRecebidoPatrocinios = patrocinios.reduce((subSum, p) => {
+                                          const valorLance = p.valorLanceNumerico || 0;
+                                          
+                                          if (p.formaPagamento === 'entrada_parcelamento') {
+                                            const parcelasRecebidas = p.parcelasRecebidas || 0;
+                                            if (parcelasRecebidas === 0) return subSum;
+                                            
+                                            const valorEntrada = p.valorEntradaNumerico || 0;
+                                            let valorRecebido = 0;
+                                            
+                                            if (parcelasRecebidas >= 1) {
+                                              valorRecebido += valorEntrada;
+                                            }
+                                            
+                                            const parcelasNormaisPagas = Math.max(0, parcelasRecebidas - 1);
+                                            if (parcelasNormaisPagas > 0) {
+                                              const triplas = p.parcelasTriplas || 0;
+                                              const duplas = p.parcelasDuplas || 0;
+                                              const simples = p.parcelasSimples || 0;
+                                              
+                                              const estrutura: number[] = [];
+                                              for (let i = 0; i < triplas; i++) estrutura.push(valorLance * 3);
+                                              for (let i = 0; i < duplas; i++) estrutura.push(valorLance * 2);
+                                              for (let i = 0; i < simples; i++) estrutura.push(valorLance * 1);
+                                              
+                                              valorRecebido += estrutura.slice(0, parcelasNormaisPagas).reduce((s, v) => s + v, 0);
+                                            }
+                                            
+                                            return subSum + valorRecebido;
+                                          } else if (p.formaPagamento === 'parcelamento') {
+                                            const parcelasRecebidas = p.parcelasRecebidas || 0;
+                                            if (parcelasRecebidas === 0) {
+                                              return p.recebido ? subSum + (p.valorNumerico || 0) : subSum;
+                                            }
+                                            
+                                            const triplas = p.parcelasTriplas || 0;
+                                            const duplas = p.parcelasDuplas || 0;
+                                            const simples = p.parcelasSimples || 0;
+                                            
+                                            const estrutura: number[] = [];
+                                            for (let i = 0; i < triplas; i++) estrutura.push(valorLance * 3);
+                                            for (let i = 0; i < duplas; i++) estrutura.push(valorLance * 2);
+                                            for (let i = 0; i < simples; i++) estrutura.push(valorLance * 1);
+                                            
+                                            const valorRecebido = estrutura.slice(0, parcelasRecebidas).reduce((s, v) => s + v, 0);
+                                            return subSum + valorRecebido;
+                                          } else {
+                                            // À vista: se recebido, contar valor total
+                                            if (p.recebido) {
+                                              return subSum + (p.valorNumerico || 0);
+                                            }
+                                          }
+                                          return subSum;
+                                        }, 0);
+                                        return sum + valorRecebidoPatrocinios;
                                       }
                                     }
                                     return sum;
