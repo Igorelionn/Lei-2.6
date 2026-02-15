@@ -214,7 +214,7 @@ function DesktopSidebar() {
         <SidebarContent 
           collapsed={isCollapsed} 
           toggleButton={
-            <div className="group/edge absolute -right-7 top-0 bottom-0 w-8 z-10 flex items-center justify-center">
+            <div className="group/edge absolute -right-7 top-[40%] -translate-y-1/2 w-8 z-10 flex items-center justify-center">
               <button
                 onClick={toggleSidebar}
                 className={cn(
