@@ -204,33 +204,36 @@ function DesktopSidebar() {
           )}
         </div>
         
-        {/* Botão toggle posicionado na borda direita */}
-        <div className="group/edge absolute -right-4 top-0 bottom-0 w-8 z-10 flex items-center justify-center">
-          <button
-            onClick={toggleSidebar}
-            className={cn(
-              "group/toggle relative",
-              "h-8 w-8 rounded-full",
-              "bg-white border border-gray-200 shadow-sm",
-              "opacity-60 group-hover/edge:opacity-100",
-              "group-hover/edge:shadow-md group-hover/edge:border-gray-300",
-              "hover:!bg-gray-100 hover:!border-gray-400 hover:!shadow-lg",
-              "active:scale-90 active:shadow-sm",
-              "flex items-center justify-center",
-              "transition-all duration-200 ease-out",
-              "cursor-pointer"
-            )}
-            title={isCollapsed ? "Expandir menu" : "Retrair menu"}
-          >
-            {isCollapsed ? (
-              <ChevronsRight className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
-            ) : (
-              <ChevronsLeft className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
-            )}
-          </button>
+        {/* Área de navegação com botão toggle centralizado entre os itens do menu */}
+        <div className="relative flex-1 flex flex-col min-h-0">
+          {/* Botão toggle posicionado na borda direita, centralizado na área do menu */}
+          <div className="group/edge absolute -right-4 top-0 bottom-0 w-8 z-10 flex items-center justify-center">
+            <button
+              onClick={toggleSidebar}
+              className={cn(
+                "group/toggle relative",
+                "h-8 w-8 rounded-full",
+                "bg-white border border-gray-200 shadow-sm",
+                "opacity-60 group-hover/edge:opacity-100",
+                "group-hover/edge:shadow-md group-hover/edge:border-gray-300",
+                "hover:!bg-gray-100 hover:!border-gray-400 hover:!shadow-lg",
+                "active:scale-90 active:shadow-sm",
+                "flex items-center justify-center",
+                "transition-all duration-200 ease-out",
+                "cursor-pointer"
+              )}
+              title={isCollapsed ? "Expandir menu" : "Retrair menu"}
+            >
+              {isCollapsed ? (
+                <ChevronsRight className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
+              ) : (
+                <ChevronsLeft className="h-4 w-4 text-gray-400 group-hover/toggle:text-gray-700 transition-colors duration-150" />
+              )}
+            </button>
+          </div>
+          
+          <SidebarContent collapsed={isCollapsed} />
         </div>
-        
-        <SidebarContent collapsed={isCollapsed} />
       </div>
     </div>
   );
