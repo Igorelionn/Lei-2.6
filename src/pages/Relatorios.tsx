@@ -2177,10 +2177,23 @@ function Relatorios() {
                                         y1="25"
                                         x2={calcularCentroPeriodo(hoveredPoint.index)}
                                         y2="375"
-                                        stroke="#9CA3AF"
-                                        strokeWidth="1"
-                                        strokeDasharray="4,4"
+                                        stroke="#111827"
+                                        strokeWidth="0.5"
+                                        strokeOpacity="0.2"
                                         style={{ pointerEvents: 'none', transition: 'x1 0.1s ease-out, x2 0.1s ease-out' }}
+                                      />
+                                    )}
+                                    
+                                    {/* Ponto indicador no topo da barra de faturamento */}
+                                    {hoveredPoint && (
+                                      <circle
+                                        cx={calcularCentroPeriodo(hoveredPoint.index)}
+                                        cy={valorParaY(hoveredPoint.faturamento) - 6}
+                                        r="3"
+                                        fill="#4F46E5"
+                                        stroke="white"
+                                        strokeWidth="1.5"
+                                        style={{ pointerEvents: 'none' }}
                                       />
                                     )}
                                     
@@ -2193,184 +2206,247 @@ function Relatorios() {
                                           const metadeGrafico = larguraGrafico / 2;
                                           
                                           const lucro = hoveredPoint.faturamento - hoveredPoint.despesas;
-                                          const corResultado = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
-                                          const labelResultado = lucro > 0 ? 'Lucro' : lucro < 0 ? 'Prejuízo' : 'Neutro';
+                                          const corLucro = lucro > 0 ? "#059669" : lucro < 0 ? "#DC2626" : "#6B7280";
+                                          const bgLucro = lucro > 0 ? "#ECFDF5" : lucro < 0 ? "#FEF2F2" : "#F9FAFB";
                                           
-                                          // Montar lista de itens do tooltip
+                                          // Calcular sub-itens dinâmicos
                                           const temPatrocinios = incluirPatrocinios && (hoveredPoint.faturamentoPatrocinios || 0) > 0;
                                           const temArrematantes = (hoveredPoint.faturamentoArrematantes || 0) > 0;
                                           const temComissaoCompra = descontarComissaoCompra && (hoveredPoint.comissaoCompra || 0) > 0;
                                           const temComissaoVenda = incluirComissaoVenda && (hoveredPoint.valorConvidados || 0) > 0;
-                                          const temSubItens = (incluirPatrocinios && (temArrematantes || temPatrocinios)) || temComissaoCompra || temComissaoVenda;
                                           
-                                          // Sub-itens do faturamento
-                                          const subItems: { label: string; value: string; color: string }[] = [];
+                                          const subItems: { label: string; value: number; color: string; isNegative?: boolean }[] = [];
                                           if (incluirPatrocinios && (temArrematantes || temPatrocinios)) {
                                             let valorArr = hoveredPoint.faturamentoArrematantes || 0;
                                             if (descontarComissaoCompra) valorArr -= (hoveredPoint.comissaoCompra || 0);
                                             if (incluirComissaoVenda) valorArr = valorArr - (hoveredPoint.valorConvidados || 0) + (hoveredPoint.comissaoVenda || 0);
-                                            subItems.push({ label: 'Arrematantes', value: formatCurrency(valorArr), color: '#9CA3AF' });
-                                            subItems.push({ label: 'Patrocínios', value: formatCurrency(hoveredPoint.faturamentoPatrocinios || 0), color: '#9CA3AF' });
+                                            subItems.push({ label: 'Arrematantes', value: valorArr, color: '#6B7280' });
+                                            subItems.push({ label: 'Patrocínios', value: hoveredPoint.faturamentoPatrocinios || 0, color: '#818CF8' });
                                           }
                                           if (temComissaoCompra) {
-                                            subItems.push({ label: 'Comissão de compra', value: '- ' + formatCurrency(hoveredPoint.comissaoCompra || 0), color: '#D97706' });
+                                            subItems.push({ label: 'Comissão compra', value: hoveredPoint.comissaoCompra || 0, color: '#D97706', isNegative: true });
                                           }
                                           if (temComissaoVenda) {
-                                            subItems.push({ label: 'Convidados removidos', value: '- ' + formatCurrency(hoveredPoint.valorConvidados || 0), color: '#EF4444' });
-                                            subItems.push({ label: 'Comissão de venda', value: formatCurrency(hoveredPoint.comissaoVenda || 0), color: '#10B981' });
+                                            subItems.push({ label: 'Convidados', value: hoveredPoint.valorConvidados || 0, color: '#DC2626', isNegative: true });
+                                            subItems.push({ label: 'Comissão venda', value: hoveredPoint.comissaoVenda || 0, color: '#059669' });
                                           }
                                           
-                                          // Calcular dimensões
-                                          const lineH = 20;
-                                          const subLineH = 16;
+                                          // Layout do tooltip
+                                          const tooltipW = 260;
                                           const padding = 20;
-                                          const headerH = 32;
-                                          const separatorH = 12;
-                                          const mainRowsH = 3 * lineH; // faturamento, despesas, resultado
-                                          const subItemsH = subItems.length * subLineH;
-                                          const sepCount = temSubItens ? 2 : 1; // separador antes resultado + antes sub-itens
-                                          const tooltipH = padding + headerH + mainRowsH + subItemsH + (sepCount * separatorH) + padding - 8;
-                                          const tooltipW = temSubItens ? 260 : 220;
+                                          const headerH = 44;
+                                          const rowH = 28;
+                                          const subRowH = 20;
+                                          const dividerH = 12;
+                                          const resultH = 36;
+                                          
+                                          const mainRows = 2; // Faturamento + Despesas
+                                          const totalH = padding + headerH + (mainRows * rowH) + (subItems.length * subRowH) + dividerH + resultH + padding;
                                           
                                           const estaDoLadoDireito = pontoX > metadeGrafico;
-                                          const tX = estaDoLadoDireito ? pontoX - tooltipW - 18 : pontoX + 18;
-                                          const anchor = estaDoLadoDireito ? "end" : "start";
-                                          const labelX = tX + (estaDoLadoDireito ? tooltipW - padding : padding);
-                                          const valueX = tX + (estaDoLadoDireito ? padding : tooltipW - padding);
-                                          const valueAnchor = estaDoLadoDireito ? "start" : "end";
-                                          const subLabelX = tX + (estaDoLadoDireito ? tooltipW - padding - 8 : padding + 8);
+                                          const tooltipX = estaDoLadoDireito 
+                                            ? pontoX - tooltipW - 20
+                                            : pontoX + 12;
+                                          const tooltipY = 8;
                                           
-                                          let cy = 10; // tooltip Y start
+                                          // Posições X para conteúdo
+                                          const contentLeft = tooltipX + padding;
+                                          const contentRight = tooltipX + tooltipW - padding;
+                                          
+                                          let cursorY = tooltipY + padding;
                                           
                                           return (
                                             <>
-                                              {/* Sombra */}
+                                              {/* Sombra suave */}
                                               <rect
-                                                x={tX + 1} y={cy + 3}
-                                                width={tooltipW} height={tooltipH}
-                                                rx="8" fill="black" fillOpacity="0.04"
+                                                x={tooltipX + 1}
+                                                y={tooltipY + 2}
+                                                width={tooltipW}
+                                                height={totalH}
+                                                rx="12"
+                                                fill="black"
+                                                fillOpacity="0.04"
                                                 style={{ filter: 'blur(8px)' }}
                                               />
-                                              {/* Fundo */}
+                                              {/* Fundo principal */}
                                               <rect
-                                                x={tX} y={cy}
-                                                width={tooltipW} height={tooltipH}
-                                                rx="8" fill="white" fillOpacity="0.98"
-                                                stroke="#F3F4F6" strokeWidth="1"
-                                              />
-                                              {/* Barra superior colorida */}
-                                              <rect
-                                                x={tX} y={cy}
-                                                width={tooltipW} height="3"
-                                                rx="8" fill={corResultado} fillOpacity="0.6"
-                                              />
-                                              <rect
-                                                x={tX} y={cy + 2}
-                                                width={tooltipW} height="6"
-                                                fill="white" fillOpacity="0.98"
+                                                x={tooltipX}
+                                                y={tooltipY}
+                                                width={tooltipW}
+                                                height={totalH}
+                                                rx="12"
+                                                fill="white"
+                                                stroke="#F3F4F6"
+                                                strokeWidth="1"
                                               />
                                               
-                                              {/* Header - período */}
-                                              {(() => {
-                                                cy += padding;
-                                                return (
-                                                  <text
-                                                    x={labelX} y={cy + 4}
-                                                    fill="#374151" fontSize="11"
-                                                    fontWeight="700" textAnchor={anchor}
-                                                    style={{ letterSpacing: '0.08em', textTransform: 'uppercase' } as React.CSSProperties}
-                                                  >
-                                                    {hoveredPoint.mes}
-                                                  </text>
-                                                );
-                                              })()}
+                                              {/* Header - Período */}
+                                              <text
+                                                x={contentLeft}
+                                                y={cursorY + 10}
+                                                fill="#9CA3AF"
+                                                fontSize="10"
+                                                fontWeight="600"
+                                                letterSpacing="0.8"
+                                                textAnchor="start"
+                                              >
+                                                {'PERÍODO'}
+                                              </text>
+                                              <text
+                                                x={contentLeft}
+                                                y={cursorY + 30}
+                                                fill="#111827"
+                                                fontSize="16"
+                                                fontWeight="700"
+                                                letterSpacing="-0.2"
+                                                textAnchor="start"
+                                              >
+                                                {hoveredPoint.mes}
+                                              </text>
                                               
-                                              {/* Linha divisória header */}
-                                              {(() => {
-                                                cy += 18;
-                                                return (
-                                                  <line
-                                                    x1={tX + padding} y1={cy}
-                                                    x2={tX + tooltipW - padding} y2={cy}
-                                                    stroke="#F3F4F6" strokeWidth="1"
-                                                  />
-                                                );
-                                              })()}
+                                              {/* Linha separadora do header */}
+                                              {(() => { cursorY += headerH; return null; })()}
+                                              <line
+                                                x1={contentLeft}
+                                                y1={cursorY}
+                                                x2={contentRight}
+                                                y2={cursorY}
+                                                stroke="#F3F4F6"
+                                                strokeWidth="1"
+                                              />
                                               
                                               {/* Faturamento */}
-                                              {(() => {
-                                                cy += lineH;
-                                                return (
-                                                  <g>
-                                                    <rect x={labelX - (estaDoLadoDireito ? 0 : 2)} y={cy - 4} width="3" height="12" rx="1.5" fill="#6366F1" />
-                                                    <text x={labelX + (estaDoLadoDireito ? -8 : 8)} y={cy + 6} fill="#6B7280" fontSize="12" fontWeight="500" textAnchor={anchor}>
-                                                      Faturamento
-                                                    </text>
-                                                    <text x={valueX} y={cy + 6} fill="#111827" fontSize="13" fontWeight="600" textAnchor={valueAnchor}>
-                                                      {formatCurrency(hoveredPoint.faturamento)}
-                                                    </text>
-                                                  </g>
-                                                );
-                                              })()}
+                                              {(() => { cursorY += 8; return null; })()}
+                                              <rect
+                                                x={contentLeft - 2}
+                                                y={cursorY + 3}
+                                                width="3"
+                                                height="14"
+                                                rx="1.5"
+                                                fill="#6366F1"
+                                              />
+                                              <text
+                                                x={contentLeft + 10}
+                                                y={cursorY + 14}
+                                                fill="#6B7280"
+                                                fontSize="11"
+                                                fontWeight="500"
+                                                textAnchor="start"
+                                              >
+                                                Faturamento
+                                              </text>
+                                              <text
+                                                x={contentRight}
+                                                y={cursorY + 14}
+                                                fill="#111827"
+                                                fontSize="13"
+                                                fontWeight="600"
+                                                textAnchor="end"
+                                              >
+                                                {formatCurrency(hoveredPoint.faturamento)}
+                                              </text>
                                               
                                               {/* Sub-itens do faturamento */}
                                               {subItems.map((item, idx) => {
-                                                cy += subLineH;
+                                                cursorY += idx === 0 ? rowH - 6 : subRowH;
                                                 return (
                                                   <g key={`sub-${idx}`}>
-                                                    <text x={subLabelX} y={cy + 6} fill={item.color} fontSize="10" fontWeight="400" textAnchor={anchor}>
+                                                    <text
+                                                      x={contentLeft + 16}
+                                                      y={cursorY + 14}
+                                                      fill={item.color}
+                                                      fontSize="10"
+                                                      fontWeight="400"
+                                                      textAnchor="start"
+                                                    >
                                                       {item.label}
                                                     </text>
-                                                    <text x={valueX} y={cy + 6} fill={item.color} fontSize="10" fontWeight="500" textAnchor={valueAnchor}>
-                                                      {item.value}
+                                                    <text
+                                                      x={contentRight}
+                                                      y={cursorY + 14}
+                                                      fill={item.color}
+                                                      fontSize="10"
+                                                      fontWeight="500"
+                                                      textAnchor="end"
+                                                    >
+                                                      {item.isNegative ? '− ' : ''}{formatCurrency(item.value)}
                                                     </text>
                                                   </g>
                                                 );
                                               })}
                                               
                                               {/* Despesas */}
-                                              {(() => {
-                                                cy += lineH;
-                                                return (
-                                                  <g>
-                                                    <rect x={labelX - (estaDoLadoDireito ? 0 : 2)} y={cy - 4} width="3" height="12" rx="1.5" fill="#9CA3AF" />
-                                                    <text x={labelX + (estaDoLadoDireito ? -8 : 8)} y={cy + 6} fill="#6B7280" fontSize="12" fontWeight="500" textAnchor={anchor}>
-                                                      Despesas
-                                                    </text>
-                                                    <text x={valueX} y={cy + 6} fill="#111827" fontSize="13" fontWeight="600" textAnchor={valueAnchor}>
-                                                      {formatCurrency(hoveredPoint.despesas)}
-                                                    </text>
-                                                  </g>
-                                                );
-                                              })()}
+                                              {(() => { cursorY += subItems.length > 0 ? subRowH + 2 : rowH; return null; })()}
+                                              <rect
+                                                x={contentLeft - 2}
+                                                y={cursorY + 3}
+                                                width="3"
+                                                height="14"
+                                                rx="1.5"
+                                                fill="#9CA3AF"
+                                              />
+                                              <text
+                                                x={contentLeft + 10}
+                                                y={cursorY + 14}
+                                                fill="#6B7280"
+                                                fontSize="11"
+                                                fontWeight="500"
+                                                textAnchor="start"
+                                              >
+                                                Despesas
+                                              </text>
+                                              <text
+                                                x={contentRight}
+                                                y={cursorY + 14}
+                                                fill="#111827"
+                                                fontSize="13"
+                                                fontWeight="600"
+                                                textAnchor="end"
+                                              >
+                                                {formatCurrency(hoveredPoint.despesas)}
+                                              </text>
                                               
-                                              {/* Separador antes do resultado */}
-                                              {(() => {
-                                                cy += lineH;
-                                                return (
-                                                  <line
-                                                    x1={tX + padding} y1={cy}
-                                                    x2={tX + tooltipW - padding} y2={cy}
-                                                    stroke="#F3F4F6" strokeWidth="1"
-                                                  />
-                                                );
-                                              })()}
+                                              {/* Linha separadora antes do resultado */}
+                                              {(() => { cursorY += rowH; return null; })()}
+                                              <line
+                                                x1={contentLeft}
+                                                y1={cursorY}
+                                                x2={contentRight}
+                                                y2={cursorY}
+                                                stroke="#F3F4F6"
+                                                strokeWidth="1"
+                                              />
                                               
-                                              {/* Resultado (Lucro/Prejuízo) */}
-                                              {(() => {
-                                                cy += separatorH + 4;
-                                                return (
-                                                  <g>
-                                                    <rect x={labelX - (estaDoLadoDireito ? 0 : 2)} y={cy - 4} width="3" height="12" rx="1.5" fill={corResultado} />
-                                                    <text x={labelX + (estaDoLadoDireito ? -8 : 8)} y={cy + 6} fill={corResultado} fontSize="12" fontWeight="600" textAnchor={anchor}>
-                                                      {labelResultado}
-                                                    </text>
-                                                    <text x={valueX} y={cy + 6} fill={corResultado} fontSize="14" fontWeight="700" textAnchor={valueAnchor}>
-                                                      {formatCurrency(Math.abs(lucro))}
-                                                    </text>
-                                                  </g>
-                                                );
-                                              })()}
+                                              {/* Resultado - Lucro/Prejuízo com fundo colorido */}
+                                              {(() => { cursorY += 6; return null; })()}
+                                              <rect
+                                                x={contentLeft - 6}
+                                                y={cursorY}
+                                                width={tooltipW - (padding * 2) + 12}
+                                                height="28"
+                                                rx="6"
+                                                fill={bgLucro}
+                                              />
+                                              <text
+                                                x={contentLeft + 4}
+                                                y={cursorY + 18}
+                                                fill={corLucro}
+                                                fontSize="11"
+                                                fontWeight="600"
+                                                textAnchor="start"
+                                              >
+                                                {lucro >= 0 ? 'Lucro' : 'Prejuízo'}
+                                              </text>
+                                              <text
+                                                x={contentRight - 4}
+                                                y={cursorY + 18}
+                                                fill={corLucro}
+                                                fontSize="14"
+                                                fontWeight="700"
+                                                textAnchor="end"
+                                              >
+                                                {lucro < 0 ? '− ' : ''}{formatCurrency(Math.abs(lucro))}
+                                              </text>
                                             </>
                                           );
                                         })()}
