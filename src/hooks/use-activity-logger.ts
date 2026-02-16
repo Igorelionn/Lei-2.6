@@ -238,6 +238,42 @@ export function useActivityLogger() {
     );
   }, [logUserAction]);
 
+  // Logging para patrocinadores
+  const logSponsorAction = useCallback(async (
+    action: 'view' | 'open_edit' | 'payment_update' | 'payment_modal_open' | 'new_flow_start' | 'select_auction' | 'view_in_auction' | 'create' | 'update' | 'delete' | 'archive' | 'unarchive',
+    sponsorName: string,
+    auctionName: string,
+    auctionId: string,
+    options?: ActivityLogOptions
+  ) => {
+    const actionDescriptions = {
+      view: `Visualizou detalhes do patrocinador "${sponsorName}" no leilão "${auctionName}"`,
+      open_edit: `Abriu edição do patrocinador "${sponsorName}" no leilão "${auctionName}"`,
+      payment_update: `Atualizou pagamentos do patrocinador "${sponsorName}" no leilão "${auctionName}"`,
+      payment_modal_open: `Abriu confirmação de pagamento do patrocinador "${sponsorName}" no leilão "${auctionName}"`,
+      new_flow_start: `Iniciou cadastro de novo patrocinador`,
+      select_auction: `Selecionou leilão "${auctionName}" para novo patrocinador`,
+      view_in_auction: `Visualizou patrocinador "${sponsorName}" no leilão "${auctionName}"`,
+      create: `Adicionou patrocinador "${sponsorName}" ao leilão "${auctionName}"`,
+      update: `Editou patrocinador "${sponsorName}" no leilão "${auctionName}"`,
+      delete: `Removeu patrocinador "${sponsorName}" do leilão "${auctionName}"`,
+      archive: `Arquivou patrocinador "${sponsorName}" do leilão "${auctionName}"`,
+      unarchive: `Desarquivou patrocinador "${sponsorName}" do leilão "${auctionName}"`
+    };
+
+    await logUserAction(
+      `sponsor_${action}`,
+      actionDescriptions[action],
+      'sponsor',
+      auctionId,
+      {
+        sponsor_name: sponsorName,
+        auction_name: auctionName,
+        ...options?.metadata
+      }
+    );
+  }, [logUserAction]);
+
   return {
     logAuctionAction,
     logBidderAction,
@@ -246,6 +282,7 @@ export function useActivityLogger() {
     logLotAction,
     logMerchandiseAction,
     logReportAction,
-    logConfigAction
+    logConfigAction,
+    logSponsorAction
   };
 }

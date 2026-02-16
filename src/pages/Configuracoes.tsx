@@ -41,7 +41,8 @@ import {
   DollarSign,
   CreditCard,
   FileText,
-  UserCheck
+  UserCheck,
+  Handshake
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase";
@@ -2000,6 +2001,20 @@ export default function Configuracoes() {
                       case 'merchandise_update': return <Edit className="w-4 h-4 text-gray-500" />;
                       case 'merchandise_delete': return <Trash2 className="w-4 h-4 text-red-500" />;
                       
+                      // Patrocinadores
+                      case 'sponsor_view': return <Eye className="w-4 h-4 text-blue-500" />;
+                      case 'sponsor_open_edit': return <Edit className="w-4 h-4 text-amber-500" />;
+                      case 'sponsor_payment_update': return <DollarSign className="w-4 h-4 text-green-500" />;
+                      case 'sponsor_payment_modal_open': return <Handshake className="w-4 h-4 text-gray-500" />;
+                      case 'sponsor_new_flow_start': return <Plus className="w-4 h-4 text-gray-500" />;
+                      case 'sponsor_select_auction': return <Handshake className="w-4 h-4 text-gray-500" />;
+                      case 'sponsor_view_in_auction': return <Eye className="w-4 h-4 text-gray-500" />;
+                      case 'sponsor_create': return <Plus className="w-4 h-4 text-gray-500" />;
+                      case 'sponsor_update': return <Edit className="w-4 h-4 text-gray-500" />;
+                      case 'sponsor_delete': return <Trash2 className="w-4 h-4 text-red-500" />;
+                      case 'sponsor_archive': return <Archive className="w-4 h-4 text-gray-500" />;
+                      case 'sponsor_unarchive': return <RefreshCw className="w-4 h-4 text-gray-500" />;
+                      
                       // Relatórios
                       case 'report_generate': return <FileText className="w-4 h-4 text-gray-500" />;
                       case 'report_export': return <Download className="w-4 h-4 text-gray-500" />;
@@ -2099,7 +2114,8 @@ export default function Configuracoes() {
                             {activity.target_type === 'merchandise' && 'Mercadoria'}
                             {activity.target_type === 'report' && 'Relatório'}
                             {activity.target_type === 'config' && 'Configuração'}
-                            {!['auction', 'bidder', 'user', 'profile', 'auth', 'payment', 'pagamento', 'document', 'lot', 'merchandise', 'report', 'config'].includes(activity.target_type) && activity.target_type}
+                            {activity.target_type === 'sponsor' && 'Patrocinador'}
+                            {!['auction', 'bidder', 'user', 'profile', 'auth', 'payment', 'pagamento', 'document', 'lot', 'merchandise', 'report', 'config', 'sponsor'].includes(activity.target_type) && activity.target_type}
                           </Badge>
                         )}
                   </div>

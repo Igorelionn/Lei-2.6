@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 
 interface PatrocinadorAgregado {
   id: string;
@@ -64,6 +65,7 @@ export default function Patrocinadores() {
 
   // Buscar leilões do banco
   const { auctions, isLoading, updateAuction } = useSupabaseAuctions();
+  const { logSponsorAction } = useActivityLogger();
 
   // Função para abrir modal de confirmação de pagamento
   const handleConfirmReceipt = (patrocinador: PatrocinadorAgregado) => {
@@ -279,6 +281,18 @@ export default function Patrocinadores() {
     
     setPaymentStatus(statusArray);
     setIsPaymentModalOpen(true);
+
+    // Log da abertura do modal de pagamento
+    try {
+      const primeiroLeilaoId = patrocinador.leiloesIds[0] || '';
+      const primeiroLeilaoNome = Array.from(patrocinador.leiloes)[0] || '';
+      logSponsorAction('payment_modal_open', patrocinador.empresa, primeiroLeilaoNome, primeiroLeilaoId, {
+        metadata: {
+          total_investido: patrocinador.totalInvestido,
+          total_parcelas: statusArray.length
+        }
+      });
+    } catch { /* silenciar erro de log */ }
   };
   
   // Função auxiliar para calcular data de vencimento de parcela
@@ -349,13 +363,17 @@ export default function Patrocinadores() {
   };
 
   // ✅ NOVA: Função para editar patrocinador (navegar para o leilão)
-  const handleEditPatrocinador = (patrocinador: PatrocinadorAgregado) => {
-    // Pegar o primeiro leilão que este patrocinador está vinculado
+  const handleEditPatrocinador = async (patrocinador: PatrocinadorAgregado) => {
     const primeiroLeilaoId = Array.from(patrocinador.leiloes)[0];
     
     if (primeiroLeilaoId) {
-      // Navegar para a página de leilões com o leilão selecionado
-      // O parâmetro de estado indica que deve abrir o wizard na aba "Custos e Patrocínios"
+      // Log da abertura de edição do patrocinador
+      try {
+        await logSponsorAction('open_edit', patrocinador.empresa, primeiroLeilaoId, patrocinador.leiloesIds[0] || '', {
+          metadata: { total_leiloes: patrocinador.leiloesPatrocinados }
+        });
+      } catch { /* silenciar erro de log */ }
+
       navigate('/leiloes', { 
         state: { 
           editAuctionId: primeiroLeilaoId,
@@ -444,6 +462,20 @@ export default function Patrocinadores() {
         });
       }
 
+      // Log da atualização de pagamentos
+      try {
+        const parcelasPagas = paymentStatus.filter(s => s.paid).length;
+        const totalParcelas = paymentStatus.length;
+        const primeiroLeilaoNome = Array.from(selectedPatrocinadorForPayment.leiloes)[0] || '';
+        await logSponsorAction('payment_update', selectedPatrocinadorForPayment.empresa, primeiroLeilaoNome, selectedPatrocinadorForPayment.leiloesIds[0] || '', {
+          metadata: {
+            parcelas_pagas: parcelasPagas,
+            total_parcelas: totalParcelas,
+            total_investido: selectedPatrocinadorForPayment.totalInvestido
+          }
+        });
+      } catch { /* silenciar erro de log */ }
+
       // Recarregar a página para garantir que todos os dados atualizem
       window.location.reload();
     } catch (error) {
@@ -454,18 +486,31 @@ export default function Patrocinadores() {
   };
 
   // Função para abrir o wizard de seleção de leilão
-  const handleNovoPatrocinador = () => {
+  const handleNovoPatrocinador = async () => {
     setAuctionSearchTerm("");
     setIsSelectAuctionModalOpen(true);
+    // Log do início do fluxo de novo patrocinador
+    try {
+      await logSponsorAction('new_flow_start', '', '', '', {
+        metadata: { action_detail: 'abriu_wizard_novo_patrocinador' }
+      });
+    } catch { /* silenciar erro de log */ }
   };
 
   // Função para selecionar um leilão e navegar para custos e patrocínios
-  const handleSelectAuction = (auctionId: string) => {
+  const handleSelectAuction = async (auctionId: string) => {
     setIsSelectAuctionModalOpen(false);
+    const auction = auctions.find(a => a.id === auctionId);
+    // Log da seleção de leilão para novo patrocinador
+    try {
+      await logSponsorAction('select_auction', '', auction?.nome || '', auctionId, {
+        metadata: { action_detail: 'selecionou_leilao_para_patrocinador' }
+      });
+    } catch { /* silenciar erro de log */ }
     navigate('/leiloes', {
       state: {
         editAuctionId: auctionId,
-        openTab: 'custos-patrocinios' // Abre diretamente na aba de custos e patrocínios
+        openTab: 'custos-patrocinios'
       }
     });
   };
@@ -1056,7 +1101,18 @@ export default function Patrocinadores() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setViewingPatrocinador(patrocinador)}
+                            onClick={async () => {
+                              setViewingPatrocinador(patrocinador);
+                              try {
+                                const primeiroLeilaoNome = Array.from(patrocinador.leiloes)[0] || '';
+                                await logSponsorAction('view', patrocinador.empresa, primeiroLeilaoNome, patrocinador.leiloesIds[0] || '', {
+                                  metadata: {
+                                    total_investido: patrocinador.totalInvestido,
+                                    status: patrocinador.status
+                                  }
+                                });
+                              } catch { /* silenciar erro de log */ }
+                            }}
                             className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 transition-colors"
                             title="Ver detalhes"
                           >
@@ -1197,12 +1253,19 @@ export default function Patrocinadores() {
                             <Button
                               variant="outline"
                               size="sm"
-                              onClick={() => navigate('/leiloes', { 
-                                state: { 
-                                  editAuctionId: patrocinio.leilaoId,
-                                  openTab: 'custos-patrocinios' 
-                                } 
-                              })}
+                              onClick={async () => {
+                                try {
+                                  await logSponsorAction('view_in_auction', viewingPatrocinador?.empresa || '', patrocinio.leilaoNome, patrocinio.leilaoId, {
+                                    metadata: { valor: patrocinio.valor }
+                                  });
+                                } catch { /* silenciar erro de log */ }
+                                navigate('/leiloes', { 
+                                  state: { 
+                                    editAuctionId: patrocinio.leilaoId,
+                                    openTab: 'custos-patrocinios' 
+                                  } 
+                                });
+                              }}
                               className="h-8 text-xs border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-900 hover:border-gray-400"
                             >
                               <Eye className="h-3 w-3 mr-1" />
