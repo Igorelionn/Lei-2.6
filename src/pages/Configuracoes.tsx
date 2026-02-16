@@ -1974,6 +1974,7 @@ export default function Configuracoes() {
                   const getActivityIcon = (type: string) => {
                     switch (type) {
                       case 'login': return <Activity className="w-4 h-4 text-gray-500" />;
+                      case 'logout': return <Activity className="w-4 h-4 text-red-400" />;
                       case 'profile_update': return <Edit className="w-4 h-4 text-gray-500" />;
                       
                       // Leilões
@@ -2069,6 +2070,17 @@ export default function Configuracoes() {
                       case 'activity_history_view': return <Eye className="w-4 h-4 text-blue-500" />;
                       case 'password_reveal': return <Key className="w-4 h-4 text-amber-500" />;
                       case 'config_email_access': return <Settings className="w-4 h-4 text-gray-500" />;
+
+                      // Lotes de Convidados
+                      case 'guest_lot_create': return <Plus className="w-4 h-4 text-gray-500" />;
+                      case 'guest_lot_update': return <Edit className="w-4 h-4 text-gray-500" />;
+                      case 'guest_lot_delete': return <Trash2 className="w-4 h-4 text-red-500" />;
+                      case 'guest_lot_view': return <Eye className="w-4 h-4 text-blue-500" />;
+                      case 'guest_lot_archive': return <Archive className="w-4 h-4 text-gray-500" />;
+                      case 'guest_lot_unarchive': return <RefreshCw className="w-4 h-4 text-gray-500" />;
+                      case 'guest_lot_open_edit': return <Edit className="w-4 h-4 text-amber-500" />;
+                      case 'guest_lot_open_wizard': return <Plus className="w-4 h-4 text-gray-500" />;
+                      case 'guest_lot_view_arrematantes': return <Users className="w-4 h-4 text-gray-500" />;
                       
                       default: return <Activity className="w-4 h-4 text-gray-500" />;
                     }
@@ -2151,7 +2163,8 @@ export default function Configuracoes() {
                             {activity.target_type === 'config' && 'Configuração'}
                             {activity.target_type === 'sponsor' && 'Patrocinador'}
                             {activity.target_type === 'invoice' && 'Fatura'}
-                            {!['auction', 'bidder', 'user', 'profile', 'auth', 'payment', 'pagamento', 'document', 'lot', 'merchandise', 'report', 'config', 'sponsor', 'invoice'].includes(activity.target_type) && activity.target_type}
+                            {activity.target_type === 'guest_lot' && 'Lote Convidado'}
+                            {!['auction', 'bidder', 'user', 'profile', 'auth', 'payment', 'pagamento', 'document', 'lot', 'merchandise', 'report', 'config', 'sponsor', 'invoice', 'guest_lot'].includes(activity.target_type) && activity.target_type}
                           </Badge>
                         )}
                   </div>

@@ -310,6 +310,39 @@ export function useActivityLogger() {
     );
   }, [logUserAction]);
 
+  // Logging para lotes de convidados
+  const logGuestLotAction = useCallback(async (
+    action: 'create' | 'update' | 'delete' | 'view' | 'archive' | 'unarchive' | 'open_edit' | 'open_wizard' | 'view_arrematantes',
+    lotNumber: string,
+    auctionName: string,
+    auctionId: string,
+    options?: ActivityLogOptions
+  ) => {
+    const actionDescriptions = {
+      create: `Cadastrou lote convidado #${lotNumber} no leilão "${auctionName}"`,
+      update: `Editou lote convidado #${lotNumber} no leilão "${auctionName}"`,
+      delete: `Deletou lote convidado #${lotNumber} do leilão "${auctionName}"`,
+      view: `Visualizou detalhes do lote convidado #${lotNumber} no leilão "${auctionName}"`,
+      archive: `Arquivou lote convidado #${lotNumber} do leilão "${auctionName}"`,
+      unarchive: `Desarquivou lote convidado #${lotNumber} do leilão "${auctionName}"`,
+      open_edit: `Abriu edição do lote convidado #${lotNumber} no leilão "${auctionName}"`,
+      open_wizard: `Abriu wizard de cadastro de lote convidado`,
+      view_arrematantes: `Visualizou arrematantes do lote convidado #${lotNumber} no leilão "${auctionName}"`
+    };
+
+    await logUserAction(
+      `guest_lot_${action}`,
+      actionDescriptions[action],
+      'guest_lot',
+      auctionId,
+      {
+        lot_number: lotNumber,
+        auction_name: auctionName,
+        ...options?.metadata
+      }
+    );
+  }, [logUserAction]);
+
   return {
     logAuctionAction,
     logBidderAction,
@@ -320,6 +353,7 @@ export function useActivityLogger() {
     logReportAction,
     logConfigAction,
     logSponsorAction,
-    logInvoiceAction
+    logInvoiceAction,
+    logGuestLotAction
   };
 }

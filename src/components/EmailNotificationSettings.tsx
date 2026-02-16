@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { useEmailNotifications } from '@/hooks/use-email-notifications';
 import { useAuth } from '@/hooks/use-auth';
+import { useActivityLogger } from '@/hooks/use-activity-logger';
 import { Mail, CheckCircle, Check, Trash2 } from 'lucide-react';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -54,12 +55,16 @@ export function EmailNotificationSettings() {
   const [isClearing, setIsClearing] = useState(false);
   const [clearMessage, setClearMessage] = useState<{ success: boolean; text: string } | null>(null);
 
+  const { logConfigAction } = useActivityLogger();
   // Verificar se usuário é administrador
   const isAdmin = user?.role === 'admin' || user?.permissions?.can_manage_users === true;
 
   const handleSaveConfig = () => {
     setIsSaving(true);
     saveConfig(localConfig);
+    try {
+      logConfigAction('update', 'email_notifications', 'Salvou configurações de notificações por email');
+    } catch { /* silenciar erro de log */ }
     
     setTimeout(() => {
       setIsSaving(false);
@@ -83,6 +88,9 @@ export function EmailNotificationSettings() {
     if (result.success) {
       pauseAutoRefreshRef.current = false;
       carregarLogs(20);
+      try {
+        logConfigAction('update', 'email_history', 'Limpou histórico de emails enviados');
+      } catch { /* silenciar erro de log */ }
     } else {
       logger.error('Erro ao limpar histórico:', result.message);
       setClearMessage({ success: false, text: result.message });

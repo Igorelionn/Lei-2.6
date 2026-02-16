@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { useGuestLots } from "@/hooks/use-guest-lots";
 import { logger } from "@/lib/logger";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 
 export default function ValoresConvidados() {
   const navigate = useNavigate();
   const { auctions, isLoading: isLoadingAuctions } = useSupabaseAuctions();
   const { guestLots, isLoading: isLoadingLots } = useGuestLots();
+  const { logReportAction } = useActivityLogger();
   const [selectedLeilao, setSelectedLeilao] = useState<string | null>(null);
 
 
@@ -229,7 +231,10 @@ export default function ValoresConvidados() {
                 return (
                   <button
                     key={id}
-                    onClick={() => setSelectedLeilao(id)}
+                    onClick={() => {
+                      setSelectedLeilao(id);
+                      try { logReportAction('view', 'valores_convidados', `Selecionou leilão "${info.nome}" para ver valores de convidados`); } catch { /* silenciar */ }
+                    }}
                     className="w-full text-left px-3 sm:px-4 lg:px-6 py-4 hover:bg-gray-50 border-b border-gray-100 transition-colors group"
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">

@@ -245,12 +245,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     logger.info('Iniciando logout', { userId: user?.id });
     
     if (user && heartbeatIntervalRef.current) {
+      // Registrar ação de logout antes de limpar
+      try {
+        await untypedSupabase.from('user_actions').insert({
+          user_id: user.id,
+          action_type: 'logout',
+          action_description: 'Fez logout do sistema',
+          target_type: 'auth',
+          metadata: { logout_method: 'manual' }
+        });
+      } catch { /* silenciar erro de log */ }
       // Marcar usuário como offline no banco antes de fazer logout
       try {
         await untypedSupabase
           .from('users')
           .update({ 
-            last_login_at: new Date(Date.now() - 10 * 60 * 1000).toISOString() // 10 minutos atrás para garantir offline
+            last_login_at: new Date(Date.now() - 10 * 60 * 1000).toISOString()
           })
           .eq('id', user.id);
       } catch (error) {

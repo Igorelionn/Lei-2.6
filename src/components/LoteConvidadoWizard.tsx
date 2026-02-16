@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { AlertCircle, ChevronRight, ChevronLeft, Check, Plus, Trash2, X, Phone, Mail, Package, Edit } from "lucide-react";
 import { useGuestLots } from "@/hooks/use-guest-lots";
 import { LoteConvidadoFormData, MercadoriaInfo } from "@/lib/types";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 
 const FlagIcon = ({ countryCode, countryName }: { countryCode: string; countryName?: string }) => {
   const flagClass = "w-6 h-4 rounded-sm overflow-hidden flex-shrink-0";
@@ -287,6 +288,7 @@ export default function LoteConvidadoWizard({
   leiloes = []
 }: LoteConvidadoWizardProps) {
   const { createGuestLot, updateGuestLot } = useGuestLots();
+  const { logGuestLotAction } = useActivityLogger();
   const [currentStep, setCurrentStep] = useState(0);
   const [attemptedNext, setAttemptedNext] = useState(false);
   const [isClosing, setIsClosing] = useState(false);
@@ -1280,8 +1282,16 @@ export default function LoteConvidadoWizard({
             id: (initialData as any).id, 
             data: dataToSave 
           });
+          try {
+            const leilaoNome = leiloes.find(l => l.id === values.leilaoId)?.nome || '';
+            logGuestLotAction('update', String(values.numero), leilaoNome, values.leilaoId || '');
+          } catch { /* silenciar erro de log */ }
         } else {
           await createGuestLot(dataToSave);
+          try {
+            const leilaoNome = leiloes.find(l => l.id === values.leilaoId)?.nome || '';
+            logGuestLotAction('create', String(values.numero), leilaoNome, values.leilaoId || '');
+          } catch { /* silenciar erro de log */ }
         }
 
         // Chamar callback opcional

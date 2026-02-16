@@ -19,6 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState, useRef, useCallback } from "react";
 import { useDashboardStats } from "@/hooks/use-dashboard-stats";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { obterValorTotalArrematante, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 
 const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
@@ -38,6 +39,7 @@ export default function Dashboard() {
   const { user } = useAuth();
   const navigate = useNavigate();
   const { auctions, isLoading } = useSupabaseAuctions();
+  const { logReportAction } = useActivityLogger();
   const { stats } = useDashboardStats();
   
   // Carrossel da agenda
@@ -1495,7 +1497,10 @@ export default function Dashboard() {
                 <Button 
                   variant="ghost" 
                   size="sm"
-                  onClick={() => navigate("/faturas")}
+                  onClick={() => {
+                    navigate("/faturas");
+                    try { logReportAction('view', 'dashboard_nav', 'Navegou para Faturas via Dashboard'); } catch { /* silenciar */ }
+                  }}
                   className="hover:bg-gray-100 hover:text-gray-800 transition-all duration-200"
                 >
                   <ArrowRight className="h-4 w-4" />

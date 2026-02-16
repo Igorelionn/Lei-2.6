@@ -27,10 +27,12 @@ import { LoteConvidadoFormData, ArrematanteInfo, LoteInfo, Auction } from "@/lib
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 
 export default function LotesConvidados() {
   const navigate = useNavigate();
   const { guestLots, isLoading, archiveGuestLot, unarchiveGuestLot, deleteGuestLot } = useGuestLots();
+  const { logGuestLotAction, logBidderAction } = useActivityLogger();
   const queryClient = useQueryClient();
   const [searchInputValue, setSearchInputValue] = useState("");
   const [searchTerm, _setSearchTerm] = useState("");
@@ -151,6 +153,9 @@ export default function LotesConvidados() {
     setWizardOpen(true);
     
     logger.debug('🚀 [LotesConvidados] Wizard aberto!');
+    try {
+      logGuestLotAction('open_edit', String(lote.numero), lote.leilao_nome || '', lote.leilao_id || '');
+    } catch { /* silenciar erro de log */ }
   };
 
   const _handleAddArrematante = async (lote: GuestLot) => {
@@ -244,6 +249,11 @@ export default function LotesConvidados() {
       
       setAddingArrematanteFor(loteComArrematantes);
       setEditingArrematanteId(null); // ✅ null para mostrar tela de seleção
+      try {
+        logGuestLotAction('view_arrematantes', String(lote.numero), lote.leilao_nome || '', lote.leilao_id || '', {
+          metadata: { total_arrematantes: arrematantesMapeados.length }
+        });
+      } catch { /* silenciar erro de log */ }
       
     } catch (error) {
       logger.error('❌ Erro:', error);
@@ -419,7 +429,10 @@ export default function LotesConvidados() {
                 </div>
 
                 <Button 
-                  onClick={() => setWizardOpen(true)}
+                  onClick={() => {
+                    setWizardOpen(true);
+                    try { logGuestLotAction('open_wizard', '', '', ''); } catch { /* silenciar */ }
+                  }}
                   className="h-11 bg-black hover:bg-gray-800 text-white w-full sm:w-auto"
                 >
                   <Plus className="h-4 w-4 mr-2" />
@@ -606,6 +619,7 @@ export default function LotesConvidados() {
                             onClick={() => {
                               setSelectedLote(lote);
                               setIsViewModalOpen(true);
+                              try { logGuestLotAction('view', String(lote.numero), lote.leilao_nome || '', lote.leilao_id || ''); } catch { /* silenciar */ }
                             }}
                             className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 focus:ring-0 focus:ring-offset-0 focus-visible:ring-0 focus-visible:ring-offset-0"
                             title="Ver detalhes"
@@ -632,8 +646,10 @@ export default function LotesConvidados() {
                               try {
                                 if (showArchived) {
                                   await unarchiveGuestLot(lote.id);
+                                  try { logGuestLotAction('unarchive', String(lote.numero), lote.leilao_nome || '', lote.leilao_id || ''); } catch { /* silenciar */ }
                                 } else {
                                   await archiveGuestLot(lote.id);
+                                  try { logGuestLotAction('archive', String(lote.numero), lote.leilao_nome || '', lote.leilao_id || ''); } catch { /* silenciar */ }
                                 }
                               } catch (_error) {
                                 logger.error('Erro ao alterar status do lote:', _error);
@@ -665,6 +681,7 @@ export default function LotesConvidados() {
                                   if (window.confirm(`Tem certeza que deseja deletar permanentemente o lote #${lote.numero}?\n\nEsta ação não pode ser desfeita.`)) {
                                     try {
                                       await deleteGuestLot(lote.id);
+                                      try { logGuestLotAction('delete', String(lote.numero), lote.leilao_nome || '', lote.leilao_id || ''); } catch { /* silenciar */ }
                                     } catch (error) {
                                       logger.error('Erro ao deletar lote:', error);
                                     }
