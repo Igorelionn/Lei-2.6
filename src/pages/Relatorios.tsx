@@ -2231,25 +2231,24 @@ function Relatorios() {
                                             subItems.push({ label: 'Comissão venda', value: hoveredPoint.comissaoVenda || 0, color: '#059669' });
                                           }
                                           
-                                          // Layout do tooltip
-                                          const tooltipW = 260;
-                                          const padding = 20;
-                                          const headerH = 44;
-                                          const rowH = 28;
-                                          const subRowH = 20;
-                                          const dividerH = 12;
-                                          const resultH = 36;
+                                          // Layout do tooltip - dimensões ampliadas para melhor leitura em notebooks
+                                          const tooltipW = 340;
+                                          const padding = 26;
+                                          const headerH = 58;
+                                          const rowH = 38;
+                                          const subRowH = 28;
+                                          const dividerH = 16;
+                                          const resultH = 44;
                                           
-                                          const mainRows = 2; // Faturamento + Despesas
+                                          const mainRows = 2;
                                           const totalH = padding + headerH + (mainRows * rowH) + (subItems.length * subRowH) + dividerH + resultH + padding;
                                           
                                           const estaDoLadoDireito = pontoX > metadeGrafico;
                                           const tooltipX = estaDoLadoDireito 
-                                            ? pontoX - tooltipW - 20
-                                            : pontoX + 12;
+                                            ? pontoX - tooltipW - 24
+                                            : pontoX + 16;
                                           const tooltipY = 8;
                                           
-                                          // Posições X para conteúdo
                                           const contentLeft = tooltipX + padding;
                                           const contentRight = tooltipX + tooltipW - padding;
                                           
@@ -2259,14 +2258,14 @@ function Relatorios() {
                                             <>
                                               {/* Sombra suave */}
                                               <rect
-                                                x={tooltipX + 1}
-                                                y={tooltipY + 2}
+                                                x={tooltipX + 2}
+                                                y={tooltipY + 3}
                                                 width={tooltipW}
                                                 height={totalH}
-                                                rx="12"
+                                                rx="14"
                                                 fill="black"
-                                                fillOpacity="0.04"
-                                                style={{ filter: 'blur(8px)' }}
+                                                fillOpacity="0.05"
+                                                style={{ filter: 'blur(10px)' }}
                                               />
                                               {/* Fundo principal */}
                                               <rect
@@ -2274,31 +2273,31 @@ function Relatorios() {
                                                 y={tooltipY}
                                                 width={tooltipW}
                                                 height={totalH}
-                                                rx="12"
+                                                rx="14"
                                                 fill="white"
-                                                stroke="#F3F4F6"
+                                                stroke="#E5E7EB"
                                                 strokeWidth="1"
                                               />
                                               
                                               {/* Header - Período */}
                                               <text
                                                 x={contentLeft}
-                                                y={cursorY + 10}
+                                                y={cursorY + 14}
                                                 fill="#9CA3AF"
-                                                fontSize="10"
+                                                fontSize="13"
                                                 fontWeight="600"
-                                                letterSpacing="0.8"
+                                                letterSpacing="1"
                                                 textAnchor="start"
                                               >
                                                 {'PERÍODO'}
                                               </text>
                                               <text
                                                 x={contentLeft}
-                                                y={cursorY + 30}
+                                                y={cursorY + 40}
                                                 fill="#111827"
-                                                fontSize="16"
+                                                fontSize="22"
                                                 fontWeight="700"
-                                                letterSpacing="-0.2"
+                                                letterSpacing="-0.3"
                                                 textAnchor="start"
                                               >
                                                 {hoveredPoint.mes}
@@ -2316,20 +2315,20 @@ function Relatorios() {
                                               />
                                               
                                               {/* Faturamento */}
-                                              {(() => { cursorY += 8; return null; })()}
+                                              {(() => { cursorY += 12; return null; })()}
                                               <rect
-                                                x={contentLeft - 2}
-                                                y={cursorY + 3}
-                                                width="3"
-                                                height="14"
-                                                rx="1.5"
+                                                x={contentLeft - 3}
+                                                y={cursorY + 2}
+                                                width="4"
+                                                height="18"
+                                                rx="2"
                                                 fill="#6366F1"
                                               />
                                               <text
-                                                x={contentLeft + 10}
-                                                y={cursorY + 14}
+                                                x={contentLeft + 14}
+                                                y={cursorY + 16}
                                                 fill="#6B7280"
-                                                fontSize="11"
+                                                fontSize="15"
                                                 fontWeight="500"
                                                 textAnchor="start"
                                               >
@@ -2337,9 +2336,9 @@ function Relatorios() {
                                               </text>
                                               <text
                                                 x={contentRight}
-                                                y={cursorY + 14}
+                                                y={cursorY + 16}
                                                 fill="#111827"
-                                                fontSize="13"
+                                                fontSize="17"
                                                 fontWeight="600"
                                                 textAnchor="end"
                                               >
@@ -2348,14 +2347,14 @@ function Relatorios() {
                                               
                                               {/* Sub-itens do faturamento */}
                                               {subItems.map((item, idx) => {
-                                                cursorY += idx === 0 ? rowH - 6 : subRowH;
+                                                cursorY += idx === 0 ? rowH - 8 : subRowH;
                                                 return (
                                                   <g key={`sub-${idx}`}>
                                                     <text
-                                                      x={contentLeft + 16}
-                                                      y={cursorY + 14}
+                                                      x={contentLeft + 20}
+                                                      y={cursorY + 16}
                                                       fill={item.color}
-                                                      fontSize="10"
+                                                      fontSize="13"
                                                       fontWeight="400"
                                                       textAnchor="start"
                                                     >
@@ -2363,9 +2362,9 @@ function Relatorios() {
                                                     </text>
                                                     <text
                                                       x={contentRight}
-                                                      y={cursorY + 14}
+                                                      y={cursorY + 16}
                                                       fill={item.color}
-                                                      fontSize="10"
+                                                      fontSize="13"
                                                       fontWeight="500"
                                                       textAnchor="end"
                                                     >
@@ -2376,20 +2375,20 @@ function Relatorios() {
                                               })}
                                               
                                               {/* Despesas */}
-                                              {(() => { cursorY += subItems.length > 0 ? subRowH + 2 : rowH; return null; })()}
+                                              {(() => { cursorY += subItems.length > 0 ? subRowH + 4 : rowH; return null; })()}
                                               <rect
-                                                x={contentLeft - 2}
-                                                y={cursorY + 3}
-                                                width="3"
-                                                height="14"
-                                                rx="1.5"
+                                                x={contentLeft - 3}
+                                                y={cursorY + 2}
+                                                width="4"
+                                                height="18"
+                                                rx="2"
                                                 fill="#9CA3AF"
                                               />
                                               <text
-                                                x={contentLeft + 10}
-                                                y={cursorY + 14}
+                                                x={contentLeft + 14}
+                                                y={cursorY + 16}
                                                 fill="#6B7280"
-                                                fontSize="11"
+                                                fontSize="15"
                                                 fontWeight="500"
                                                 textAnchor="start"
                                               >
@@ -2397,9 +2396,9 @@ function Relatorios() {
                                               </text>
                                               <text
                                                 x={contentRight}
-                                                y={cursorY + 14}
+                                                y={cursorY + 16}
                                                 fill="#111827"
-                                                fontSize="13"
+                                                fontSize="17"
                                                 fontWeight="600"
                                                 textAnchor="end"
                                               >
@@ -2418,20 +2417,20 @@ function Relatorios() {
                                               />
                                               
                                               {/* Resultado - Lucro/Prejuízo */}
-                                              {(() => { cursorY += 8; return null; })()}
+                                              {(() => { cursorY += 12; return null; })()}
                                               <rect
-                                                x={contentLeft - 2}
-                                                y={cursorY + 3}
-                                                width="3"
-                                                height="14"
-                                                rx="1.5"
+                                                x={contentLeft - 3}
+                                                y={cursorY + 2}
+                                                width="4"
+                                                height="18"
+                                                rx="2"
                                                 fill={corLucro}
                                               />
                                               <text
-                                                x={contentLeft + 10}
-                                                y={cursorY + 14}
+                                                x={contentLeft + 14}
+                                                y={cursorY + 16}
                                                 fill="#6B7280"
-                                                fontSize="11"
+                                                fontSize="15"
                                                 fontWeight="500"
                                                 textAnchor="start"
                                               >
@@ -2439,10 +2438,10 @@ function Relatorios() {
                                               </text>
                                               <text
                                                 x={contentRight}
-                                                y={cursorY + 14}
+                                                y={cursorY + 16}
                                                 fill={corLucro}
-                                                fontSize="13"
-                                                fontWeight="600"
+                                                fontSize="17"
+                                                fontWeight="700"
                                                 textAnchor="end"
                                               >
                                                 {lucro < 0 ? '− ' : ''}{formatCurrency(Math.abs(lucro))}
