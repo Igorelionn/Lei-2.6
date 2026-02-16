@@ -350,12 +350,19 @@ function Relatorios() {
   const openLeiloesPreview = () => {
     setPreviewType('leiloes');
     setIsPreviewModalOpen(true);
+    try {
+      logReportAction('view', 'leiloes', 'Abriu preview do relatório de leilões');
+    } catch { /* silenciar erro de log */ }
   };
 
   // Função para abrir preview de outros relatórios
   const openGenericPreview = (type: 'inadimplencia' | 'historico' | 'faturas') => {
     setPreviewType(type);
     setIsPreviewModalOpen(true);
+    const typeNames = { inadimplencia: 'inadimplência', historico: 'histórico', faturas: 'faturas' };
+    try {
+      logReportAction('view', type, `Abriu preview do relatório de ${typeNames[type]}`);
+    } catch { /* silenciar erro de log */ }
   };
 
   // Função para gerar PDF de todos os leilões - usando o mesmo método que funciona
@@ -417,12 +424,22 @@ function Relatorios() {
       
       // 5. Gerar PDF do elemento renderizado pelo React (mesmo método que funciona)
       await html2pdf().set(opt).from(element).save();
+
+      // Log da geração do relatório de leilões
+      try {
+        await logReportAction('generate', 'leiloes', 'Relatório de leilões', {
+          metadata: {
+            total_auctions: auctions.length,
+            report_format: 'pdf',
+            generation_date: new Date().toISOString()
+          }
+        });
+      } catch { /* silenciar erro de log */ }
       
     } catch (error) {
       logger.error('❌ Erro ao gerar relatório:', error);
     } finally {
       setIsGenerating(false);
-      // Sempre fechar o modal no final
       setIsExportModalOpen(false);
       setSelectedAuctionForExport("");
     }
@@ -1329,7 +1346,12 @@ function Relatorios() {
                   <div className="flex items-center gap-2">
                     {/* Botão Patrocínios */}
                     <button
-                      onClick={() => setIncluirPatrocinios(!incluirPatrocinios)}
+                      onClick={() => {
+                        setIncluirPatrocinios(!incluirPatrocinios);
+                        try {
+                          logReportAction('view', 'chart_filter', `${!incluirPatrocinios ? 'Ativou' : 'Desativou'} filtro de patrocínios no gráfico`);
+                        } catch { /* silenciar erro de log */ }
+                      }}
                       className={cn(
                         "group relative flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-300",
                         incluirPatrocinios
@@ -1353,7 +1375,12 @@ function Relatorios() {
                     
                     {/* Botão % Compra */}
                     <button
-                      onClick={() => setDescontarComissaoCompra(!descontarComissaoCompra)}
+                      onClick={() => {
+                        setDescontarComissaoCompra(!descontarComissaoCompra);
+                        try {
+                          logReportAction('view', 'chart_filter', `${!descontarComissaoCompra ? 'Ativou' : 'Desativou'} desconto de comissão de compra no gráfico`);
+                        } catch { /* silenciar erro de log */ }
+                      }}
                       className={cn(
                         "group relative flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-300",
                         descontarComissaoCompra
@@ -1377,7 +1404,12 @@ function Relatorios() {
                     
                     {/* Botão % Venda */}
                     <button
-                      onClick={() => setIncluirComissaoVenda(!incluirComissaoVenda)}
+                      onClick={() => {
+                        setIncluirComissaoVenda(!incluirComissaoVenda);
+                        try {
+                          logReportAction('view', 'chart_filter', `${!incluirComissaoVenda ? 'Ativou' : 'Desativou'} comissão de venda no gráfico`);
+                        } catch { /* silenciar erro de log */ }
+                      }}
                       className={cn(
                         "group relative flex items-center gap-2 px-4 py-2 text-xs font-semibold tracking-wide uppercase transition-all duration-300",
                         incluirComissaoVenda
