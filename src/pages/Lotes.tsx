@@ -242,7 +242,7 @@ function Lotes() {
   const navigate = useNavigate();
   const { auctions, isLoading, updateAuction, archiveAuction: _archiveAuction, unarchiveAuction: _unarchiveAuction } = useSupabaseAuctions();
   const queryClient = useQueryClient();
-  const { logLotAction, logMerchandiseAction, logDocumentAction } = useActivityLogger();
+  const { logLotAction, logMerchandiseAction, logDocumentAction, logAuctionAction } = useActivityLogger();
   
   // Flag para garantir que a migração execute apenas uma vez
   const hasMigrated = useRef(false);
@@ -323,13 +323,18 @@ function Lotes() {
   const [isHoveringAuctionButton, setIsHoveringAuctionButton] = useState(false);
 
   // Função para abrir detalhes do leilão
-  const handleOpenAuctionDetails = (auctionId: string) => {
+  const handleOpenAuctionDetails = async (auctionId: string) => {
     const auction = auctions.find(a => a.id === auctionId);
     if (auction) {
       setViewingAuction(auction);
       setViewingVersion(prev => prev + 1);
-      // Fechar o modal de detalhes do lote
       setIsViewLoteModalOpen(false);
+      // Log da visualização do leilão
+      try {
+        await logAuctionAction('view', auction.nome, auction.id, {
+          metadata: { origin: 'lotes_page' }
+        });
+      } catch { /* silenciar erro de log */ }
     }
   };
 
@@ -702,13 +707,20 @@ function Lotes() {
   };
 
   // Função para selecionar um leilão e navegar para a página de leilões na aba de lotes
-  const handleSelectAuction = (auctionId: string) => {
+  const handleSelectAuction = async (auctionId: string) => {
     setIsSelectAuctionModalOpen(false);
+    const auction = auctions.find(a => a.id === auctionId);
+    // Log da seleção de leilão para criar novo lote
+    try {
+      await logLotAction('create', 'Novo', auction?.nome || '', auctionId, {
+        metadata: { action_detail: 'selecionou_leilao_para_novo_lote' }
+      });
+    } catch { /* silenciar erro de log */ }
     navigate('/leiloes', {
       state: {
         editAuctionId: auctionId,
-        openTab: 'lotes', // Abre diretamente na aba de lotes
-        createNewLote: true // Flag para indicar que deve criar um novo lote
+        openTab: 'lotes',
+        createNewLote: true
       }
     });
   };
@@ -823,9 +835,25 @@ function Lotes() {
 
       setSelectedLoteForPhotos(loteComTodasFotos);
       setIsPhotoViewerOpen(true);
+
+      // Log da visualização de fotos
+      try {
+        await logDocumentAction(
+          'view',
+          `Galeria do Lote #${lote.numero}`,
+          'auction',
+          lote.leilaoNome || '',
+          lote.auctionId,
+          {
+            metadata: {
+              lote_numero: lote.numero,
+              total_fotos: todasFotos.length
+            }
+          }
+        );
+      } catch { /* silenciar erro de log */ }
     } catch (error) {
       logger.error('Erro ao buscar fotos', { error });
-      // Em caso de erro, mostrar apenas as fotos da mercadoria que já existem
       setSelectedLoteForPhotos(lote);
       setIsPhotoViewerOpen(true);
     }
@@ -1270,12 +1298,22 @@ function Lotes() {
 
       logger.debug("📍 Índice do lote encontrado:", loteIndex);
       
+      // Log da abertura de edição do lote
+      try {
+        await logLotAction('open_edit', lote.numero, lote.leilaoNome || '', lote.auctionId, {
+          metadata: {
+            lote_descricao: lote.descricao,
+            lote_index: loteIndex
+          }
+        });
+      } catch { /* silenciar erro de log */ }
+
       // Navegar para a página de leilões com o estado de edição
       navigate('/leiloes', {
         state: {
           editAuctionId: lote.auctionId,
           editLoteIndex: loteIndex >= 0 ? loteIndex : 0,
-          openStep: 4 // Step de "Configuração de Lotes" (índice 4)
+          openStep: 4
         }
       });
     } catch (error) {
@@ -1752,9 +1790,18 @@ function Lotes() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => {
+                            onClick={async () => {
                               setSelectedLote(lote);
                               setIsViewLoteModalOpen(true);
+                              // Log da visualização de detalhes do lote
+                              try {
+                                await logLotAction('view', lote.numero, lote.leilaoNome || '', lote.auctionId, {
+                                  metadata: {
+                                    lote_descricao: lote.descricao,
+                                    status: lote.statusLote
+                                  }
+                                });
+                              } catch { /* silenciar erro de log */ }
                             }}
                             className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-black hover:bg-gray-100 hover:text-black btn-action-click"
                             title="Ver detalhes"
@@ -2322,7 +2369,24 @@ function Lotes() {
               
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
                 {selectedLoteForPhotos.fotosMercadoria.map((foto, _index) => (
-                  <div key={foto.id} className="group cursor-pointer" onClick={() => window.open(foto.url, '_blank')}>
+                  <div key={foto.id} className="group cursor-pointer" onClick={async () => {
+                    window.open(foto.url, '_blank');
+                    try {
+                      await logDocumentAction(
+                        'view',
+                        foto.nome,
+                        'auction',
+                        selectedLoteForPhotos?.leilaoNome || '',
+                        selectedLoteForPhotos?.auctionId || '',
+                        {
+                          metadata: {
+                            lote_numero: selectedLoteForPhotos?.numero,
+                            photo_type: foto.tipo
+                          }
+                        }
+                      );
+                    } catch { /* silenciar erro de log */ }
+                  }}>
                     <div className="aspect-square bg-gray-50 rounded overflow-hidden border border-gray-200 hover:border-gray-400 transition-colors">
                       {foto.url ? (
                         <img

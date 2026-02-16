@@ -128,7 +128,7 @@ export function useActivityLogger() {
 
   // Logging para lotes
   const logLotAction = useCallback(async (
-    action: 'create' | 'update' | 'delete' | 'archive' | 'unarchive',
+    action: 'create' | 'update' | 'delete' | 'archive' | 'unarchive' | 'view' | 'open_edit',
     lotNumber: string,
     auctionName: string,
     auctionId: string,
@@ -139,7 +139,9 @@ export function useActivityLogger() {
       update: `Editou lote ${lotNumber} do leilão "${auctionName}"`,
       delete: `Removeu lote ${lotNumber} do leilão "${auctionName}"`,
       archive: `Arquivou lote ${lotNumber} do leilão "${auctionName}"`,
-      unarchive: `Desarquivou lote ${lotNumber} do leilão "${auctionName}"`
+      unarchive: `Desarquivou lote ${lotNumber} do leilão "${auctionName}"`,
+      view: `Visualizou detalhes do lote ${lotNumber} do leilão "${auctionName}"`,
+      open_edit: `Abriu edição do lote ${lotNumber} do leilão "${auctionName}"`
     };
 
     await logUserAction(

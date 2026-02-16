@@ -1994,6 +1994,8 @@ export default function Configuracoes() {
                       case 'lot_create': return <Plus className="w-4 h-4 text-gray-500" />;
                       case 'lot_update': return <Edit className="w-4 h-4 text-gray-500" />;
                       case 'lot_delete': return <Trash2 className="w-4 h-4 text-red-500" />;
+                      case 'lot_view': return <Eye className="w-4 h-4 text-blue-500" />;
+                      case 'lot_open_edit': return <Edit className="w-4 h-4 text-amber-500" />;
                       case 'merchandise_create': return <Plus className="w-4 h-4 text-gray-500" />;
                       case 'merchandise_update': return <Edit className="w-4 h-4 text-gray-500" />;
                       case 'merchandise_delete': return <Trash2 className="w-4 h-4 text-red-500" />;
