@@ -1975,6 +1975,9 @@ export default function Configuracoes() {
                       case 'bidder_update': return <Users className="w-4 h-4 text-gray-500" />;
                       case 'bidder_delete': return <UserMinus className="w-4 h-4 text-red-500" />;
                       case 'bidder_add': return <Users className="w-4 h-4 text-gray-500" />;
+                      case 'bidder_view': return <Eye className="w-4 h-4 text-blue-500" />;
+                      case 'bidder_open_edit': return <Edit className="w-4 h-4 text-amber-500" />;
+                      case 'bidder_open_payment': return <DollarSign className="w-4 h-4 text-gray-500" />;
                       
                       // Pagamentos (novos)
                       case 'pagamento_marcar_pago': return <DollarSign className="w-4 h-4 text-gray-500" />;

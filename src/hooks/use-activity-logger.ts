@@ -42,7 +42,7 @@ export function useActivityLogger() {
 
   // Logging para arrematantes
   const logBidderAction = useCallback(async (
-    action: 'create' | 'update' | 'delete' | 'payment_update',
+    action: 'create' | 'update' | 'delete' | 'payment_update' | 'view' | 'open_edit' | 'open_payment',
     bidderName: string,
     auctionName: string,
     auctionId: string,
@@ -52,7 +52,10 @@ export function useActivityLogger() {
       create: `Adicionou arrematante "${bidderName}" ao leilão "${auctionName}"`,
       update: `Editou dados do arrematante "${bidderName}" no leilão "${auctionName}"`,
       delete: `Removeu arrematante "${bidderName}" do leilão "${auctionName}"`,
-      payment_update: `Atualizou pagamentos do arrematante "${bidderName}" no leilão "${auctionName}"`
+      payment_update: `Atualizou pagamentos do arrematante "${bidderName}" no leilão "${auctionName}"`,
+      view: `Visualizou detalhes do arrematante "${bidderName}" no leilão "${auctionName}"`,
+      open_edit: `Abriu edição do arrematante "${bidderName}" no leilão "${auctionName}"`,
+      open_payment: `Abriu confirmação de pagamento do arrematante "${bidderName}" no leilão "${auctionName}"`
     };
 
     await logUserAction(

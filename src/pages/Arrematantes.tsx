@@ -67,7 +67,7 @@ interface ArrematanteExtendido extends ArrematanteInfo {
 function Arrematantes() {
   const { auctions, isLoading: isAuctionsLoading, updateAuction, archiveAuction, unarchiveAuction } = useSupabaseAuctions();
   const { guestLots } = useGuestLots(); // ✅ NOVO: Buscar lotes convidados
-  const { logBidderAction, logPaymentAction, logReportAction } = useActivityLogger();
+  const { logBidderAction, logPaymentAction, logReportAction, logDocumentAction } = useActivityLogger();
   const { enviarConfirmacao, enviarQuitacao } = useEmailNotifications();
   const queryClient = useQueryClient(); // ✅ NOVO: Para invalidar cache de guest_lots
 
@@ -803,20 +803,16 @@ function Arrematantes() {
   };
 
   // Funções do modal
-  const handleViewArrematante = (arrematante: ArrematanteExtendido) => {
-    // Buscar dados atualizados do arrematante no leilão
+  const handleViewArrematante = async (arrematante: ArrematanteExtendido) => {
     const auction = auctions.find(a => a.id === arrematante.leilaoId);
     if (auction && auction.arrematantes) {
-      // Buscar o arrematante específico no array de arrematantes
       const arrematanteNoArray = auction.arrematantes.find(a => a.id === arrematante.id);
       if (arrematanteNoArray) {
-      // Criar arrematante atualizado com dados mais recentes
       const arrematanteAtualizado = {
         ...arrematante,
           ...arrematanteNoArray,
           documentos: arrematanteNoArray.documentos || []
       };
-      
       setSelectedArrematante(arrematanteAtualizado);
       } else {
         setSelectedArrematante(arrematante);
@@ -825,18 +821,21 @@ function Arrematantes() {
       setSelectedArrematante(arrematante);
     }
     setIsViewModalOpen(true);
+    // Log da visualização de detalhes do arrematante
+    try {
+      await logBidderAction('view', arrematante.nome, arrematante.leilaoNome || '', arrematante.leilaoId, {
+        metadata: { status_pago: arrematante.pago }
+      });
+    } catch { /* silenciar erro de log */ }
   };
 
-  const handleEditArrematante = (arrematante: ArrematanteExtendido) => {
-    // Buscar dados atualizados do arrematante no leilão (igual a handleViewArrematante)
+  const handleEditArrematante = async (arrematante: ArrematanteExtendido) => {
     const auction = auctions.find(a => a.id === arrematante.leilaoId);
     let arrematanteAtualizado = arrematante;
     
     if (auction && auction.arrematantes) {
-      // Buscar o arrematante específico no array de arrematantes
       const arrematanteNoArray = auction.arrematantes.find(a => a.id === arrematante.id);
       if (arrematanteNoArray) {
-      // Criar arrematante atualizado com dados mais recentes
       arrematanteAtualizado = {
         ...arrematante,
           ...arrematanteNoArray,
@@ -853,6 +852,10 @@ function Arrematantes() {
       documentos: arrematanteAtualizado.documentos || []
     });
     setIsEditModalOpen(true);
+    // Log da abertura de edição do arrematante
+    try {
+      await logBidderAction('open_edit', arrematante.nome, arrematante.leilaoNome || '', arrematante.leilaoId);
+    } catch { /* silenciar erro de log */ }
   };
 
   const handleSaveEdit = async () => {
@@ -999,6 +1002,13 @@ function Arrematantes() {
         id: auction.id,
         data: updateData
       });
+
+      // Log da edição rápida do arrematante
+      try {
+        await logBidderAction('update', selectedArrematante.nome, selectedArrematante.leilaoNome || '', selectedArrematante.leilaoId, {
+          metadata: { edit_type: 'quick_edit' }
+        });
+      } catch { /* silenciar erro de log */ }
     } catch (_error) {
       logger.error('Erro ao salvar:', _error);
     } finally {
@@ -1051,6 +1061,12 @@ function Arrematantes() {
         documentos: [...prev.documentos, ...novosDocumentos]
       }));
       syncDocumentsToDetails(novosDocumentos, 'add');
+      // Log do upload de documentos
+      for (const doc of novosDocumentos) {
+        try {
+          logDocumentAction('upload', doc.nome, 'bidder', selectedArrematante?.nome || '', selectedArrematante?.leilaoId || '');
+        } catch { /* silenciar erro de log */ }
+      }
     }
 
     if (erros.length > 0) {
@@ -1061,10 +1077,8 @@ function Arrematantes() {
   }, [syncDocumentsToDetails]);
 
   const handleRemoveDocument = useCallback((id: string) => {
-    // Encontrar e limpar a blob URL do documento que será removido
     const docToRemove = editForm.documentos.find(doc => doc.id === id);
     
-    // Cleanup da URL blob
     if (docToRemove?.url && docToRemove.url.startsWith('blob:') && tempBlobUrlsRef.current.has(docToRemove.url)) {
       try {
         URL.revokeObjectURL(docToRemove.url);
@@ -1074,15 +1088,19 @@ function Arrematantes() {
       }
     }
     
-    // Atualizar formulário primeiro
     setEditForm(prev => ({
       ...prev,
       documentos: prev.documentos.filter(doc => doc.id !== id)
     }));
 
-    // 🔄 SINCRONIZAÇÃO ROBUSTA com debounce
     syncDocumentsToDetails([], 'remove', id);
-  }, [editForm.documentos, syncDocumentsToDetails]);
+    // Log da remoção de documento
+    if (docToRemove) {
+      try {
+        logDocumentAction('delete', docToRemove.nome, 'bidder', selectedArrematante?.nome || '', selectedArrematante?.leilaoId || '');
+      } catch { /* silenciar erro de log */ }
+    }
+  }, [editForm.documentos, syncDocumentsToDetails, logDocumentAction, selectedArrematante]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -1166,6 +1184,12 @@ function Arrematantes() {
         documentos: [...prev.documentos, ...novosDocumentos]
       }));
       syncDocumentsToDetails(novosDocumentos, 'add');
+      // Log do upload de documentos (full edit)
+      for (const doc of novosDocumentos) {
+        try {
+          logDocumentAction('upload', doc.nome, 'bidder', selectedArrematante?.nome || '', selectedArrematante?.leilaoId || '');
+        } catch { /* silenciar erro de log */ }
+      }
     }
 
     if (erros.length > 0) {
@@ -1189,15 +1213,19 @@ function Arrematantes() {
       }
     }
     
-    // Atualizar formulário completo primeiro
     setFullEditForm(prev => ({
       ...prev,
       documentos: prev.documentos.filter(doc => doc.id !== id)
     }));
 
-    // 🔄 SINCRONIZAÇÃO ROBUSTA com debounce
     syncDocumentsToDetails([], 'remove', id);
-  }, [fullEditForm.documentos, syncDocumentsToDetails]);
+    // Log da remoção de documento (full edit)
+    if (docToRemove) {
+      try {
+        logDocumentAction('delete', docToRemove.nome, 'bidder', selectedArrematante?.nome || '', selectedArrematante?.leilaoId || '');
+      } catch { /* silenciar erro de log */ }
+    }
+  }, [fullEditForm.documentos, syncDocumentsToDetails, logDocumentAction, selectedArrematante]);
 
   const handleFullEditDrop = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -2375,6 +2403,12 @@ function Arrematantes() {
     }
     
     setIsPaymentModalOpen(true);
+    // Log da abertura do modal de pagamento
+    try {
+      logBidderAction('open_payment', arrematante.nome, arrematante.leilaoNome || '', arrematante.leilaoId, {
+        metadata: { parcelas_pagas: arrematante.parcelasPagas, total_parcelas: arrematante.quantidadeParcelas }
+      });
+    } catch { /* silenciar erro de log */ }
   };
 
   const handlePaymentToggle = (monthIndex: number, paid: boolean) => {
@@ -2735,6 +2769,11 @@ function Arrematantes() {
   const handleArchiveArrematante = async (arrematante: ArrematanteExtendido) => {
     try {
       await archiveAuction(arrematante.leilaoId);
+      try {
+        await logBidderAction('update', arrematante.nome, arrematante.leilaoNome || '', arrematante.leilaoId, {
+          metadata: { action_detail: 'arquivou_leilao_do_arrematante' }
+        });
+      } catch { /* silenciar erro de log */ }
     } catch (error) {
       logger.error('Erro ao arquivar', { error });
     }
@@ -2743,6 +2782,11 @@ function Arrematantes() {
   const handleUnarchiveArrematante = async (arrematante: ArrematanteExtendido) => {
     try {
       await unarchiveAuction(arrematante.leilaoId);
+      try {
+        await logBidderAction('update', arrematante.nome, arrematante.leilaoNome || '', arrematante.leilaoId, {
+          metadata: { action_detail: 'desarquivou_leilao_do_arrematante' }
+        });
+      } catch { /* silenciar erro de log */ }
     } catch (error) {
       logger.error('Erro ao desarquivar', { error });
     }
@@ -2796,6 +2840,12 @@ function Arrematantes() {
         data: { arrematantes: arrematantesAtualizados }
       });
 
+      // Log da desconfirmação de pagamento
+      try {
+        await logPaymentAction('mark_unpaid', arrematante.nome, arrematante.leilaoNome || '', arrematante.leilaoId,
+          `Desconfirmou parcela ${parcelasPagasAtual} → ${novasParcelas}`
+        );
+      } catch { /* silenciar erro de log */ }
     } catch (error) {
       logger.error('Erro ao desconfirmar pagamento', { error });
     }
@@ -4220,6 +4270,12 @@ function Arrematantes() {
                 }
 
                 setIsEditModalOpen(false);
+                // Log da edição completa via wizard
+                try {
+                  await logBidderAction('update', data.nome || selectedArrematante.nome, selectedArrematante.leilaoNome || '', selectedArrematante.leilaoId, {
+                    metadata: { edit_type: 'full_wizard_edit', has_documents: (data.documentos?.length || 0) > 0 }
+                  });
+                } catch { /* silenciar erro de log */ }
           setSelectedArrematante(null);
               } catch (error) {
                 logger.error('Erro ao salvar', { error });
