@@ -1211,7 +1211,7 @@ function Relatorios() {
                 <div>
                   <div className="bg-white p-4 h-full">
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                      <h3 className="text-xl font-medium text-gray-900 flex items-center" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', height: '40px' }}>
+                      <h3 className="text-lg lg:text-xl font-semibold text-gray-900 flex items-center" style={{ fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif', height: '40px' }}>
                         {config.periodo.inicio === 'trimestral' ? 'Faturamento & Despesas por Trimestre' : 
                          config.periodo.inicio === 'anual' ? 'Faturamento & Despesas' : 
                          config.periodo.inicio === 'personalizado' ? 'Faturamento & Despesas - Período Personalizado' :
@@ -1400,12 +1400,12 @@ function Relatorios() {
 
                 
                     <div className="mt-4 overflow-x-auto overflow-y-hidden">
-                      <div className="min-w-full" style={{ aspectRatio: '1450 / 420' }}>
+                      <div className="min-w-full" style={{ aspectRatio: '1450 / 520' }}>
                         <svg 
                           ref={svgRef}
                           width="100%" 
                           height="100%" 
-                          viewBox="0 0 1450 420" 
+                          viewBox="0 0 1450 520" 
                           preserveAspectRatio="xMidYMid meet" 
                           style={{ cursor: 'crosshair', display: 'block' }}
                           onMouseMove={handleChartMouseMove}
@@ -1416,11 +1416,11 @@ function Relatorios() {
                           <line
                             key={line}
                             x1="80"
-                            y1={25 + line * 50}
+                            y1={40 + line * 60}
                             x2="1430"
-                            y2={25 + line * 50}
-                            stroke="#d1d5db"
-                            strokeWidth="1"
+                            y2={40 + line * 60}
+                            stroke="#E5E7EB"
+                            strokeWidth="0.5"
                           />
                         ))}
                         
@@ -1476,9 +1476,9 @@ function Relatorios() {
                             <text
                               key={i}
                               x={80 + (i * espacamentoX)}
-                              y="405"
-                              fill="#6B7280"
-                              fontSize="14"
+                              y="495"
+                              fill="#9CA3AF"
+                              fontSize="13"
                               textAnchor="middle"
                               fontWeight="500"
                             >
@@ -2041,14 +2041,14 @@ function Relatorios() {
                                 const valorParaY = (valor) => {
                                   // Pontos de referência da escala: [valor, posição Y]
                                   const pontos = [
-                                    [8000000, 25],   // R$ 8M → topo
-                                    [6000000, 75],   // R$ 6M
-                                    [4000000, 125],  // R$ 4M  
-                                    [3000000, 175],  // R$ 3M
-                                    [2000000, 225],  // R$ 2M
-                                    [1000000, 275],  // R$ 1M
-                                    [500000, 325],   // R$ 500k
-                                    [0, 375]         // R$ 0 → base
+                                    [8000000, 40],   // R$ 8M → topo
+                                    [6000000, 100],  // R$ 6M
+                                    [4000000, 160],  // R$ 4M  
+                                    [3000000, 220],  // R$ 3M
+                                    [2000000, 280],  // R$ 2M
+                                    [1000000, 340],  // R$ 1M
+                                    [500000, 400],   // R$ 500k
+                                    [0, 460]         // R$ 0 → base
                                   ];
                                   
                                   // Se o valor é exatamente um dos pontos de referência
@@ -2070,10 +2070,10 @@ function Relatorios() {
                                   }
                                   
                                   // Se valor está acima de 8M, usar o topo
-                                  if (valor > 8000000) return 25;
+                                  if (valor > 8000000) return 40;
                                   
                                   // Se valor está abaixo de 0, usar a base
-                                  return 375;
+                                  return 460;
                                 };
                                 
                                 // Configuração das barras baseado na quantidade de períodos
@@ -2118,11 +2118,11 @@ function Relatorios() {
                                       return (
                                         <rect
                                           x={80 + (hoveredPoint.index * larguraSegmento)}
-                                          y="25"
+                                          y="40"
                                           width={larguraSegmento}
-                                          height="350"
+                                          height="420"
                                           fill={corHighlight}
-                                          fillOpacity="0.06"
+                                          fillOpacity="0.04"
                                           style={{ pointerEvents: 'none', transition: 'x 0.15s ease-out, opacity 0.15s ease-out' }}
                                         />
                                       );
@@ -2130,7 +2130,7 @@ function Relatorios() {
                                     
                                     {/* Barras de Faturamento */}
                                     {dadosMensais.map((dados, i) => {
-                                      const alturaFaturamento = 375 - valorParaY(dados.faturamento);
+                                      const alturaFaturamento = 460 - valorParaY(dados.faturamento);
                                       const isActive = hoveredPoint?.index === i;
                                       return (
                                         <rect
@@ -2151,7 +2151,7 @@ function Relatorios() {
                                     
                                     {/* Barras de Despesas */}
                                     {dadosMensais.map((dados, i) => {
-                                      const alturaDespesas = 375 - valorParaY(dados.despesas);
+                                      const alturaDespesas = 460 - valorParaY(dados.despesas);
                                       const isActive = hoveredPoint?.index === i;
                                       return (
                                         <rect
@@ -2174,12 +2174,12 @@ function Relatorios() {
                                     {hoveredPoint && (
                                       <line
                                         x1={calcularCentroPeriodo(hoveredPoint.index)}
-                                        y1="25"
+                                        y1="40"
                                         x2={calcularCentroPeriodo(hoveredPoint.index)}
-                                        y2="375"
+                                        y2="460"
                                         stroke="#111827"
                                         strokeWidth="0.5"
-                                        strokeOpacity="0.2"
+                                        strokeOpacity="0.15"
                                         style={{ pointerEvents: 'none', transition: 'x1 0.1s ease-out, x2 0.1s ease-out' }}
                                       />
                                     )}
@@ -2458,17 +2458,17 @@ function Relatorios() {
                               
                               {/* Labels do eixo Y */}
                               {[0, 1, 2, 3, 4, 5, 6, 7].map((tick) => {
-                                // Valores com incrementos de 500k até 8M
                                 const valoresFixos = ['R$ 0', 'R$ 500k', 'R$ 1M', 'R$ 2M', 'R$ 3M', 'R$ 4M', 'R$ 6M', 'R$ 8M'];
-                                const value = valoresFixos[7 - tick]; // Inverter ordem para crescente
+                                const value = valoresFixos[7 - tick];
                                 
                                 return (
                                   <text
                                     key={tick}
                                     x="72"
-                                    y={25 + tick * 50 + 4}
-                                    fill="#64748b"
+                                    y={40 + tick * 60 + 4}
+                                    fill="#9CA3AF"
                                     fontSize="12"
+                                    fontWeight="400"
                                     textAnchor="end"
                                   >
                                     {value}
