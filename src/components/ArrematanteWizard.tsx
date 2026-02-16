@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import * as AlertDialogPrimitive from "@radix-ui/react-alert-dialog";
 import { ArrematanteInfo, LoteInfo, DocumentoInfo, Auction } from "@/lib/types";
 import { logger } from "@/lib/logger";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -564,6 +565,7 @@ interface FormValues {
 }
 
 export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArrematante, isNewArrematante = false }: ArrematanteWizardProps) {
+  const { logDocumentAction } = useActivityLogger();
   // Verificar se deve mostrar seleção de arrematante
   const arrematantesExistentes = useMemo(() => initial.auction?.arrematantes || [], [initial.auction?.arrematantes]);
   
@@ -2519,6 +2521,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                       type="button"
                       onClick={() => {
                         logger.debug('📄 Abrindo documento:', { nome: doc.nome, url: doc.url?.substring(0, 50) + '...' });
+                        try { logDocumentAction('view', doc.nome || 'documento', 'bidder', initial.auction?.nome || '', initial.auction?.id || ''); } catch { /* */ }
                         if (doc.url) {
                           // Abrir documento em nova aba (visualização)
                           const newWindow = window.open('', '_blank');
@@ -2585,6 +2588,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                     onClick={() => {
                       const doc = values.documentos[selectedDocIndex];
                       logger.debug('📄 Abrindo documento:', { nome: doc?.nome, url: doc?.url?.substring(0, 50) + '...' });
+                      try { logDocumentAction('view', doc?.nome || 'documento', 'bidder', initial.auction?.nome || '', initial.auction?.id || ''); } catch { /* */ }
                       if (doc?.url) {
                         // Abrir documento em nova aba (visualização)
                         const newWindow = window.open('', '_blank');
@@ -4219,6 +4223,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                                     <button
                                       type="button"
                   onClick={() => {
+                                        try { logDocumentAction('view', doc.nome || 'documento', 'bidder', initial.auction?.nome || '', initial.auction?.id || ''); } catch { /* */ }
                                         if (doc.url) {
                                           const newWindow = window.open('', '_blank');
                                           if (newWindow) {
@@ -4280,6 +4285,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                                     type="button"
                 onClick={() => {
                                       const doc = currentArr.documentos?.[selectedDocIndexDivisao];
+                                      try { logDocumentAction('view', doc?.nome || 'documento', 'bidder', initial.auction?.nome || '', initial.auction?.id || ''); } catch { /* */ }
                                       if (doc?.url) {
                                         const newWindow = window.open('', '_blank');
                                         if (newWindow) {

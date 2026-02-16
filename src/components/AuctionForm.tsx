@@ -1944,6 +1944,7 @@ export function AuctionForm({
                               variant="ghost"
                               size="sm"
                               onClick={() => {
+                                try { logDocumentAction('view', doc.nome || 'documento', 'auction', initial?.nome || '', initial?.id || ''); } catch { /* */ }
                                 if (doc.url) {
                                   // Se é documento com base64, abrir em nova aba com viewer
                                   if (doc.url.startsWith('data:')) {

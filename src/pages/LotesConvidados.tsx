@@ -1341,6 +1341,19 @@ export default function LotesConvidados() {
                 // ✅ Invalidar cache para atualizar a lista de lotes
                 await queryClient.invalidateQueries({ queryKey: ['guest-lots'] });
 
+                // Log do create/update arrematante em lote convidado
+                try {
+                  if (isEditing) {
+                    logBidderAction('update', data.nome || '', addingArrematanteFor.leilao_nome || `Lote #${addingArrematanteFor.numero}`, addingArrematanteFor.leilao_id || '', {
+                      metadata: { context: 'guest_lot', guest_lot_id: addingArrematanteFor.id }
+                    });
+                  } else {
+                    logBidderAction('create', data.nome || '', addingArrematanteFor.leilao_nome || `Lote #${addingArrematanteFor.numero}`, addingArrematanteFor.leilao_id || '', {
+                      metadata: { context: 'guest_lot', guest_lot_id: addingArrematanteFor.id }
+                    });
+                  }
+                } catch { /* silenciar erro de log */ }
+
                 // Fechar wizard
                 setAddingArrematanteFor(null);
                 setEditingArrematanteId(null);

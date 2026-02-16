@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { useActivityLogger } from '@/hooks/use-activity-logger';
 import { 
   Database, 
   Upload, 
@@ -45,6 +46,7 @@ interface DataCounts {
 }
 
 export function MigrationManager({ onMigrationComplete }: MigrationManagerProps) {
+  const { logConfigAction } = useActivityLogger();
   const [isConnected, setIsConnected] = useState<boolean | null>(null);
   const [isChecking, setIsChecking] = useState(false);
   const [isMigrating, setIsMigrating] = useState(false);
@@ -54,6 +56,7 @@ export function MigrationManager({ onMigrationComplete }: MigrationManagerProps)
   // Verificar conexão com Supabase
   const handleCheckConnection = async () => {
     setIsChecking(true);
+    try { logConfigAction('view', 'migration', 'Verificou conexão com Supabase'); } catch { /* */ }
     try {
       const connected = await checkSupabaseConnection();
       setIsConnected(connected);
@@ -76,6 +79,7 @@ export function MigrationManager({ onMigrationComplete }: MigrationManagerProps)
   // Executar migração
   const handleMigrate = async () => {
     setIsMigrating(true);
+    try { logConfigAction('update', 'migration', 'Executou migração de dados para Supabase'); } catch { /* */ }
     try {
       const result = await migrateLocalStorageToSupabase();
       setMigrationResult(result);
@@ -101,6 +105,7 @@ export function MigrationManager({ onMigrationComplete }: MigrationManagerProps)
   // Limpar localStorage
   const handleClearLocal = async () => {
     if (confirm('Tem certeza que deseja limpar todos os dados locais? Esta ação não pode ser desfeita.')) {
+      try { logConfigAction('delete', 'local_data', 'Limpou dados locais do navegador'); } catch { /* */ }
       await clearLocalStorage();
       setLocalDataCounts(null);
       setMigrationResult(null);

@@ -1,6 +1,7 @@
 import { Auction, ArrematanteInfo } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabaseClient } from "@/lib/supabase-client";
@@ -203,6 +204,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
             className="bg-white rounded-lg border border-gray-200 overflow-hidden cursor-pointer hover:shadow-lg hover:border-gray-300 transition-all"
             onClick={() => {
               if (image.url) {
+                try { logDocumentAction('view', image.nome || 'imagem', 'lot', auction.nome || '', auction.id); } catch { /* */ }
                 // Abrir imagem em nova aba para visualização
                 const newWindow = window.open('', '_blank');
                 if (newWindow) {
@@ -283,6 +285,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
 }
 
 export function AuctionDetails({ auction }: AuctionDetailsProps) {
+  const { logDocumentAction } = useActivityLogger();
   // Estados para gerenciar arrematantes
   const [arrematanteSelecionadoIndex, setArrematanteSelecionadoIndex] = useState(0);
   const [isSelectOpen, setIsSelectOpen] = useState(false);
@@ -1082,6 +1085,7 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
                     <div key={doc.id || index} 
                          className="flex items-center gap-3 p-3 bg-gray-50 rounded cursor-pointer hover:bg-gray-100 transition-colors"
                          onClick={() => {
+                           try { logDocumentAction('view', doc.nome || 'documento', 'auction', auction.nome || '', auction.id); } catch { /* */ }
                            if (doc.url) {
                              // Se é PDF ou documento com base64, abrir em nova aba
                              if (doc.url.startsWith('data:')) {
@@ -1148,6 +1152,7 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
                     <div key={foto.id || index} 
                          className="relative aspect-square bg-gray-100 rounded-lg overflow-hidden border border-gray-200 cursor-pointer hover:border-blue-300 transition-colors group"
                          onClick={() => {
+                           try { logDocumentAction('view', foto.nome || 'foto', 'merchandise', auction.nome || '', auction.id); } catch { /* */ }
                            if (foto.url) {
                              // Abrir imagem em nova aba para visualização ampliada
                              const newWindow = window.open();

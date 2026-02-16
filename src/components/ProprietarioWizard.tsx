@@ -2,6 +2,7 @@ import { useState } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectGroup, SelectLabel } from "@/components/ui/select";
@@ -421,6 +422,7 @@ interface ProprietarioWizardProps {
 }
 
 export function ProprietarioWizard({ onSubmit, onCancel, initialData }: ProprietarioWizardProps) {
+  const { logDocumentAction } = useActivityLogger();
   const [currentStep, setCurrentStep] = useState(0);
   const [isClosing, setIsClosing] = useState(false);
   const [attemptedNext, setAttemptedNext] = useState(false); // Para mostrar erros de validação
@@ -472,6 +474,7 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
 
   const openDocumento = (doc: DocumentoProprietario, _index: number) => {
     logger.debug('📄 Tentando abrir documento:', doc.nome);
+    try { logDocumentAction('view', doc.nome || 'documento_proprietario', 'auction', values.nome || '', ''); } catch { /* */ }
     
     const isBase64 = doc.base64.startsWith('data:');
     const isUrl = doc.base64.startsWith('http://') || doc.base64.startsWith('https://');

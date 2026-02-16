@@ -13,9 +13,11 @@ import {
   X
 } from 'lucide-react';
 import { useAutoMigration } from '@/hooks/use-auto-migration';
+import { useActivityLogger } from '@/hooks/use-activity-logger';
 
 export function MigrationNotification() {
   const { migrationStatus, migrationResult, runAutoMigration } = useAutoMigration();
+  const { logConfigAction } = useActivityLogger();
   const [isDismissed, setIsDismissed] = React.useState(false);
 
   // Auto-dispensar quando migração for bem-sucedida
@@ -74,7 +76,10 @@ export function MigrationNotification() {
               
               <div className="flex gap-2">
                 <Button
-                  onClick={runAutoMigration}
+                  onClick={() => {
+                    try { logConfigAction('update', 'migration', 'Executou migração automática via notificação'); } catch { /* */ }
+                    runAutoMigration();
+                  }}
                   size="sm"
                   className="bg-blue-600 hover:bg-blue-700"
                 >
@@ -103,7 +108,10 @@ export function MigrationNotification() {
               
               <div className="flex gap-2">
                 <Button
-                  onClick={runAutoMigration}
+                  onClick={() => {
+                    try { logConfigAction('update', 'migration', 'Retentou migração automática após erro'); } catch { /* */ }
+                    runAutoMigration();
+                  }}
                   size="sm"
                   variant="outline"
                 >
