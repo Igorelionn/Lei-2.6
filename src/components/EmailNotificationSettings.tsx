@@ -81,13 +81,8 @@ export function EmailNotificationSettings() {
     const result = await limparHistorico();
     
     if (result.success) {
-      setClearMessage({ success: true, text: result.message });
-      // Recarregar após 3 segundos para confirmar que foi limpo
-      setTimeout(() => {
-        pauseAutoRefreshRef.current = false;
-        carregarLogs(20);
-        setClearMessage(null);
-      }, 3000);
+      pauseAutoRefreshRef.current = false;
+      carregarLogs(20);
     } else {
       logger.error('Erro ao limpar histórico:', result.message);
       setClearMessage({ success: false, text: result.message });
