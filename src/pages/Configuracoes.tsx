@@ -1989,6 +1989,17 @@ export default function Configuracoes() {
                       case 'payment_mark_unpaid': return <DollarSign className="w-4 h-4 text-gray-500" />;
                       case 'payment_update_installments': return <CreditCard className="w-4 h-4 text-gray-500" />;
                       
+                      // Faturas
+                      case 'invoice_create': return <Plus className="w-4 h-4 text-gray-500" />;
+                      case 'invoice_update': return <Edit className="w-4 h-4 text-gray-500" />;
+                      case 'invoice_delete': return <Trash2 className="w-4 h-4 text-red-500" />;
+                      case 'invoice_view': return <Eye className="w-4 h-4 text-blue-500" />;
+                      case 'invoice_archive': return <Archive className="w-4 h-4 text-gray-500" />;
+                      case 'invoice_unarchive': return <RefreshCw className="w-4 h-4 text-gray-500" />;
+                      case 'invoice_download_preview': return <Eye className="w-4 h-4 text-gray-500" />;
+                      case 'invoice_download_pdf': return <Download className="w-4 h-4 text-gray-500" />;
+                      case 'invoice_status_change': return <CreditCard className="w-4 h-4 text-gray-500" />;
+
                       // Documentos
                       case 'document_upload': return <Upload className="w-4 h-4 text-gray-500" />;
                       case 'document_delete': return <Trash2 className="w-4 h-4 text-red-500" />;
@@ -2118,7 +2129,8 @@ export default function Configuracoes() {
                             {activity.target_type === 'report' && 'Relatório'}
                             {activity.target_type === 'config' && 'Configuração'}
                             {activity.target_type === 'sponsor' && 'Patrocinador'}
-                            {!['auction', 'bidder', 'user', 'profile', 'auth', 'payment', 'pagamento', 'document', 'lot', 'merchandise', 'report', 'config', 'sponsor'].includes(activity.target_type) && activity.target_type}
+                            {activity.target_type === 'invoice' && 'Fatura'}
+                            {!['auction', 'bidder', 'user', 'profile', 'auth', 'payment', 'pagamento', 'document', 'lot', 'merchandise', 'report', 'config', 'sponsor', 'invoice'].includes(activity.target_type) && activity.target_type}
                           </Badge>
                         )}
                   </div>

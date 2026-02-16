@@ -19,6 +19,7 @@ import {
 import { Invoice, InvoiceStatus, ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { obterValorTotalArrematante, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 
 interface FaturaExtendida extends Invoice {
   leilaoNome: string;
@@ -76,6 +77,7 @@ const normalizarMesInicioPagamento = (mesInicioPagamento: string): string => {
 
 function Faturas() {
   const { auctions, isLoading } = useSupabaseAuctions();
+  const { logInvoiceAction, logReportAction } = useActivityLogger();
   
   // Estados para Faturas
   const [searchTermFaturas, setSearchTermFaturas] = useState("");
@@ -1069,18 +1071,17 @@ function Faturas() {
   };
 
   const handleDeleteFatura = (faturaId: string) => {
-    // Implementar exclusão da fatura
+    const fatura = faturasList.find(f => f.id === faturaId);
     logger.info('Excluir fatura', { faturaId });
     
-    // Em um sistema real, você faria uma chamada para a API para deletar
-    // Por exemplo:
-    // await deleteFaturaFromDatabase(faturaId);
-    
-    // Por enquanto, apenas remove da lista local (mock)
     handleSmoothTransitionFaturas(() => {
       logger.info('Fatura excluída com sucesso', { faturaId });
-      // A lista será regenerada automaticamente na próxima renderização
     });
+
+    // Log da exclusão da fatura
+    try {
+      logInvoiceAction('delete', fatura ? `Lote ${fatura.loteNumero}` : faturaId, fatura?.arrematanteNome || '', fatura?.auctionId || '');
+    } catch { /* silenciar erro de log */ }
   };
 
   // Estado para preview modal da fatura
@@ -1093,6 +1094,10 @@ function Faturas() {
 
     setSelectedFaturaForPreview(fatura);
     setIsFaturaPreviewOpen(true);
+    // Log da abertura do preview da fatura
+    try {
+      logInvoiceAction('download_preview', `Lote ${fatura.loteNumero}`, fatura.arrematanteNome, fatura.auctionId);
+    } catch { /* silenciar erro de log */ }
   };
 
   // Estado para modal temporário invisível (igual aos relatórios)
@@ -1143,11 +1148,15 @@ function Faturas() {
       await html2pdf().set(opt).from(element).save();
       
       logger.info('PDF da fatura gerado com sucesso');
+
+      // Log do download do PDF
+      try {
+        await logInvoiceAction('download_pdf', `Lote ${selectedFaturaForPreview.loteNumero}`, selectedFaturaForPreview.arrematanteNome, selectedFaturaForPreview.auctionId);
+      } catch { /* silenciar erro de log */ }
       
     } catch (error) {
       logger.error('Erro ao gerar PDF da fatura', { error });
     } finally {
-      // Sempre fechar o modal no final
       setIsExportFaturaModalOpen(false);
       setSelectedFaturaForPreview(null);
     }
@@ -1157,13 +1166,19 @@ function Faturas() {
 
 
   const handleArchiveFatura = (faturaId: string) => {
+    const fatura = faturasList.find(f => f.id === faturaId);
     setArchivedFaturas(prev => new Set(prev).add(faturaId));
     handleSmoothTransitionFaturas(() => {
       logger.info('Fatura arquivada com sucesso', { faturaId });
     });
+    // Log do arquivamento da fatura
+    try {
+      logInvoiceAction('archive', fatura ? `Lote ${fatura.loteNumero}` : faturaId, fatura?.arrematanteNome || '', fatura?.auctionId || '');
+    } catch { /* silenciar erro de log */ }
   };
 
   const handleUnarchiveFatura = (faturaId: string) => {
+    const fatura = faturasList.find(f => f.id === faturaId);
     setArchivedFaturas(prev => {
       const newSet = new Set(prev);
       newSet.delete(faturaId);
@@ -1172,6 +1187,10 @@ function Faturas() {
     handleSmoothTransitionFaturas(() => {
       logger.info('Fatura desarquivada com sucesso', { faturaId });
     });
+    // Log do desarquivamento da fatura
+    try {
+      logInvoiceAction('unarchive', fatura ? `Lote ${fatura.loteNumero}` : faturaId, fatura?.arrematanteNome || '', fatura?.auctionId || '');
+    } catch { /* silenciar erro de log */ }
   };
 
   const handleSaveFatura = () => {
@@ -1188,21 +1207,27 @@ function Faturas() {
       id: isEditingFatura ? selectedFatura?.id : `fatura-${Date.now()}`
     };
 
+    const arrematante = faturasList.find(f => f.arrematanteId === faturaForm.arrematanteId);
+
     if (isEditingFatura) {
       logger.info('Atualizando fatura', faturaData);
-      // Em um sistema real: await updateFatura(faturaData);
+      // Log da edição da fatura
+      try {
+        logInvoiceAction('update', `Lote ${faturaForm.lotId}`, arrematante?.arrematanteNome || '', faturaForm.auctionId);
+      } catch { /* silenciar erro de log */ }
     } else {
       logger.info('Criando nova fatura', faturaData);
-      // Em um sistema real: await createFatura(faturaData);
+      // Log da criação da fatura
+      try {
+        logInvoiceAction('create', `Lote ${faturaForm.lotId}`, arrematante?.arrematanteNome || '', faturaForm.auctionId);
+      } catch { /* silenciar erro de log */ }
     }
 
-    // Fechar modal e resetar formulário
     setIsFaturaModalOpen(false);
     resetFaturaForm();
     setSelectedFatura(null);
     setIsEditingFatura(false);
 
-    // Aplicar transição suave
     handleSmoothTransitionFaturas(() => {
       logger.info('Fatura salva com sucesso');
     });
@@ -1504,6 +1529,9 @@ function Faturas() {
                             onClick={() => {
                               setSelectedFatura(fatura);
                               setIsViewFaturaModalOpen(true);
+                              try {
+                                logInvoiceAction('view', `Lote ${fatura.loteNumero}`, fatura.arrematanteNome, fatura.auctionId);
+                              } catch { /* silenciar erro de log */ }
                             }}
                             className="h-8 w-8 p-0 text-gray-600 hover:bg-gray-100 hover:text-gray-900 btn-action-click"
                             title="Ver detalhes"

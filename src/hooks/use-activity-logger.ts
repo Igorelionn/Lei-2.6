@@ -277,6 +277,39 @@ export function useActivityLogger() {
     );
   }, [logUserAction]);
 
+  // Logging para faturas
+  const logInvoiceAction = useCallback(async (
+    action: 'create' | 'update' | 'delete' | 'view' | 'archive' | 'unarchive' | 'download_preview' | 'download_pdf' | 'status_change',
+    invoiceDescription: string,
+    bidderName: string,
+    auctionId: string,
+    options?: ActivityLogOptions
+  ) => {
+    const actionDescriptions = {
+      create: `Criou fatura "${invoiceDescription}" para "${bidderName}"`,
+      update: `Editou fatura "${invoiceDescription}" de "${bidderName}"`,
+      delete: `Excluiu fatura "${invoiceDescription}" de "${bidderName}"`,
+      view: `Visualizou detalhes da fatura "${invoiceDescription}" de "${bidderName}"`,
+      archive: `Arquivou fatura "${invoiceDescription}" de "${bidderName}"`,
+      unarchive: `Desarquivou fatura "${invoiceDescription}" de "${bidderName}"`,
+      download_preview: `Abriu preview da fatura "${invoiceDescription}" de "${bidderName}"`,
+      download_pdf: `Baixou PDF da fatura "${invoiceDescription}" de "${bidderName}"`,
+      status_change: `Alterou status da fatura "${invoiceDescription}" de "${bidderName}"`
+    };
+
+    await logUserAction(
+      `invoice_${action}`,
+      actionDescriptions[action],
+      'invoice',
+      auctionId,
+      {
+        invoice_description: invoiceDescription,
+        bidder_name: bidderName,
+        ...options?.metadata
+      }
+    );
+  }, [logUserAction]);
+
   return {
     logAuctionAction,
     logBidderAction,
@@ -286,6 +319,7 @@ export function useActivityLogger() {
     logMerchandiseAction,
     logReportAction,
     logConfigAction,
-    logSponsorAction
+    logSponsorAction,
+    logInvoiceAction
   };
 }
