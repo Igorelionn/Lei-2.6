@@ -267,7 +267,7 @@ const HoverSyncHeader = ({
 
 export default function Inadimplencia() {
   const { auctions, isLoading } = useSupabaseAuctions();
-  const { logReportAction } = useActivityLogger();
+  const { logReportAction, logBidderAction } = useActivityLogger();
   const { enviarCobranca, enviarLembrete, testarEnvioCobranca } = useEmailNotifications();
 
   // Função para calcular juros progressivos mês a mês
@@ -321,6 +321,11 @@ export default function Inadimplencia() {
   const handleOpenHistory = (auction: AuctionWithOverdueInfo) => {
     setSelectedArrematante(auction);
     setIsHistoryModalOpen(true);
+    try {
+      logBidderAction('view', auction.arrematante?.nome || '', auction.nome || '', auction.id, {
+        metadata: { context: 'inadimplencia_history', overdue_amount: auction.overdueAmount }
+      });
+    } catch { /* silenciar erro de log */ }
   };
 
   // Função para baixar o relatório em PDF
@@ -429,7 +434,16 @@ export default function Inadimplencia() {
       
       await html2pdf().set(options).from(element).save();
       
-      // Fechar modal após sucesso
+      // Log da exportação do relatório de inadimplência
+      try {
+        const arrematanteExport = selectedArrematanteForExport === 'todos'
+          ? 'Todos os inadimplentes'
+          : filteredOverdueAuctions.find(a => a.id === selectedArrematanteForExport)?.arrematante?.nome || '';
+        await logReportAction('export', 'inadimplencia', `Exportou relatório de inadimplência - ${arrematanteExport}`, {
+          metadata: { tipo: selectedArrematanteForExport === 'todos' ? 'geral' : 'individual', arrematante: arrematanteExport }
+        });
+      } catch { /* silenciar erro de log */ }
+
       setIsExportModalOpen(false);
       setSelectedArrematanteForExport("");
       
@@ -1805,6 +1819,12 @@ Arthur Lira Leilões`;
       
       if (result.success) {
         setIsChargeModalOpen(false);
+        // Log do envio de cobrança
+        try {
+          await logReportAction('generate', 'cobranca_email', `Enviou cobrança para "${selectedDebtor.arrematante?.nome}" no leilão "${selectedDebtor.nome}"`, {
+            metadata: { arrematante: selectedDebtor.arrematante?.nome, auction_id: selectedDebtor.id, email: selectedDebtor.arrematante?.email }
+          });
+        } catch { /* silenciar erro de log */ }
         setSelectedDebtor(null);
         setChargeMessage("");
         setAttachments([]);
@@ -1820,7 +1840,6 @@ Arthur Lira Leilões`;
 
   // Função para testar envio de cobrança
   const handleTestEmailSend = async (auctionProcessado: AuctionWithOverdueInfo) => {
-    // 🔧 CORREÇÃO: Buscar o auction ORIGINAL (sem modificações) do array auctions
     const auctionOriginal = auctions.find(a => a.id === auctionProcessado.id);
     
     if (!auctionOriginal) {
@@ -1832,8 +1851,14 @@ Arthur Lira Leilões`;
     setIsTestEmailModalOpen(true);
     setIsTestingSend(true);
 
+    // Log do teste de envio de cobrança
     try {
-      // Passar o auction ORIGINAL (com valorPagarNumerico correto)
+      logReportAction('view', 'teste_cobranca', `Testou envio de cobrança para "${auctionProcessado.arrematante?.nome}"`, {
+        metadata: { arrematante: auctionProcessado.arrematante?.nome, auction_id: auctionProcessado.id }
+      });
+    } catch { /* silenciar erro de log */ }
+
+    try {
       const result = await testarEnvioCobranca(auctionOriginal);
       
       setTestEmailLogs(result.detalhes || []);
@@ -1927,7 +1952,12 @@ Arthur Lira Leilões`;
           <Button 
             variant="outline" 
             className="bg-white text-black border-gray-300 hover:bg-gray-100 hover:text-black"
-            onClick={() => setIsExportModalOpen(true)}
+            onClick={() => {
+              setIsExportModalOpen(true);
+              try {
+                logReportAction('view', 'inadimplencia', 'Abriu modal de exportação de inadimplência');
+              } catch { /* silenciar erro de log */ }
+            }}
           >
             <Download className="h-4 w-4 mr-2" />
             Exportar
