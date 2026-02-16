@@ -468,6 +468,10 @@ export default function Configuracoes() {
       setCurrentPassword("");
       
       logger.info('Senha verificada com sucesso', { userName: user?.name });
+      // Log da revelação de senha
+      try {
+        await logUserAction('password_reveal', 'Revelou senha própria do perfil', 'config');
+      } catch { /* silenciar erro de log */ }
       
     } catch (error) {
       logger.error('Erro na verificação', { error });
@@ -493,6 +497,10 @@ export default function Configuracoes() {
     setActivitiesPage(1);
     await loadUserActivities(member.id, 1);
     setShowActionsModal(true);
+    // Log da visualização de atividades de outro membro
+    try {
+      await logUserAction('activity_history_view', `Visualizou histórico de atividades de "${member.full_name || member.email}"`, 'config');
+    } catch { /* silenciar erro de log */ }
   };
 
   const loadUserActivities = async (userId: string, page: number = 1) => {
@@ -537,6 +545,10 @@ export default function Configuracoes() {
     }
 
     setShowClearHistoryModal(true);
+    // Log da abertura do modal de limpar histórico
+    try {
+      logUserAction('history_clear_open', 'Abriu modal de limpeza de histórico de atividades', 'config');
+    } catch { /* silenciar erro de log */ }
   };
 
   const confirmClearHistory = async () => {
@@ -1604,7 +1616,12 @@ export default function Configuracoes() {
                 <div className="flex items-center gap-3">
                   {/* Botão Configurações de Email */}
                   <Button 
-                    onClick={() => navigate('/email')}
+                    onClick={() => {
+                      navigate('/email');
+                      try {
+                        logUserAction('config_email_access', 'Acessou configurações de email', 'config');
+                      } catch { /* silenciar erro de log */ }
+                    }}
                     variant="outline"
                     className="bg-white border border-gray-300 text-gray-700 hover:bg-gray-50 hover:text-gray-700 hover:border-gray-300 font-medium"
                   >
@@ -2048,6 +2065,10 @@ export default function Configuracoes() {
                       case 'config_backup': return <Database className="w-4 h-4 text-gray-500" />;
                       case 'config_restore': return <RefreshCw className="w-4 h-4 text-gray-500" />;
                       case 'history_clear': return <Trash2 className="w-4 h-4 text-red-500" />;
+                      case 'history_clear_open': return <Trash2 className="w-4 h-4 text-gray-500" />;
+                      case 'activity_history_view': return <Eye className="w-4 h-4 text-blue-500" />;
+                      case 'password_reveal': return <Key className="w-4 h-4 text-amber-500" />;
+                      case 'config_email_access': return <Settings className="w-4 h-4 text-gray-500" />;
                       
                       default: return <Activity className="w-4 h-4 text-gray-500" />;
                     }
