@@ -62,7 +62,7 @@ function Leiloes() {
   const location = useLocation();
   const queryClient = useQueryClient();
   const { auctions, isLoading, createAuction, updateAuction, deleteAuction, archiveAuction, unarchiveAuction, duplicateAuction } = useSupabaseAuctions();
-  const { logAuctionAction, logBidderAction, logLotAction: _logLotAction, logMerchandiseAction: _logMerchandiseAction, logDocumentAction: _logDocumentAction, logReportAction } = useActivityLogger();
+  const { logAuctionAction, logBidderAction, logLotAction: _logLotAction, logMerchandiseAction: _logMerchandiseAction, logDocumentAction, logReportAction } = useActivityLogger();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<AuctionStatus | "todos">("todos");
   const [localFilter, setLocalFilter] = useState<string>("todos");
@@ -747,13 +747,33 @@ function Leiloes() {
         ...prev,
         documentos: [...prev.documentos, ...novosDocumentos]
       }));
+
+      // Log do upload de documentos
+      for (const doc of novosDocumentos) {
+        try {
+          await logDocumentAction(
+            'upload',
+            doc.nome,
+            'bidder',
+            arrematanteForm.nome || 'Novo arrematante',
+            addingArrematanteFor?.id || '',
+            {
+              metadata: {
+                document_type: doc.tipo,
+                document_size: doc.tamanho,
+                auction_name: addingArrematanteFor?.nome
+              }
+            }
+          );
+        } catch { /* silenciar erro de log */ }
+      }
     }
 
     event.target.value = '';
   };
 
   // Função para remover documento
-  const handleRemoveDocument = (id: string) => {
+  const handleRemoveDocument = async (id: string) => {
     // Encontrar e limpar a blob URL do documento que será removido
     const docToRemove = arrematanteForm.documentos.find(doc => doc.id === id);
     if (docToRemove?.url && tempBlobUrlsRef.current.has(docToRemove.url)) {
@@ -765,6 +785,25 @@ function Leiloes() {
       ...prev,
       documentos: prev.documentos.filter(doc => doc.id !== id)
     }));
+
+    // Log da remoção de documento
+    if (docToRemove) {
+      try {
+        await logDocumentAction(
+          'delete',
+          docToRemove.nome,
+          'bidder',
+          arrematanteForm.nome || 'Arrematante',
+          addingArrematanteFor?.id || '',
+          {
+            metadata: {
+              document_type: docToRemove.tipo,
+              auction_name: addingArrematanteFor?.nome
+            }
+          }
+        );
+      } catch { /* silenciar erro de log */ }
+    }
   };
 
   // Função para lidar com drag & drop
@@ -773,15 +812,15 @@ function Leiloes() {
     e.stopPropagation();
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = async (e: React.DragEvent) => {
     e.preventDefault();
     e.stopPropagation();
 
     const files = Array.from(e.dataTransfer.files);
-    files.forEach((file) => {
+    for (const file of files) {
       const blobUrl = URL.createObjectURL(file);
       const novoDocumento: DocumentoInfo = {
-        id: crypto.randomUUID(), // 🔒 SEGURANÇA: ID criptograficamente seguro
+        id: crypto.randomUUID(),
         nome: file.name,
         tipo: file.type,
         tamanho: file.size,
@@ -789,14 +828,32 @@ function Leiloes() {
         url: blobUrl
       };
       
-      // Adicionar URL ao set de URLs temporárias
       tempBlobUrlsRef.current.add(blobUrl);
 
       setArrematanteForm(prev => ({
         ...prev,
         documentos: [...prev.documentos, novoDocumento]
       }));
-    });
+
+      // Log do upload via drag-and-drop
+      try {
+        await logDocumentAction(
+          'upload',
+          file.name,
+          'bidder',
+          arrematanteForm.nome || 'Novo arrematante',
+          addingArrematanteFor?.id || '',
+          {
+            metadata: {
+              document_type: file.type,
+              document_size: file.size,
+              upload_method: 'drag_and_drop',
+              auction_name: addingArrematanteFor?.nome
+            }
+          }
+        );
+      } catch { /* silenciar erro de log */ }
+    }
   };
 
   // Função para submeter o formulário de arrematante
@@ -1360,7 +1417,7 @@ function Leiloes() {
   };
 
   // Função para iniciar edição de leilão
-  const startEditingAuction = (auction: Auction) => {
+  const startEditingAuction = async (auction: Auction) => {
     logger.debug('startEditingAuction chamado', {
       auctionId: auction.id,
       auctionNome: auction.nome,
@@ -1368,6 +1425,16 @@ function Leiloes() {
     });
     setEditingAuction(auction);
     setIsFormBeingEdited(true);
+
+    // Log da abertura de edição do leilão
+    try {
+      await logAuctionAction('open_edit', auction.nome, auction.id, {
+        metadata: {
+          local: auction.local,
+          status: auction.status
+        }
+      });
+    } catch { /* silenciar erro de log */ }
   };
 
   const handleRefresh = async () => {
@@ -1478,6 +1545,16 @@ function Leiloes() {
       };
 
       await html2pdf().set(opt).from(element).save();
+      
+      // Log da exportação de PDF
+      try {
+        await logAuctionAction('export_pdf', auction.nome, auction.id, {
+          metadata: {
+            format: 'pdf',
+            auction_identificacao: auction.identificacao
+          }
+        });
+      } catch { /* silenciar erro de log */ }
       
       setIsExportModalOpen(false);
     } catch (error) {
@@ -1833,7 +1910,12 @@ function Leiloes() {
               <Button 
                 variant="outline" 
                 className="gap-2 h-11 px-4 min-w-0 sm:min-w-[120px] hover:bg-gray-100 hover:text-gray-900"
-                onClick={() => setIsExportModalOpen(true)}
+                onClick={async () => {
+                  setIsExportModalOpen(true);
+                  try {
+                    await logReportAction('view', 'leilao', 'Abriu modal de exportação de relatórios');
+                  } catch { /* silenciar erro de log */ }
+                }}
               >
                  <Download className="h-4 w-4" />
                  Exportar
@@ -2078,16 +2160,21 @@ function Leiloes() {
                                  variant="ghost"
                                  size="sm"
                                       onClick={async () => {
-                                        wizardClosedIntentionally.current = false; // Resetar flag ao abrir
+                                        wizardClosedIntentionally.current = false;
                                         
-                                        // 🔄 Recarregar dados do leilão para garantir que temos guestLotId atualizado
                                         await queryClient.invalidateQueries({ queryKey: ['auctions'] });
                                         await new Promise(resolve => setTimeout(resolve, 100));
                                         const auctionAtualizado = auctions.find(a => a.id === auction.id) || auction;
                                         
                                         setAddingArrematanteFor(auctionAtualizado);
-                                        setEditingArrematanteId('__NEW__'); // ✅ Flag especial para indicar "adicionar novo"
+                                        setEditingArrematanteId('__NEW__');
                                         setShowArrematanteSelector(false);
+                                        // Log de abrir wizard para adicionar arrematante
+                                        try {
+                                          await logBidderAction('create', 'Novo arrematante', auction.nome, auction.id, {
+                                            metadata: { action_detail: 'abriu_wizard_adicionar' }
+                                          });
+                                        } catch { /* silenciar erro de log */ }
                                       }}
                                       className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 btn-action-click"
                                       title="Adicionar Arrematante"
@@ -2103,16 +2190,15 @@ function Leiloes() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={async () => {
-                                          wizardClosedIntentionally.current = false; // Resetar flag ao abrir
+                                          wizardClosedIntentionally.current = false;
                                           
-                                          // 🔄 Recarregar dados do leilão para garantir que temos guestLotId atualizado
                                           await queryClient.invalidateQueries({ queryKey: ['auctions'] });
                                           await new Promise(resolve => setTimeout(resolve, 100));
                                           const auctionAtualizado = auctions.find(a => a.id === auction.id) || auction;
                                           
                                           setAddingArrematanteFor(auctionAtualizado);
-                                          setShowArrematanteSelector(false); // ✅ Não abrir popup - ir direto pro wizard
-                                          setEditingArrematanteId(null); // ✅ Não pré-selecionar - wizard mostrará etapa de seleção
+                                          setShowArrematanteSelector(false);
+                                          setEditingArrematanteId(null);
                                         }}
                                         className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 relative btn-action-click"
                                         title={`Ver/Editar Arrematantes (${arrematantesCount})`}
@@ -2127,15 +2213,14 @@ function Leiloes() {
                                         variant="ghost"
                                         size="sm"
                                         onClick={async () => {
-                                          wizardClosedIntentionally.current = false; // Resetar flag ao abrir
+                                          wizardClosedIntentionally.current = false;
                                           
-                                          // 🔄 Recarregar dados do leilão para garantir que temos guestLotId atualizado
                                           await queryClient.invalidateQueries({ queryKey: ['auctions'] });
                                           await new Promise(resolve => setTimeout(resolve, 100));
                                           const auctionAtualizado = auctions.find(a => a.id === auction.id) || auction;
                                           
                                           setAddingArrematanteFor(auctionAtualizado);
-                                          setEditingArrematanteId('__NEW__'); // ✅ Flag especial para indicar "adicionar novo"
+                                          setEditingArrematanteId('__NEW__');
                                           setShowArrematanteSelector(false);
                                         }}
                                         className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 btn-action-click"
@@ -2151,10 +2236,19 @@ function Leiloes() {
                                <Button
                                  variant="ghost"
                                  size="sm"
-                                 onClick={() => {
+                                 onClick={async () => {
                                    // Forçar nova instância para garantir remontagem do componente
                                    setViewingAuction(auction);
                                    setViewingVersion(prev => prev + 1);
+                                   // Log da visualização do leilão
+                                   try {
+                                     await logAuctionAction('view', auction.nome, auction.id, {
+                                       metadata: {
+                                         local: auction.local,
+                                         status: auction.status
+                                       }
+                                     });
+                                   } catch { /* silenciar erro de log */ }
                                  }}
                                  className="h-10 w-10 sm:h-8 sm:w-8 p-0 hover:bg-gray-100 btn-action-click"
                                  title="Ver detalhes"
@@ -2181,9 +2275,18 @@ function Leiloes() {
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem 
                                 className="gap-2 focus:bg-gray-100 focus:text-gray-900"
-                                onClick={() => {
+                                onClick={async () => {
                                   setSelectedAuctionForExport(auction.id);
                                   setIsExportModalOpen(true);
+                                  // Log da abertura do modal de exportação
+                                  try {
+                                    await logReportAction('view', 'leilao', `Abriu modal de exportação do leilão "${auction.nome}"`, {
+                                      metadata: {
+                                        auction_id: auction.id,
+                                        auction_name: auction.nome
+                                      }
+                                    });
+                                  } catch { /* silenciar erro de log */ }
                                 }}
                               >
                                 <Download className="h-4 w-4" />
@@ -3056,9 +3159,8 @@ function Leiloes() {
                                 type="button"
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => {
+                                onClick={async () => {
                                   if (doc.url) {
-                                    // Se é documento com base64, abrir em nova aba com viewer
                                     if (doc.url.startsWith('data:')) {
                                       const newWindow = window.open();
                                       if (newWindow) {
@@ -3075,9 +3177,24 @@ function Leiloes() {
                                         `);
                                       }
                                     } else {
-                                      // Para outros tipos, tentar abrir ou baixar
                                       window.open(doc.url, '_blank');
                                     }
+                                    // Log da visualização de documento
+                                    try {
+                                      await logDocumentAction(
+                                        'view',
+                                        doc.nome,
+                                        'bidder',
+                                        arrematanteForm.nome || 'Arrematante',
+                                        addingArrematanteFor?.id || '',
+                                        {
+                                          metadata: {
+                                            document_type: doc.tipo,
+                                            auction_name: addingArrematanteFor?.nome
+                                          }
+                                        }
+                                      );
+                                    } catch { /* silenciar erro de log */ }
                                   }
                                 }}
                                 className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -3782,9 +3899,8 @@ function Leiloes() {
                               type="button"
                               variant="ghost"
                               size="sm"
-                              onClick={() => {
+                              onClick={async () => {
                                 if (doc.url) {
-                                  // Se é documento com base64, abrir em nova aba com viewer
                                   if (doc.url.startsWith('data:')) {
                                     const newWindow = window.open();
                                     if (newWindow) {
@@ -3801,9 +3917,24 @@ function Leiloes() {
                                       `);
                                     }
                                   } else {
-                                    // Para outros tipos, tentar abrir ou baixar
                                     window.open(doc.url, '_blank');
                                   }
+                                  // Log da visualização de documento (modo edição)
+                                  try {
+                                    await logDocumentAction(
+                                      'view',
+                                      doc.nome,
+                                      'bidder',
+                                      arrematanteForm.nome || 'Arrematante',
+                                      addingArrematanteFor?.id || '',
+                                      {
+                                        metadata: {
+                                          document_type: doc.tipo,
+                                          auction_name: addingArrematanteFor?.nome
+                                        }
+                                      }
+                                    );
+                                  } catch { /* silenciar erro de log */ }
                                 }
                               }}
                               className="h-7 w-7 p-0 text-black hover:bg-gray-100 hover:text-black"

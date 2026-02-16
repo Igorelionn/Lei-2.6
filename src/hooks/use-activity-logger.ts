@@ -14,7 +14,7 @@ export function useActivityLogger() {
 
   // Logging para leilões
   const logAuctionAction = useCallback(async (
-    action: 'create' | 'update' | 'delete' | 'archive' | 'unarchive' | 'duplicate',
+    action: 'create' | 'update' | 'delete' | 'archive' | 'unarchive' | 'duplicate' | 'view' | 'export_pdf' | 'open_edit',
     auctionName: string,
     auctionId: string,
     options?: ActivityLogOptions
@@ -25,7 +25,10 @@ export function useActivityLogger() {
       delete: `Excluiu o leilão "${auctionName}"`,
       archive: `Arquivou o leilão "${auctionName}"`,
       unarchive: `Desarquivou o leilão "${auctionName}"`,
-      duplicate: `Duplicou o leilão "${auctionName}"`
+      duplicate: `Duplicou o leilão "${auctionName}"`,
+      view: `Visualizou detalhes do leilão "${auctionName}"`,
+      export_pdf: `Exportou PDF do leilão "${auctionName}"`,
+      open_edit: `Abriu edição do leilão "${auctionName}"`
     };
 
     await logUserAction(

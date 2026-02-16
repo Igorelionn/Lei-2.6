@@ -1965,6 +1965,9 @@ export default function Configuracoes() {
                       case 'auction_archive': return <Archive className="w-4 h-4 text-gray-500" />;
                       case 'auction_unarchive': return <RefreshCw className="w-4 h-4 text-gray-500" />;
                       case 'auction_duplicate': return <Copy className="w-4 h-4 text-gray-500" />;
+                      case 'auction_view': return <Eye className="w-4 h-4 text-blue-500" />;
+                      case 'auction_export_pdf': return <Download className="w-4 h-4 text-gray-500" />;
+                      case 'auction_open_edit': return <Edit className="w-4 h-4 text-amber-500" />;
                       
                       // Arrematantes
                       case 'bidder_create': return <UserPlus className="w-4 h-4 text-gray-500" />;
