@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
+import { openDocumentSafely } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectGroup, SelectLabel } from "@/components/ui/select";
@@ -476,93 +477,8 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
     logger.debug('📄 Tentando abrir documento:', doc.nome);
     try { logDocumentAction('view', doc.nome || 'documento_proprietario', 'auction', values.nome || '', ''); } catch { /* */ }
     
-    const isBase64 = doc.base64.startsWith('data:');
-    const isUrl = doc.base64.startsWith('http://') || doc.base64.startsWith('https://');
-    const canOpen = isBase64 || isUrl;
-    
-    logger.debug('Clicou no documento:', doc.nome);
-    logger.debug('É base64?', isBase64);
-    logger.debug('É URL?', isUrl);
-    logger.debug('Pode abrir?', canOpen);
-    
-    if (!canOpen) {
-      return;
-    }
-
-    if (isBase64) {
-      try {
-        logger.debug('🔄 Convertendo base64 para blob...');
-        const base64Match = doc.base64.match(/^data:(.+);base64,(.+)$/);
-        if (base64Match) {
-          const mimeType = base64Match[1];
-          const base64Data = base64Match[2];
-          
-          logger.debug('✅ MIME type:', mimeType);
-          logger.debug('✅ Base64 length:', base64Data.length);
-          
-          const byteCharacters = atob(base64Data);
-          const byteNumbers = new Array(byteCharacters.length);
-          for (let i = 0; i < byteCharacters.length; i++) {
-            byteNumbers[i] = byteCharacters.charCodeAt(i);
-          }
-          const byteArray = new Uint8Array(byteNumbers);
-          const blob = new Blob([byteArray], { type: mimeType });
-          logger.debug('✅ Blob criado:', blob.size, 'bytes');
-          
-          const blobUrl = URL.createObjectURL(blob);
-          logger.debug('✅ Blob URL criado:', blobUrl);
-          
-          // Para PDFs, criar página HTML com iframe
-          if (mimeType === 'application/pdf') {
-            logger.debug('📄 Abrindo PDF em iframe...');
-            const newWindow = window.open('', '_blank');
-            if (newWindow) {
-              newWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                  <head>
-                    <title>${doc.nome}</title>
-                    <meta charset="UTF-8">
-                    <style>
-                      * { margin: 0; padding: 0; }
-                      html, body { height: 100%; overflow: hidden; }
-                      iframe { width: 100%; height: 100%; border: none; }
-                    </style>
-                  </head>
-                  <body>
-                    <iframe src="${blobUrl}" type="application/pdf"></iframe>
-                  </body>
-                </html>
-              `);
-              newWindow.document.close();
-              
-              setTimeout(() => {
-                URL.revokeObjectURL(blobUrl);
-              }, 120000);
-            } else {
-              URL.revokeObjectURL(blobUrl);
-            }
-          } else {
-            // Para outros tipos (imagens, DOC, etc), abrir diretamente
-            const newWindow = window.open(blobUrl, '_blank');
-            
-            if (newWindow) {
-              setTimeout(() => {
-                URL.revokeObjectURL(blobUrl);
-              }, 120000);
-            } else {
-              URL.revokeObjectURL(blobUrl);
-            }
-          }
-        } else {
-          logger.error('❌ Formato base64 inválido');
-        }
-      } catch (error) {
-        logger.error('❌ Erro ao abrir base64:', error);
-      }
-    } else {
-      // Para URLs normais
-      window.open(doc.base64, '_blank');
+    if (doc.base64) {
+      openDocumentSafely(doc.base64, doc.nome || 'Documento');
     }
   };
 

@@ -13,7 +13,7 @@ import { ArrematanteWizard } from "@/components/ArrematanteWizard";
 import { AuctionDetails } from "@/components/AuctionDetails";
 import { PdfReport } from "@/components/PdfReport";
 import { Auction, AuctionStatus, ArrematanteInfo, DocumentoInfo, LoteInfo } from "@/lib/types";
-import { parseCurrencyToNumber } from "@/lib/utils";
+import { parseCurrencyToNumber, openDocumentSafely } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -3161,25 +3161,7 @@ function Leiloes() {
                                 size="sm"
                                 onClick={async () => {
                                   if (doc.url) {
-                                    if (doc.url.startsWith('data:')) {
-                                      const newWindow = window.open();
-                                      if (newWindow) {
-                                        newWindow.document.write(`
-                                          <html>
-                                            <head><title>${doc.nome}</title></head>
-                                            <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                              ${doc.url.includes('pdf') ? 
-                                                `<embed src="${doc.url}" width="100%" height="100%" type="application/pdf" />` :
-                                                `<img src="${doc.url}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="${doc.nome}" />`
-                                              }
-                                            </body>
-                                          </html>
-                                        `);
-                                      }
-                                    } else {
-                                      window.open(doc.url, '_blank');
-                                    }
-                                    // Log da visualização de documento
+                                    openDocumentSafely(doc.url, doc.nome || 'Documento');
                                     try {
                                       await logDocumentAction(
                                         'view',
@@ -3901,25 +3883,7 @@ function Leiloes() {
                               size="sm"
                               onClick={async () => {
                                 if (doc.url) {
-                                  if (doc.url.startsWith('data:')) {
-                                    const newWindow = window.open();
-                                    if (newWindow) {
-                                      newWindow.document.write(`
-                                        <html>
-                                          <head><title>${doc.nome}</title></head>
-                                          <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                            ${doc.url.includes('pdf') ? 
-                                              `<embed src="${doc.url}" width="100%" height="100%" type="application/pdf" />` :
-                                              `<img src="${doc.url}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="${doc.nome}" />`
-                                            }
-                                          </body>
-                                        </html>
-                                      `);
-                                    }
-                                  } else {
-                                    window.open(doc.url, '_blank');
-                                  }
-                                  // Log da visualização de documento (modo edição)
+                                  openDocumentSafely(doc.url, doc.nome || 'Documento');
                                   try {
                                     await logDocumentAction(
                                       'view',

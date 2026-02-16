@@ -2,6 +2,7 @@ import { Auction, ArrematanteInfo } from "@/lib/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
+import { openDocumentSafely } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { supabaseClient } from "@/lib/supabase-client";
@@ -205,37 +206,7 @@ function LoteImages({ loteId, loteNumero, auctionId }: { loteId: string; loteNum
             onClick={() => {
               if (image.url) {
                 try { logDocumentAction('view', image.nome || 'imagem', 'lot', auction.nome || '', auction.id); } catch { /* */ }
-                // Abrir imagem em nova aba para visualização
-                const newWindow = window.open('', '_blank');
-                if (newWindow) {
-                  newWindow.document.write(`
-                    <html>
-                      <head>
-                        <title>${image.nome}</title>
-                        <style>
-                          body { 
-                            margin: 0; 
-                            padding: 0; 
-                            display: flex; 
-                            justify-content: center; 
-                            align-items: center; 
-                            min-height: 100vh; 
-                            background: #000;
-                          }
-                          img { 
-                            max-width: 100%; 
-                            max-height: 100vh; 
-                            object-fit: contain;
-                          }
-                        </style>
-                      </head>
-                      <body>
-                        <img src="${image.url}" alt="${image.nome}" />
-                      </body>
-                    </html>
-                  `);
-                  newWindow.document.close();
-                }
+                openDocumentSafely(image.url, image.nome || 'Imagem');
               }
             }}
             title="Clique para visualizar"
@@ -1087,28 +1058,8 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
                          onClick={() => {
                            try { logDocumentAction('view', doc.nome || 'documento', 'auction', auction.nome || '', auction.id); } catch { /* */ }
                            if (doc.url) {
-                             // Se é PDF ou documento com base64, abrir em nova aba
-                             if (doc.url.startsWith('data:')) {
-                               const newWindow = window.open();
-                               if (newWindow) {
-                                 newWindow.document.write(`
-                                   <html>
-                                     <head><title>${doc.nome}</title></head>
-                                     <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                       ${doc.url.includes('pdf') ? 
-                                         `<embed src="${doc.url}" width="100%" height="100%" type="application/pdf" />` :
-                                         `<img src="${doc.url}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="${doc.nome}" />`
-                                       }
-                                     </body>
-                                   </html>
-                                 `);
-                               }
-                             } else {
-                               // Para outros tipos, tentar abrir ou baixar
-                               window.open(doc.url, '_blank');
-                             }
+                             openDocumentSafely(doc.url, doc.nome || 'Documento');
                            } else {
-                             // Se não tem URL, mostrar alerta
                              alert('Este documento não está disponível para visualização.');
                            }
                          }}
@@ -1154,24 +1105,7 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
                          onClick={() => {
                            try { logDocumentAction('view', foto.nome || 'foto', 'merchandise', auction.nome || '', auction.id); } catch { /* */ }
                            if (foto.url) {
-                             // Abrir imagem em nova aba para visualização ampliada
-                             const newWindow = window.open();
-                             if (newWindow) {
-                               newWindow.document.write(`
-                                 <html>
-                                   <head>
-                                     <title>${foto.nome}</title>
-                                     <style>
-                                       body { margin:0; background:#000; display:flex; justify-content:center; align-items:center; min-height:100vh; }
-                                       img { max-width:100%; max-height:100vh; object-fit:contain; }
-                                     </style>
-                                   </head>
-                                   <body>
-                                     <img src="${foto.url}" alt="${foto.nome}" />
-                                   </body>
-                                 </html>
-                               `);
-                             }
+                             openDocumentSafely(foto.url, foto.nome || 'Foto');
                            }
                          }}
                          title="Clique para ampliar a imagem"

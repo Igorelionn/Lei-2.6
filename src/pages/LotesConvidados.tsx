@@ -24,7 +24,7 @@ import { ImageWithFallback } from "@/components/ImageWithFallback"; // 🔒 SEGU
 import { supabase } from "@/lib/supabase";
 import { useGuestLots, GuestLot, GuestLotMerchandise, GuestLotArrematante } from "@/hooks/use-guest-lots";
 import { LoteConvidadoFormData, ArrematanteInfo, LoteInfo, Auction } from "@/lib/types";
-import { parseCurrencyToNumber } from "@/lib/utils";
+import { parseCurrencyToNumber, openDocumentSafely } from "@/lib/utils";
 import { useQueryClient } from "@tanstack/react-query";
 import { useNavigate } from "react-router-dom";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
@@ -1004,97 +1004,7 @@ export default function LotesConvidados() {
                                     logger.debug('📝 Preview do doc:', doc.substring(0, 100));
                                     
                                     if (canOpen) {
-                                      // Para base64, criar um blob e abrir
-                                      if (isBase64) {
-                                        try {
-                                          logger.debug('🔄 Processando base64...');
-                                          // Extrair o tipo MIME e os dados
-                                          const matches = doc.match(/^data:([^;]+);base64,(.+)$/);
-                                          if (matches) {
-                                            const mimeType = matches[1];
-                                            const base64Data = matches[2];
-                                            logger.debug('✅ MIME Type:', mimeType);
-                                            logger.debug('✅ Base64 length:', base64Data.length);
-                                            
-                                            // Converter base64 para blob
-                                            const byteCharacters = atob(base64Data);
-                                            const byteNumbers = new Array(byteCharacters.length);
-                                            for (let i = 0; i < byteCharacters.length; i++) {
-                                              byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                            }
-                                            const byteArray = new Uint8Array(byteNumbers);
-                                            const blob = new Blob([byteArray], { type: mimeType });
-                                            logger.debug(`✅ Blob criado: ${blob.size} bytes`);
-                                            
-                                            // Criar Blob URL (funciona para todos os tipos)
-                                            const blobUrl = URL.createObjectURL(blob);
-                                            logger.debug('✅ Blob URL criado:', blobUrl);
-                                            logger.debug('✅ Blob type:', blob.type);
-                                            logger.debug(`✅ Blob size: ${blob.size} bytes`);
-                                            
-                                            // Para PDFs, criar página HTML com iframe
-                                            if (mimeType === 'application/pdf') {
-                                              logger.debug('📄 Abrindo PDF em iframe...');
-                                              const newWindow = window.open('', '_blank');
-                                              if (newWindow) {
-                                                newWindow.document.write(`
-                                                  <!DOCTYPE html>
-                                                  <html>
-                                                    <head>
-                                                      <title>${fileName}</title>
-                                                      <meta charset="UTF-8">
-                                                      <style>
-                                                        * { margin: 0; padding: 0; }
-                                                        html, body { height: 100%; overflow: hidden; }
-                                                        iframe { width: 100%; height: 100%; border: none; }
-                                                      </style>
-                                                    </head>
-                                                    <body>
-                                                      <iframe src="${blobUrl}" type="application/pdf"></iframe>
-                                                    </body>
-                                                  </html>
-                                                `);
-                                                newWindow.document.close();
-                                                logger.debug('✅ PDF aberto com sucesso');
-                                                
-                                                // Limpar blob URL após 2 minutos
-                                                setTimeout(() => {
-                                                  URL.revokeObjectURL(blobUrl);
-                                                  logger.debug('🧹 Blob URL limpo');
-                                                }, 120000);
-                                              } else {
-                                                logger.error('❌ Popup bloqueado');
-                                                URL.revokeObjectURL(blobUrl);
-                                              }
-                                            } else {
-                                              // Para outros tipos (imagens, DOC, etc), abrir diretamente
-                                              logger.debug('📄 Abrindo arquivo diretamente...');
-                                              const newWindow = window.open(blobUrl, '_blank');
-                                              
-                                              if (newWindow) {
-                                                logger.debug('✅ Arquivo aberto com sucesso');
-                                                // Limpar URL após 2 minutos
-                                                setTimeout(() => {
-                                                  URL.revokeObjectURL(blobUrl);
-                                                  logger.debug('🧹 Blob URL limpo');
-                                                }, 120000);
-                                              } else {
-                                                logger.error('❌ Popup bloqueado');
-                                                URL.revokeObjectURL(blobUrl);
-                                              }
-                                            }
-                                          } else {
-                                            logger.error('❌ Formato base64 inválido');
-                                            logger.error('Doc string:', doc.substring(0, 200));
-                                          }
-                                        } catch (error) {
-                                          logger.error('❌ Erro ao abrir base64:', error);
-                                        }
-                                      } else {
-                                        // Para URLs normais
-                                        logger.debug('🌐 Abrindo URL:', doc);
-                                        window.open(doc, '_blank');
-                                      }
+                                      openDocumentSafely(doc, fileName);
                                     } else {
                                       logger.warn('⚠️ Documento não pode ser aberto:', doc);
                                     }

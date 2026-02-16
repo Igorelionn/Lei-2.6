@@ -5,7 +5,7 @@ import { useClientPagination } from "@/hooks/use-pagination"; // ⚡ PERFORMANCE
 import { Pagination } from "@/components/Pagination"; // ⚡ PERFORMANCE: Componente de paginação
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
-import { parseCurrencyToNumber } from "@/lib/utils";
+import { parseCurrencyToNumber, openDocumentSafely } from "@/lib/utils";
 import { logger } from "@/lib/logger";
 import { supabase } from "@/lib/supabase";
 import { useQueryClient } from "@tanstack/react-query";
@@ -4019,50 +4019,7 @@ function Arrematantes() {
                               size="sm"
                               onClick={() => {
                                 if (doc.url) {
-                                  if (doc.url.startsWith('data:')) {
-                                    // Para base64, abrir em nova aba com visualização inline
-                                    const newWindow = window.open('', '_blank');
-                                    if (newWindow) {
-                                      if (doc.tipo.includes('pdf')) {
-                                        newWindow.document.write(`
-                                          <html>
-                                            <head><title>${doc.nome}</title></head>
-                                            <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                              <embed src="${doc.url}" width="100%" height="100%" type="application/pdf" />
-                                            </body>
-                                          </html>
-                                        `);
-                                      } else if (doc.tipo.includes('image')) {
-                                        newWindow.document.write(`
-                                          <html>
-                                            <head><title>${doc.nome}</title></head>
-                                            <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                              <img src="${doc.url}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="${doc.nome}" />
-                                            </body>
-                                          </html>
-                                        `);
-                                      } else {
-                                        // Para outros tipos de documento (DOC, DOCX, etc), criar link de download
-                                        newWindow.document.write(`
-                                          <html>
-                                            <head><title>${doc.nome}</title></head>
-                                            <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0; font-family: Arial, sans-serif;">
-                                              <div style="text-align:center; padding:40px;">
-                                                <h2 style="color:#333; margin-bottom:20px;">Visualização de Documento</h2>
-                                                <p style="color:#666; margin-bottom:30px;">${doc.nome}</p>
-                                                <a href="${doc.url}" download="${doc.nome}" style="background:#0066cc; color:white; padding:12px 24px; text-decoration:none; border-radius:4px; display:inline-block;">
-                                                  Baixar Documento
-                                                </a>
-                                              </div>
-                                            </body>
-                                          </html>
-                                        `);
-                                      }
-                                    }
-                                  } else {
-                                    // Para URLs blob, abrir diretamente
-                                    window.open(doc.url, '_blank');
-                                  }
+                                  openDocumentSafely(doc.url, doc.nome || 'Documento');
                                 }
                               }}
                               className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -4482,50 +4439,7 @@ function Arrematantes() {
                             size="sm"
                             onClick={() => {
                               if (doc.url) {
-                                if (doc.url.startsWith('data:')) {
-                                  // Para base64, abrir em nova aba com visualização inline
-                                  const newWindow = window.open('', '_blank');
-                                  if (newWindow) {
-                                    if (doc.tipo.includes('pdf')) {
-                                      newWindow.document.write(`
-                                        <html>
-                                          <head><title>${doc.nome}</title></head>
-                                          <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                            <embed src="${doc.url}" width="100%" height="100%" type="application/pdf" />
-                                          </body>
-                                        </html>
-                                      `);
-                                    } else if (doc.tipo.includes('image')) {
-                                      newWindow.document.write(`
-                                        <html>
-                                          <head><title>${doc.nome}</title></head>
-                                          <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                            <img src="${doc.url}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="${doc.nome}" />
-                                          </body>
-                                        </html>
-                                      `);
-                                    } else {
-                                      // Para outros tipos de documento (DOC, DOCX, etc), criar link de download
-                                      newWindow.document.write(`
-                                        <html>
-                                          <head><title>${doc.nome}</title></head>
-                                          <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0; font-family: Arial, sans-serif;">
-                                            <div style="text-align:center; padding:40px;">
-                                              <h2 style="color:#333; margin-bottom:20px;">Visualização de Documento</h2>
-                                              <p style="color:#666; margin-bottom:30px;">${doc.nome}</p>
-                                              <a href="${doc.url}" download="${doc.nome}" style="background:#0066cc; color:white; padding:12px 24px; text-decoration:none; border-radius:4px; display:inline-block;">
-                                                Baixar Documento
-                                              </a>
-                                            </div>
-                                          </body>
-                                        </html>
-                                      `);
-                                    }
-                                  }
-                                } else {
-                                  // Para URLs blob, abrir diretamente
-                                  window.open(doc.url, '_blank');
-                                }
+                                openDocumentSafely(doc.url, doc.nome || 'Documento');
                               }
                             }}
                             className="h-7 w-7 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"
@@ -5502,50 +5416,7 @@ function Arrematantes() {
                               size="sm"
                               onClick={() => {
                                 if (doc.url) {
-                                  if (doc.url.startsWith('data:')) {
-                                    // Para base64, abrir em nova aba com visualização inline
-                                    const newWindow = window.open('', '_blank');
-                                    if (newWindow) {
-                                      if (doc.tipo.includes('pdf')) {
-                                        newWindow.document.write(`
-                                          <html>
-                                            <head><title>${doc.nome}</title></head>
-                                            <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                              <embed src="${doc.url}" width="100%" height="100%" type="application/pdf" />
-                                            </body>
-                                          </html>
-                                        `);
-                                      } else if (doc.tipo.includes('image')) {
-                                        newWindow.document.write(`
-                                          <html>
-                                            <head><title>${doc.nome}</title></head>
-                                            <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                              <img src="${doc.url}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="${doc.nome}" />
-                                            </body>
-                                          </html>
-                                        `);
-                                      } else {
-                                        // Para outros tipos de documento (DOC, DOCX, etc), criar link de download
-                                        newWindow.document.write(`
-                                          <html>
-                                            <head><title>${doc.nome}</title></head>
-                                            <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0; font-family: Arial, sans-serif;">
-                                              <div style="text-align:center; padding:40px;">
-                                                <h2 style="color:#333; margin-bottom:20px;">Visualização de Documento</h2>
-                                                <p style="color:#666; margin-bottom:30px;">${doc.nome}</p>
-                                                <a href="${doc.url}" download="${doc.nome}" style="background:#0066cc; color:white; padding:12px 24px; text-decoration:none; border-radius:4px; display:inline-block;">
-                                                  Baixar Documento
-                                                </a>
-                                              </div>
-                                            </body>
-                                          </html>
-                                        `);
-                                      }
-                                    }
-                                  } else {
-                                    // Para URLs blob, abrir diretamente
-                                    window.open(doc.url, '_blank');
-                                  }
+                                  openDocumentSafely(doc.url, doc.nome || 'Documento');
                                 }
                               }}
                               className="h-10 w-10 sm:h-8 sm:w-8 p-0 text-gray-500 hover:bg-gray-100 hover:text-gray-700"

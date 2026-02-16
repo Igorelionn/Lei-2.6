@@ -44,3 +44,37 @@ export function formatCurrencyDisplay(value: number): string {
     currency: "BRL"
   }).format(value);
 }
+
+// Função para abrir documentos de forma segura (converte data: URI em blob: URL para CSP)
+export function openDocumentSafely(url: string, nome: string) {
+  if (!url) return;
+  
+  if (url.startsWith('data:')) {
+    try {
+      const [header, base64Data] = url.split(',');
+      const mimeMatch = header.match(/data:(.*?)(;|$)/);
+      const mimeType = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+      
+      const byteCharacters = atob(base64Data);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType });
+      const blobUrl = URL.createObjectURL(blob);
+      
+      const newWindow = window.open(blobUrl, '_blank');
+      if (newWindow) {
+        newWindow.document.title = nome;
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
+      } else {
+        URL.revokeObjectURL(blobUrl);
+      }
+    } catch {
+      window.open(url, '_blank');
+    }
+  } else {
+    window.open(url, '_blank');
+  }
+}

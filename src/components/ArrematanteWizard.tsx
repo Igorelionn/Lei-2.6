@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGroup, SelectLabel } from "@/components/ui/select";
 import { ChevronLeft, ChevronRight, Check, X as XIcon, Upload, Trash2, Plus, AlertCircle, Eye, Users, ArrowLeftRight } from "lucide-react";
 import { StringDatePicker } from "@/components/ui/date-picker";
-import { parseCurrencyToNumber } from "@/lib/utils";
+import { parseCurrencyToNumber, openDocumentSafely } from "@/lib/utils";
 import { calcularValorTotal, obterQuantidadeTotalParcelas } from "@/lib/parcelamento-calculator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
@@ -2523,25 +2523,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                         logger.debug('📄 Abrindo documento:', { nome: doc.nome, url: doc.url?.substring(0, 50) + '...' });
                         try { logDocumentAction('view', doc.nome || 'documento', 'bidder', initial.auction?.nome || '', initial.auction?.id || ''); } catch { /* */ }
                         if (doc.url) {
-                          // Abrir documento em nova aba (visualização)
-                          const newWindow = window.open('', '_blank');
-                          if (newWindow) {
-                            newWindow.document.write(`
-                              <html>
-                                <head>
-                                  <title>${doc.nome}</title>
-                                  <style>
-                                    body { margin: 0; padding: 0; }
-                                    iframe { width: 100%; height: 100vh; border: none; }
-                                  </style>
-                                </head>
-                                <body>
-                                  <iframe src="${doc.url}"></iframe>
-                                </body>
-                              </html>
-                            `);
-                            newWindow.document.close();
-                          }
+                          openDocumentSafely(doc.url, doc.nome || 'Documento');
                         }
                       }}
                       className="text-sm text-gray-700 truncate flex-1 text-left hover:text-blue-600 transition-colors"
@@ -2590,25 +2572,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                       logger.debug('📄 Abrindo documento:', { nome: doc?.nome, url: doc?.url?.substring(0, 50) + '...' });
                       try { logDocumentAction('view', doc?.nome || 'documento', 'bidder', initial.auction?.nome || '', initial.auction?.id || ''); } catch { /* */ }
                       if (doc?.url) {
-                        // Abrir documento em nova aba (visualização)
-                        const newWindow = window.open('', '_blank');
-                        if (newWindow) {
-                          newWindow.document.write(`
-                            <html>
-                              <head>
-                                <title>${doc.nome}</title>
-                                <style>
-                                  body { margin: 0; padding: 0; }
-                                  iframe { width: 100%; height: 100vh; border: none; }
-                                </style>
-                              </head>
-                              <body>
-                                <iframe src="${doc.url}"></iframe>
-                              </body>
-                            </html>
-                          `);
-                          newWindow.document.close();
-                        }
+                        openDocumentSafely(doc.url, doc.nome || 'Documento');
                       }
                     }}
                     className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -4225,25 +4189,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                   onClick={() => {
                                         try { logDocumentAction('view', doc.nome || 'documento', 'bidder', initial.auction?.nome || '', initial.auction?.id || ''); } catch { /* */ }
                                         if (doc.url) {
-                                          const newWindow = window.open('', '_blank');
-                                          if (newWindow) {
-                                            newWindow.document.write(`
-                                              <html>
-                                                <head>
-                                                  <title>${doc.nome}</title>
-                                                  <style>
-                                                    body { margin: 0; padding: 0; }
-                                                    iframe { width: 100%; height: 100vh; border: none; }
-                                                  </style>
-                                                </head>
-                                                <body>
-                                                  <iframe src="${doc.url}"></iframe>
-                                                </body>
-                                              </html>
-                                            `);
-                                            newWindow.document.close();
-                                          }
-                    }
+                                          openDocumentSafely(doc.url, doc.nome || 'Documento');
+                                        }
                   }}
                                       className="text-sm text-gray-700 truncate flex-1 text-left hover:text-blue-600 transition-colors"
                                     >
@@ -4287,25 +4234,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                                       const doc = currentArr.documentos?.[selectedDocIndexDivisao];
                                       try { logDocumentAction('view', doc?.nome || 'documento', 'bidder', initial.auction?.nome || '', initial.auction?.id || ''); } catch { /* */ }
                                       if (doc?.url) {
-                                        const newWindow = window.open('', '_blank');
-                                        if (newWindow) {
-                                          newWindow.document.write(`
-                                            <html>
-                                              <head>
-                                                <title>${doc.nome}</title>
-                                                <style>
-                                                  body { margin: 0; padding: 0; }
-                                                  iframe { width: 100%; height: 100vh; border: none; }
-                                                </style>
-                                              </head>
-                                              <body>
-                                                <iframe src="${doc.url}"></iframe>
-                                              </body>
-                                            </html>
-                                          `);
-                                          newWindow.document.close();
-                                        }
-                  }
+                                        openDocumentSafely(doc.url, doc?.nome || 'Documento');
+                                      }
                 }}
                                     className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                     title="Visualizar documento"

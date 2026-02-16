@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { Auction, AuctionStatus, DocumentoInfo, MercadoriaInfo, LoteInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
-import { parseCurrencyToNumber } from "@/lib/utils";
+import { parseCurrencyToNumber, openDocumentSafely } from "@/lib/utils";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { logger } from "@/lib/logger";
 import { calcularValorTotal } from "@/lib/parcelamento-calculator";
@@ -1946,26 +1946,7 @@ export function AuctionForm({
                               onClick={() => {
                                 try { logDocumentAction('view', doc.nome || 'documento', 'auction', initial?.nome || '', initial?.id || ''); } catch { /* */ }
                                 if (doc.url) {
-                                  // Se é documento com base64, abrir em nova aba com viewer
-                                  if (doc.url.startsWith('data:')) {
-                                    const newWindow = window.open();
-                                    if (newWindow) {
-                                      newWindow.document.write(`
-                                        <html>
-                                          <head><title>${doc.nome}</title></head>
-                                          <body style="margin:0; display:flex; justify-content:center; align-items:center; min-height:100vh; background:#f0f0f0;">
-                                            ${doc.url.includes('pdf') ? 
-                                              `<embed src="${doc.url}" width="100%" height="100%" type="application/pdf" />` :
-                                              `<img src="${doc.url}" style="max-width:100%; max-height:100%; object-fit:contain;" alt="${doc.nome}" />`
-                                            }
-                                          </body>
-                                        </html>
-                                      `);
-                                    }
-                                  } else {
-                                    // Para outros tipos, tentar abrir ou baixar
-                                    window.open(doc.url, '_blank');
-                                  }
+                                  openDocumentSafely(doc.url, doc.nome || 'Documento');
                                 }
                               }}
                               className="h-8 w-8 p-0 text-slate-600 hover:bg-slate-100 hover:text-slate-800"

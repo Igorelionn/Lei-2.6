@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
+import { openDocumentSafely } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -879,58 +880,7 @@ export default function LoteConvidadoWizard({
                         <button
                           type="button"
                           onClick={() => {
-                            // Converter base64 para blob URL antes de abrir
-                            if (isBase64) {
-                              try {
-                                const matches = doc.match(/^data:([^;]+);base64,(.+)$/);
-                                if (matches) {
-                                  const mimeType = matches[1];
-                                  const base64Data = matches[2];
-                                  const byteCharacters = atob(base64Data);
-                                  const byteNumbers = new Array(byteCharacters.length);
-                                  for (let i = 0; i < byteCharacters.length; i++) {
-                                    byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                  }
-                                  const byteArray = new Uint8Array(byteNumbers);
-                                  const blob = new Blob([byteArray], { type: mimeType });
-                                  const blobUrl = URL.createObjectURL(blob);
-                                  
-                                  // Para PDFs, usar iframe
-                                  if (mimeType === 'application/pdf') {
-                                    const newWindow = window.open('', '_blank');
-                                    if (newWindow) {
-                                      newWindow.document.write(`
-                                        <!DOCTYPE html>
-                                        <html>
-                                          <head>
-                                            <title>${metadata?.name || 'Documento'}</title>
-                                            <meta charset="UTF-8">
-                                            <style>
-                                              * { margin: 0; padding: 0; }
-                                              html, body { height: 100%; overflow: hidden; }
-                                              iframe { width: 100%; height: 100%; border: none; }
-                                            </style>
-                                          </head>
-                                          <body>
-                                            <iframe src="${blobUrl}" type="application/pdf"></iframe>
-                                          </body>
-                                        </html>
-                                      `);
-                                      newWindow.document.close();
-                                      setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
-                                    }
-                                  } else {
-                                    // Para outros tipos, abrir diretamente
-                                    window.open(blobUrl, '_blank');
-                                    setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
-                                  }
-                                }
-                              } catch (error) {
-                                logger.error('Erro ao abrir documento:', error);
-                              }
-                            } else {
-                              window.open(doc, '_blank');
-                            }
+                            openDocumentSafely(doc, metadata?.name || `Documento ${index + 1}`);
                           }}
                           className="flex items-center gap-3 flex-1 text-left"
                         >
@@ -1103,59 +1053,7 @@ export default function LoteConvidadoWizard({
                       key={index}
                       type="button"
                       onClick={() => {
-                        // Converter base64 para blob URL antes de abrir
-                        const isBase64 = doc.startsWith('data:');
-                        if (isBase64) {
-                          try {
-                            const matches = doc.match(/^data:([^;]+);base64,(.+)$/);
-                            if (matches) {
-                              const mimeType = matches[1];
-                              const base64Data = matches[2];
-                              const byteCharacters = atob(base64Data);
-                              const byteNumbers = new Array(byteCharacters.length);
-                              for (let i = 0; i < byteCharacters.length; i++) {
-                                byteNumbers[i] = byteCharacters.charCodeAt(i);
-                              }
-                              const byteArray = new Uint8Array(byteNumbers);
-                              const blob = new Blob([byteArray], { type: mimeType });
-                              const blobUrl = URL.createObjectURL(blob);
-                              
-                              // Para PDFs, usar iframe
-                              if (mimeType === 'application/pdf') {
-                                const newWindow = window.open('', '_blank');
-                                if (newWindow) {
-                                  newWindow.document.write(`
-                                    <!DOCTYPE html>
-                                    <html>
-                                      <head>
-                                        <title>${metadata?.name || 'Documento'}</title>
-                                        <meta charset="UTF-8">
-                                        <style>
-                                          * { margin: 0; padding: 0; }
-                                          html, body { height: 100%; overflow: hidden; }
-                                          iframe { width: 100%; height: 100%; border: none; }
-                                        </style>
-                                      </head>
-                                      <body>
-                                        <iframe src="${blobUrl}" type="application/pdf"></iframe>
-                                      </body>
-                                    </html>
-                                  `);
-                                  newWindow.document.close();
-                                  setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
-                                }
-                              } else {
-                                // Para outros tipos, abrir diretamente
-                                window.open(blobUrl, '_blank');
-                                setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
-                              }
-                            }
-                          } catch (error) {
-                            logger.error('Erro ao abrir documento:', error);
-                          }
-                        } else {
-                          window.open(doc, '_blank');
-                        }
+                        openDocumentSafely(doc, metadata?.name || `Documento ${index + 1}`);
                       }}
                       className="flex items-center gap-3 text-sm text-gray-700 hover:text-blue-600 transition-colors w-full text-left"
                     >
