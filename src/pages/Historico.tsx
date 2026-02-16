@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { logger } from "@/lib/logger";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -31,6 +32,7 @@ import html2pdf from 'html2pdf.js';
 
 export default function Historico() {
   const { auctions } = useSupabaseAuctions();
+  const { logBidderAction, logReportAction } = useActivityLogger();
   const [searchText, setSearchText] = useState("");
   const [searchMode, setSearchMode] = useState<'cpf' | 'nome'>('cpf');
   const [showAllBidders, setShowAllBidders] = useState(false);
@@ -186,6 +188,12 @@ export default function Historico() {
       };
 
       await html2pdf().set(opt).from(element).save();
+      // Log da exportação do histórico em PDF
+      try {
+        await logReportAction('export', 'historico', `Baixou histórico do arrematante "${selectedArrematante.nome}"`, {
+          metadata: { arrematante: selectedArrematante.nome, leiloes_count: selectedArrematante.leiloes?.length }
+        });
+      } catch { /* silenciar erro de log */ }
     } catch (error) {
       logger.error('Erro ao gerar PDF:', error);
     } finally {
@@ -841,7 +849,14 @@ export default function Historico() {
             {arrematantesFiltrados.map((arrematante, index) => (
               <div 
                 key={index}
-                onClick={() => setSelectedArrematante(arrematante)}
+                onClick={() => {
+                  setSelectedArrematante(arrematante);
+                  try {
+                    logBidderAction('view', arrematante.nome, arrematante.leiloes?.[0]?.leilaoNome || 'Histórico', arrematante.leiloes?.[0]?.leilaoId || '', {
+                      metadata: { context: 'historico', leiloes_count: arrematante.leiloes?.length }
+                    });
+                  } catch { /* silenciar erro de log */ }
+                }}
                 className="group p-5 border border-gray-200 rounded-xl cursor-pointer hover:border-gray-400 hover:shadow-sm transition-all duration-200 bg-white"
               >
                 <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
