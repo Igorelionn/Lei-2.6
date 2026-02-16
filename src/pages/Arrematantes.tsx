@@ -2667,6 +2667,7 @@ function Arrematantes() {
               
               if (result.success) {
                 logger.info('Email de confirmação enviado com sucesso', { numeroParcela });
+                try { logReportAction('generate', 'email_confirmacao', `Enviou email de confirmação da parcela ${numeroParcela} para "${auction.arrematante?.nome || ''}"`); } catch { /* */ }
               } else {
                 logger.warn('Falha ao enviar email de confirmação', { numeroParcela, message: result.message });
               }
@@ -2739,6 +2740,7 @@ function Arrematantes() {
               email: auction.arrematante.email,
               parcelaFinal: parcelasPagasValue
             });
+            try { logReportAction('generate', 'email_quitacao', `Enviou email de quitação para "${auction.arrematante?.nome || ''}" no leilão "${auction.nome || ''}"`); } catch { /* */ }
           } else {
             logger.warn('Falha ao enviar email de quitação', { message: result.message });
           }

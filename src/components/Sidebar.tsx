@@ -22,6 +22,7 @@ import {
 import { useSidebar } from "@/hooks/use-sidebar";
 import { useAuth } from "@/hooks/use-auth";
 import { Button } from "./ui/button";
+import { useActivityLogger } from "@/hooks/use-activity-logger";
 
 type MenuItem = {
   icon: LucideIcon;
@@ -54,10 +55,12 @@ const menuItems: MenuItem[] = [
 function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavigate?: () => void }) {
   const location = useLocation();
   const { logout } = useAuth();
+  const { logReportAction } = useActivityLogger();
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
   const [isExiting, setIsExiting] = useState(false);
 
-  const handleLinkClick = () => {
+  const handleLinkClick = (label: string) => {
+    try { logReportAction('view', 'navigation', `Navegou para ${label} via menu lateral`); } catch { /* */ }
     onNavigate?.();
   };
 
@@ -105,7 +108,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                 >
                 <Link
                   to={item.path}
-                  onClick={handleLinkClick}
+                  onClick={() => handleLinkClick(item.label)}
                   className={cn(
                     "group flex items-center rounded-lg transition-colors",
                     collapsed ? "justify-center py-3 px-5 mx-0" : "space-x-3 px-3 py-2.5",
@@ -133,7 +136,7 @@ function SidebarContent({ collapsed, onNavigate }: { collapsed: boolean; onNavig
                           <Link
                             key={subitem.path}
                             to={subitem.path}
-                            onClick={handleLinkClick}
+                            onClick={() => handleLinkClick(subitem.label)}
                             className={cn(
                               "flex items-center space-x-2 px-3 py-2.5 pl-10 text-sm rounded-lg transition-all duration-300 ease-in-out",
                               isSubActive
