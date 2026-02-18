@@ -569,14 +569,18 @@ function Relatorios() {
         </div>
         ` : ''}
 
-        ${auction.lotes && auction.lotes.length > 0 ? `
+        ${auction.lotes && auction.lotes.length > 0 ? (() => {
+          const lotesUnicos = auction.lotes.filter((lote: LoteInfo, index: number, self: LoteInfo[]) => 
+            index === self.findIndex(l => l.id === lote.id)
+          );
+          return `
         <!-- Lotes -->
         <div style="margin-bottom: 20px;">
           <h2 style="font-size: 16px; font-weight: bold; color: #1a1a1a; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 8px;">
-            📦 LOTES (${auction.lotes.length})
+            📦 LOTES (${lotesUnicos.length})
           </h2>
           <div style="space-y: 15px;">
-            ${auction.lotes.map((lote: LoteInfo) => `
+            ${lotesUnicos.map((lote: LoteInfo) => `
               <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
                 <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">Lote ${escapeHtml(String(lote.numero))}</h3>
                 <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${escapeHtml(lote.descricao) || 'Sem descrição'}</p>
@@ -590,7 +594,8 @@ function Relatorios() {
             `).join('')}
           </div>
         </div>
-        ` : ''}
+        `;
+        })() : ''}
 
         ${auction.historicoNotas && auction.historicoNotas.length > 0 ? `
         <!-- Observações -->
@@ -2827,7 +2832,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                   {formatDate(auction.dataInicio)}
                   {auction.dataEncerramento && <span> &mdash; {formatDate(auction.dataEncerramento)}</span>}
                   {' '}&middot; {getLocalLabel(auction.local).charAt(0) + getLocalLabel(auction.local).slice(1).toLowerCase()}
-                  {auction.endereco && ` &middot; ${auction.endereco}`}
+                  {auction.endereco && <span> &middot; {auction.endereco}</span>}
                 </p>
               </div>
               <span style={{
@@ -2905,10 +2910,14 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
             </div>
 
             {/* Lotes */}
-            {auction.lotes && auction.lotes.length > 0 && (
+            {auction.lotes && auction.lotes.length > 0 && (() => {
+              const lotesUnicos = auction.lotes.filter((lote, index, self) => 
+                index === self.findIndex(l => l.id === lote.id)
+              );
+              return (
               <div style={{ marginTop: '24px', pageBreakInside: 'avoid' }}>
-                <p style={sSection}>Lotes ({auction.lotes.length})</p>
-                {auction.lotes.map((lote, li) => {
+                <p style={sSection}>Lotes ({lotesUnicos.length})</p>
+                {lotesUnicos.map((lote, li) => {
                   const arrematante = auction.arrematantes?.find(arr => arr.loteId === lote.id);
                   return (
                     <div key={lote.id || li} style={{ padding: '12px 0', borderBottom: li < auction.lotes!.length - 1 ? '1px solid #f0f0f0' : 'none', pageBreakInside: 'avoid' }}>
@@ -2962,7 +2971,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                   );
                 })}
               </div>
-            )}
+              );
+            })()}
           </div>
         ))}
 
