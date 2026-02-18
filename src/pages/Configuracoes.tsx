@@ -760,24 +760,12 @@ export default function Configuracoes() {
     // Prosseguir com a reativação...
     setIsProcessingAction(true);
     try {
-      // Restaurar permissões dos campos de backup e reativar
+      // 🔒 SEGURANÇA: Reativar via RPC com verificação server-side
       const { error } = await untypedSupabase
-        .from('users')
-        .update({ 
-          is_active: true,
-          can_edit: member.can_edit_backup || true,
-          can_create: member.can_create_backup || false,
-          can_delete: member.can_delete_backup || false,
-          can_manage_users: member.can_manage_users_backup || false,
-          deactivated_at: null,
-          deactivated_by: null,
-          deactivation_reason: null,
-          can_edit_backup: null,
-          can_create_backup: null,
-          can_delete_backup: null,
-          can_manage_users_backup: null
-        })
-        .eq('id', member.id);
+        .rpc('reactivate_user', {
+          caller_user_id: user?.id,
+          target_user_id: member.id
+        });
 
       if (error) throw error;
 
@@ -807,20 +795,12 @@ export default function Configuracoes() {
 
     setIsProcessingAction(true);
     try {
-      // Salvar permissões atuais em campos de backup antes de desativar
+      // 🔒 SEGURANÇA: Desativar via RPC com verificação server-side
       const { error } = await untypedSupabase
-        .from('users')
-        .update({ 
-          is_active: false,
-          can_edit_backup: selectedUserForAction.can_edit,
-          can_create_backup: selectedUserForAction.can_create,
-          can_delete_backup: selectedUserForAction.can_delete,
-          can_manage_users_backup: selectedUserForAction.can_manage_users,
-          deactivated_at: new Date().toISOString(),
-          deactivated_by: user?.id,
-          deactivation_reason: 'Desativado via painel administrativo'
-        })
-        .eq('id', selectedUserForAction.id);
+        .rpc('deactivate_user', {
+          caller_user_id: user?.id,
+          target_user_id: selectedUserForAction.id
+        });
 
       if (error) throw error;
 
@@ -947,20 +927,16 @@ export default function Configuracoes() {
       const isPromoting = promotionAction === 'promote';
       const userName = selectedUserForPromotion.full_name || selectedUserForPromotion.name;
 
-      // Atualizar permissões no banco
-      const updateData = {
-        can_edit: true, // Sempre verdadeiro
-        can_create: isPromoting,
-        can_delete: isPromoting,
-        can_manage_users: isPromoting,
-        updated_at: new Date().toISOString()
-      };
-
+      // 🔒 SEGURANÇA: Atualizar permissões via RPC com verificação server-side
       const { data: _data, error } = await untypedSupabase
-        .from('users')
-        .update(updateData)
-        .eq('id', selectedUserForPromotion.id)
-        .select();
+        .rpc('update_user_permissions', {
+          caller_user_id: user?.id,
+          target_user_id: selectedUserForPromotion.id,
+          new_can_edit: true,
+          new_can_create: isPromoting,
+          new_can_delete: isPromoting,
+          new_can_manage_users: isPromoting
+        });
 
       if (error) {
         logger.error('Erro na atualização do banco', { error });

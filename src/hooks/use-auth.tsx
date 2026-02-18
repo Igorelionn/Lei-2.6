@@ -209,8 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           .update({
             last_login_at: new Date().toISOString(),
             session_count: (user.session_count || 0) + 1,
-            first_login_at: user.first_login_at || new Date().toISOString(),
-            is_active: true
+            first_login_at: user.first_login_at || new Date().toISOString()
           })
           .eq('id', user.id);
 
