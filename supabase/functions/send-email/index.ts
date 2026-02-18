@@ -1,8 +1,6 @@
 // Supabase Edge Function para enviar emails via Resend
-// Esta função atua como intermediário seguro entre o frontend e o Resend API
 // A API key do Resend deve estar configurada como secret: RESEND_API_KEY
 
-// Declaração de tipo para Deno (disponível no runtime do Supabase Edge Functions)
 declare const Deno: {
   serve: (handler: (req: Request) => Response | Promise<Response>) => void;
   env: {
@@ -10,63 +8,90 @@ declare const Deno: {
   };
 };
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+const ALLOWED_SENDER_DOMAIN = 'grupoliraleiloes.com';
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const MAX_SUBJECT_LENGTH = 500;
+const MAX_HTML_LENGTH = 500000;
+
+function isAllowedOrigin(origin: string): boolean {
+  if (!origin) return false;
+  if (origin.endsWith('.vercel.app') && origin.startsWith('https://')) return true;
+  if (origin === 'https://grupoliraleiloes.com' || origin === 'https://www.grupoliraleiloes.com') return true;
+  if (origin.startsWith('http://localhost:')) return true;
+  return false;
+}
+
+function getCorsHeaders(req: Request) {
+  const origin = req.headers.get('origin') || '';
+  return {
+    'Access-Control-Allow-Origin': isAllowedOrigin(origin) ? origin : 'https://grupoliraleiloes.com',
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  };
 }
 
 interface EmailRequest {
-  to: string
-  subject: string
-  html: string
-  from?: string
+  to: string;
+  subject: string;
+  html: string;
+  from?: string;
 }
 
 Deno.serve(async (req) => {
-  // Handle CORS preflight requests
+  const corsHeaders = getCorsHeaders(req);
+
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    const { to, subject, html, from }: EmailRequest = await req.json()
+    const { to, subject, html, from }: EmailRequest = await req.json();
 
-    // Validar dados obrigatórios
     if (!to || !subject || !html) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Campos obrigatórios faltando: to, subject, html' 
-        }),
-        { 
-          status: 400, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+        JSON.stringify({ error: 'Campos obrigatórios faltando: to, subject, html' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // 🔒 SEGURANÇA: Obter a chave API do Resend das variáveis de ambiente (Secrets)
-    // Configure em: Supabase Dashboard > Edge Functions > Secrets > RESEND_API_KEY
-    const resendApiKey = Deno.env.get('RESEND_API_KEY')
-    
-    if (!resendApiKey) {
-      console.error('RESEND_API_KEY não configurada nas secrets')
+    if (!EMAIL_REGEX.test(to)) {
       return new Response(
-        JSON.stringify({ 
-          error: 'Serviço de email não configurado. Entre em contato com o suporte.' 
-        }),
-        { 
-          status: 500, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+        JSON.stringify({ error: 'Formato de email inválido' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    // Email remetente padrão (domínio verificado)
-    const fromEmail = from || 'Arthur Lira Leilões <notificacoes@grupoliraleiloes.com>'
+    if (subject.length > MAX_SUBJECT_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: 'Assunto excede o tamanho máximo' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    console.log('Enviando email para:', to)
+    if (html.length > MAX_HTML_LENGTH) {
+      return new Response(
+        JSON.stringify({ error: 'Conteúdo HTML excede o tamanho máximo' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
-    // Fazer a chamada ao Resend API
+    const resendApiKey = Deno.env.get('RESEND_API_KEY');
+
+    if (!resendApiKey) {
+      return new Response(
+        JSON.stringify({ error: 'Serviço de email não configurado.' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Forçar domínio verificado no remetente (ignorar from do cliente)
+    const defaultFrom = `Arthur Lira Leilões <notificacoes@${ALLOWED_SENDER_DOMAIN}>`;
+    let fromEmail = defaultFrom;
+    if (from) {
+      const fromMatch = from.match(/<([^>]+)>/);
+      const fromAddr = fromMatch ? fromMatch[1] : from;
+      fromEmail = fromAddr.endsWith(`@${ALLOWED_SENDER_DOMAIN}`) ? from : defaultFrom;
+    }
+
     const resendResponse = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
@@ -79,49 +104,27 @@ Deno.serve(async (req) => {
         subject: subject,
         html: html,
       }),
-    })
+    });
 
-    const resendData = await resendResponse.json()
+    const resendData = await resendResponse.json();
 
     if (!resendResponse.ok) {
-      console.error('Erro do Resend:', resendData)
       return new Response(
-        JSON.stringify({ 
-          error: resendData.message || 'Erro ao enviar email',
-          details: resendData
-        }),
-        { 
-          status: resendResponse.status, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
+        JSON.stringify({ error: resendData.message || 'Erro ao enviar email' }),
+        { status: resendResponse.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
-    console.log('Email enviado com sucesso:', resendData.id)
-
     return new Response(
-      JSON.stringify({ 
-        success: true,
-        id: resendData.id,
-        message: 'Email enviado com sucesso'
-      }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+      JSON.stringify({ success: true, id: resendData.id, message: 'Email enviado com sucesso' }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
 
   } catch (error) {
-    console.error('Erro ao processar requisição:', error)
     return new Response(
-      JSON.stringify({ 
-        error: error.message || 'Erro interno ao enviar email' 
-      }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-      }
-    )
+      JSON.stringify({ error: 'Erro interno ao enviar email' }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
   }
 })
 

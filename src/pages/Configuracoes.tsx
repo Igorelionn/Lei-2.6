@@ -671,9 +671,10 @@ export default function Configuracoes() {
       const phoneNumbers = newUser.phone.replace(/\D/g, '');
       const cleanPhone = phoneNumbers.length >= 10 ? phoneNumbers : null;
 
-      // 🔒 SEGURANÇA: Criar usuário via RPC (SECURITY DEFINER) para bypass RLS
+      // 🔒 SEGURANÇA: Criar usuário via RPC (SECURITY DEFINER) com verificação de autorização server-side
       const { data: newUserId, error: userError } = await untypedSupabase
         .rpc('create_user_record', {
+          caller_user_id: user?.id,
           user_name: newUser.name.trim(),
           user_full_name: newUser.fullName.trim() || newUser.name.trim(),
           user_email: newUser.email.trim().toLowerCase(),
@@ -688,9 +689,10 @@ export default function Configuracoes() {
       if (userError) throw userError;
       const userData = { id: newUserId };
 
-      // Criar credenciais usando RPC para hash seguro
+      // Criar credenciais usando RPC para hash seguro (com autorização server-side)
       const { error: credError } = await untypedSupabase
         .rpc('create_user_password', {
+          caller_user_id: user?.id,
           user_email: newUser.email,
           user_password: newUser.password
         });
@@ -872,9 +874,10 @@ export default function Configuracoes() {
         );
       } catch { /* silenciar erro de log */ }
 
-      // 🔒 SEGURANÇA: Excluir usuário via RPC (SECURITY DEFINER) para bypass RLS
+      // 🔒 SEGURANÇA: Excluir usuário via RPC com verificação de autorização server-side
       const { error } = await untypedSupabase
         .rpc('delete_user_complete', {
+          caller_user_id: user?.id,
           user_id_to_delete: userIdToDelete
         });
 
@@ -1250,9 +1253,10 @@ export default function Configuracoes() {
     setIsChangingPassword(true);
     
     try {
-      // 🔒 SEGURANÇA: Alterar senha via RPC (SECURITY DEFINER) para bypass RLS
+      // 🔒 SEGURANÇA: Alterar senha via RPC com verificação de autorização server-side
       const { data: updated, error: updateError } = await untypedSupabase
         .rpc('update_user_password', {
+          caller_user_id: user?.id,
           user_email: selectedUserForPasswordChange.email,
           new_password: newUserPassword
         });

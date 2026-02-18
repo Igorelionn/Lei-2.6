@@ -850,10 +850,13 @@ export function useEmailNotifications() {
     setEmailLogs((data || []) as EmailLog[]);
   };
 
-  const limparHistorico = async (): Promise<{ success: boolean; message: string }> => {
+  const limparHistorico = async (callerUserId?: string): Promise<{ success: boolean; message: string }> => {
     try {
-      // Usar função RPC (SECURITY DEFINER) para contornar RLS
-      const { error: rpcError } = await supabase.rpc('limpar_email_logs');
+      if (!callerUserId) {
+        return { success: false, message: 'Usuário não identificado' };
+      }
+      // Usar função RPC (SECURITY DEFINER) com verificação de autorização server-side
+      const { error: rpcError } = await (supabase as any).rpc('limpar_email_logs', { caller_user_id: callerUserId });
       
       if (!rpcError) {
         logger.info('Histórico limpo via RPC com sucesso');

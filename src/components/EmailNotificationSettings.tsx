@@ -83,7 +83,7 @@ export function EmailNotificationSettings() {
     // Pausar auto-refresh para não recarregar os dados do banco
     pauseAutoRefreshRef.current = true;
     
-    const result = await limparHistorico();
+    const result = await limparHistorico(user?.id);
     
     if (result.success) {
       pauseAutoRefreshRef.current = false;
