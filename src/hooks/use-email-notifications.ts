@@ -285,7 +285,7 @@ export function useEmailNotifications() {
     const result = await enviarEmail(auction.arrematante.email, subject, html);
 
     await registrarLog({
-      auction_id: auction.id,
+      auction_id: `${auction.id}-lembrete`,
       arrematante_nome: auction.arrematante.nome,
       tipo_email: 'lembrete',
       email_destinatario: auction.arrematante.email,

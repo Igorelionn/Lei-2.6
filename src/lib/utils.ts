@@ -45,7 +45,16 @@ export function formatCurrencyDisplay(value: number): string {
   }).format(value);
 }
 
-// Função para abrir documentos de forma segura (converte data: URI em blob: URL para CSP)
+const ALLOWED_DOCUMENT_MIMES = new Set([
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'application/vnd.ms-excel',
+  'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  'application/octet-stream',
+]);
+
 export function openDocumentSafely(url: string, nome: string) {
   if (!url) return;
   
@@ -54,6 +63,10 @@ export function openDocumentSafely(url: string, nome: string) {
       const [header, base64Data] = url.split(',');
       const mimeMatch = header.match(/data:(.*?)(;|$)/);
       const mimeType = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+      
+      if (!ALLOWED_DOCUMENT_MIMES.has(mimeType)) {
+        return;
+      }
       
       const byteCharacters = atob(base64Data);
       const byteNumbers = new Array(byteCharacters.length);
@@ -64,17 +77,18 @@ export function openDocumentSafely(url: string, nome: string) {
       const blob = new Blob([byteArray], { type: mimeType });
       const blobUrl = URL.createObjectURL(blob);
       
-      const newWindow = window.open(blobUrl, '_blank');
+      const newWindow = window.open(blobUrl, '_blank', 'noopener,noreferrer');
       if (newWindow) {
-        newWindow.document.title = nome;
         setTimeout(() => URL.revokeObjectURL(blobUrl), 120000);
       } else {
         URL.revokeObjectURL(blobUrl);
       }
     } catch {
-      window.open(url, '_blank');
+      // Silently fail for malformed data URIs
     }
   } else {
-    window.open(url, '_blank');
+    if (url.startsWith('https://') || url.startsWith('http://localhost')) {
+      window.open(url, '_blank', 'noopener,noreferrer');
+    }
   }
 }

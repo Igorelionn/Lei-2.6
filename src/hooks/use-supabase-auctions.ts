@@ -927,15 +927,20 @@ export function useSupabaseAuctions() {
                   data_upload: doc.dataUpload,
                     url: base64Data,
                   storage_path: doc.nome,
-                    // ✅ CORREÇÃO: Usar ID único para identificação, não nome
                     descricao: `Arrematante ${arrematante.nome} [bidder_id:${bidderId}]`
                 };
               })
             );
 
-            const { error: docsError } = await supabaseClient
-              .from('documents')
-              .insert(documentosParaInserir);
+            const documentosValidos = documentosParaInserir.filter(doc => doc.url !== null);
+
+            if (documentosValidos.length === 0) {
+              logger.warn('Nenhum documento com URL válida para salvar do arrematante', { nome: arrematante.nome });
+            }
+
+            const { error: docsError } = documentosValidos.length > 0
+              ? await supabaseClient.from('documents').insert(documentosValidos)
+              : { error: null };
               
             if (docsError) {
               logger.error('Erro ao salvar documentos do arrematante', {

@@ -733,6 +733,7 @@ function Arrematantes() {
           return statusOrder[a.statusPagamento] - statusOrder[b.statusPagamento];
         }
         
+        if (!aDate || !bDate) return 0;
         return aDate.getTime() - bDate.getTime();
       });
   };

@@ -102,8 +102,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const cleanPassword = password.trim();
     
     logger.info('Iniciando processo de login', { 
-      originalEmail: email, 
-      cleanEmail, 
       hasSpaces: email !== cleanEmail 
     });
     
@@ -122,18 +120,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     try {
       // Primeiro buscar o usuário por email
-      logger.debug('Buscando usuário com email', { email: cleanEmail });
+      logger.debug('Buscando usuário por credenciais');
       let { data: users, error: userError } = await supabase
         .from('users')
-        .select('id, name, email, role, full_name, can_edit, can_create, can_delete, can_manage_users, is_active')
+        .select('id, name, email, role, full_name, can_edit, can_create, can_delete, can_manage_users, is_active, session_count, first_login_at')
         .eq('email', cleanEmail);
 
       // Se não encontrar por email, buscar por nome
       if (!users || users.length === 0) {
-        logger.debug('Não encontrado por email, buscando por nome', { nome: cleanEmail });
+        logger.debug('Não encontrado por email, buscando por nome');
         const { data: usersByName, error: nameError} = await supabase
           .from('users')
-          .select('id, name, email, role, full_name, can_edit, can_create, can_delete, can_manage_users, is_active')
+          .select('id, name, email, role, full_name, can_edit, can_create, can_delete, can_manage_users, is_active, session_count, first_login_at')
           .eq('name', cleanEmail);
         
         users = usersByName;
@@ -146,15 +144,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       if (!users || users.length === 0) {
-        logger.warn('Usuário não encontrado', { email: cleanEmail });
+        logger.warn('Usuário não encontrado');
         throw new Error("Usuário ou senha incorretos");
       }
 
       const user = users[0] as unknown as DatabaseUser;
       logger.info('Usuário encontrado', { 
         id: user.id, 
-        name: user.name,
-        email: user.email,
         isActive: user.is_active
       });
 
@@ -174,8 +170,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
       if (verifyError) {
-        // 🔒 SEGURANÇA: Não logar detalhes de erro de autenticação em produção
-        logger.error('Erro na verificação de senha', { error: verifyError });
+        logger.error('Erro na verificação de senha', { code: verifyError.code });
+        if (verifyError.message?.includes('Muitas tentativas')) {
+          throw new Error("Muitas tentativas de login. Aguarde 15 minutos e tente novamente.");
+        }
         throw new Error("Usuário ou senha incorretos");
       }
 

@@ -651,6 +651,8 @@ export default function Configuracoes() {
         .eq('email', newUser.email.trim().toLowerCase());
 
       if (existingUsers && existingUsers.length > 0) {
+        logger.warn('Email já cadastrado', { email: newUser.email.trim().toLowerCase() });
+        alert('Este e-mail já está cadastrado no sistema. Por favor, use outro e-mail.');
         return;
       }
 
@@ -693,7 +695,7 @@ export default function Configuracoes() {
       const { error: credError } = await untypedSupabase
         .rpc('create_user_password', {
           caller_user_id: user?.id,
-          user_email: newUser.email,
+          user_email: newUser.email.trim().toLowerCase(),
           user_password: newUser.password
         });
 

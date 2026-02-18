@@ -555,8 +555,8 @@ function Lotes() {
       lote.descricao.toLowerCase().includes(searchTermLotes.toLowerCase()) ||
       lote.leilaoNome.toLowerCase().includes(searchTermLotes.toLowerCase()) ||
       (lote.mercadorias && lote.mercadorias.some(m => 
-        m.tipo.toLowerCase().includes(searchTermLotes.toLowerCase()) ||
-        m.descricao.toLowerCase().includes(searchTermLotes.toLowerCase())
+        (m.tipo || '').toLowerCase().includes(searchTermLotes.toLowerCase()) ||
+        (m.descricao || '').toLowerCase().includes(searchTermLotes.toLowerCase())
       ));
     
     const matchesStatus = statusFilterLotes === "todos" || lote.statusLote === statusFilterLotes;

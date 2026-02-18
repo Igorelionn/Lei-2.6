@@ -932,9 +932,7 @@ export default function LotesConvidados() {
                                   key={index}
                                   type="button"
                                   onClick={() => {
-                                    logger.debug('🔍 Clicou no documento:', fileName);
-                                    logger.debug('📄 Tipo:', { isBase64, isURL, canOpen });
-                                    logger.debug('📝 Preview do doc:', doc.substring(0, 100));
+                                    logger.debug('Abrindo documento', { fileName, isBase64, isURL, canOpen });
                                     
                                     if (canOpen) {
                                       openDocumentSafely(doc, fileName);
