@@ -3,6 +3,7 @@ import { createPortal } from "react-dom";
 import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { openDocumentSafely } from "@/lib/utils";
+import { validateFile, FileValidationError } from "@/lib/file-validation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -807,24 +808,31 @@ export default function LoteConvidadoWizard({
                 onChange={async (e) => {
                   const files = Array.from(e.target.files || []);
                   
-                  // Converter arquivos para base64
-                  const convertedFiles = await Promise.all(
-                    files.map(async (file) => {
-                      return new Promise<{ name: string; url: string; type: string; data: string }>((resolve) => {
+                  // Validar e converter arquivos para base64
+                  const convertedFiles: { name: string; url: string; type: string; data: string }[] = [];
+                  for (const file of files) {
+                    try {
+                      await validateFile(file, 'document');
+                      const base64 = await new Promise<string>((resolve, reject) => {
                         const reader = new FileReader();
-                        reader.onload = (event) => {
-                          const base64 = event.target?.result as string;
-                          resolve({
-                            name: file.name,
-                            url: URL.createObjectURL(file), // Para preview temporário
-                            type: file.type,
-                            data: base64 // Base64 para salvar no banco
-                          });
-                        };
+                        reader.onload = (event) => resolve(event.target?.result as string);
+                        reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
                         reader.readAsDataURL(file);
                       });
-                    })
-                  );
+                      convertedFiles.push({
+                        name: file.name,
+                        url: URL.createObjectURL(file),
+                        type: file.type,
+                        data: base64
+                      });
+                    } catch (error) {
+                      if (error instanceof FileValidationError) {
+                        logger.warn(`Arquivo rejeitado (${file.name}):`, error.message);
+                      } else {
+                        logger.error(`Erro ao processar ${file.name}:`, error);
+                      }
+                    }
+                  }
                   
                   // Atualizar estado temporário (para preview)
                   const newFiles = convertedFiles.map(f => ({

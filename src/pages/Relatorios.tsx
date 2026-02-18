@@ -532,11 +532,11 @@ function Relatorios() {
             📋 IDENTIFICAÇÃO DO LEILÃO
           </h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div><strong>Código:</strong> ${auction.identificacao || 'Não informado'}</div>
-            <div><strong>Nome:</strong> ${auction.nome || 'Não informado'}</div>
-            <div><strong>Status:</strong> ${getStatusLabel(auction.status)}</div>
-            <div><strong>Local:</strong> ${getLocalLabel(auction.local)}</div>
-            <div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ${auction.endereco || 'Não informado'}</div>
+            <div><strong>Código:</strong> ${escapeHtml(auction.identificacao) || 'Não informado'}</div>
+            <div><strong>Nome:</strong> ${escapeHtml(auction.nome) || 'Não informado'}</div>
+            <div><strong>Status:</strong> ${escapeHtml(getStatusLabel(auction.status))}</div>
+            <div><strong>Local:</strong> ${escapeHtml(getLocalLabel(auction.local))}</div>
+            <div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ${escapeHtml(auction.endereco) || 'Não informado'}</div>
           </div>
         </div>
 
@@ -558,13 +558,13 @@ function Relatorios() {
             👤 ARREMATANTE
           </h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
-            <div><strong>Nome:</strong> ${auction.arrematante.nome || 'Não informado'}</div>
-            <div><strong>CPF/CNPJ:</strong> ${auction.arrematante.documento || 'Não informado'}</div>
-            <div><strong>Email:</strong> ${auction.arrematante.email || 'Não informado'}</div>
-            <div><strong>Telefone:</strong> ${auction.arrematante.telefone || 'Não informado'}</div>
-            <div><strong>Valor Total:</strong> ${getValorArrematanteComJuros()}</div>
+            <div><strong>Nome:</strong> ${escapeHtml(auction.arrematante.nome) || 'Não informado'}</div>
+            <div><strong>CPF/CNPJ:</strong> ${escapeHtml(auction.arrematante.documento) || 'Não informado'}</div>
+            <div><strong>Email:</strong> ${escapeHtml(auction.arrematante.email) || 'Não informado'}</div>
+            <div><strong>Telefone:</strong> ${escapeHtml(auction.arrematante.telefone) || 'Não informado'}</div>
+            <div><strong>Valor Total:</strong> ${escapeHtml(getValorArrematanteComJuros())}</div>
             <div><strong>Status Pagamento:</strong> ${auction.arrematante.pago ? '✅ Pago' : (isOverdue(auction.arrematante, auction) ? '🔴 ATRASADO' : '⏳ Pendente')}</div>
-            ${auction.arrematante.endereco ? `<div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ${auction.arrematante.endereco}</div>` : ''}
+            ${auction.arrematante.endereco ? `<div style="grid-column: 1 / -1;"><strong>Endereço:</strong> ${escapeHtml(auction.arrematante.endereco)}</div>` : ''}
           </div>
         </div>
         ` : ''}
@@ -578,12 +578,12 @@ function Relatorios() {
           <div style="space-y: 15px;">
             ${auction.lotes.map((lote: LoteInfo) => `
               <div style="background: #f8f9fa; padding: 12px; border-radius: 8px; margin-bottom: 10px;">
-                <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">Lote ${lote.numero}</h3>
-                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${lote.descricao || 'Sem descrição'}</p>
+                <h3 style="font-size: 14px; font-weight: bold; margin-bottom: 8px;">Lote ${escapeHtml(String(lote.numero))}</h3>
+                <p style="font-size: 12px; color: #666; margin-bottom: 8px;">${escapeHtml(lote.descricao) || 'Sem descrição'}</p>
                 ${lote.mercadorias && lote.mercadorias.length > 0 ? `
                   <div style="font-size: 11px; color: #555;">
                     <strong>Mercadorias (${lote.mercadorias.length}):</strong><br>
-                    ${lote.mercadorias.map((m: MercadoriaInfo) => `• ${m.nome || m.tipo} - ${m.descricao || 'Sem descrição'} ${m.valorNumerico ? `(${formatCurrency(m.valorNumerico)})` : ''}`).join('<br>')}
+                    ${lote.mercadorias.map((m: MercadoriaInfo) => `• ${escapeHtml(m.nome || m.tipo)} - ${escapeHtml(m.descricao) || 'Sem descrição'} ${m.valorNumerico ? `(${formatCurrency(m.valorNumerico)})` : ''}`).join('<br>')}
                   </div>
                 ` : ''}
               </div>
@@ -599,7 +599,7 @@ function Relatorios() {
             📝 OBSERVAÇÕES
           </h2>
           <div style="background: #f8f9fa; padding: 12px; border-radius: 8px;">
-            ${auction.historicoNotas.map((nota: string) => `<div style="margin-bottom: 8px; font-size: 12px;">• ${nota}</div>`).join('')}
+            ${auction.historicoNotas.map((nota: string) => `<div style="margin-bottom: 8px; font-size: 12px;">• ${escapeHtml(nota)}</div>`).join('')}
           </div>
         </div>
         ` : ''}

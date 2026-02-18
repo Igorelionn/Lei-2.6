@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { logger } from "@/lib/logger";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { openDocumentSafely } from "@/lib/utils";
+import { validateFile, FileValidationError } from "@/lib/file-validation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectGroup, SelectLabel } from "@/components/ui/select";
@@ -451,17 +452,25 @@ export function ProprietarioWizard({ onSubmit, onCancel, initialData }: Propriet
     
     for (const file of fileArray) {
       try {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          const base64 = event.target?.result as string;
-          setValues(prev => ({
-            ...prev,
-            documentos: [...prev.documentos, { nome: file.name, base64 }]
-          }));
-        };
-        reader.readAsDataURL(file);
+        await validateFile(file, 'document');
+        
+        const base64 = await new Promise<string>((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => resolve(event.target?.result as string);
+          reader.onerror = () => reject(new Error('Erro ao ler arquivo'));
+          reader.readAsDataURL(file);
+        });
+        
+        setValues(prev => ({
+          ...prev,
+          documentos: [...prev.documentos, { nome: file.name, base64 }]
+        }));
       } catch (error) {
-        logger.error("Erro ao processar arquivo:", error);
+        if (error instanceof FileValidationError) {
+          logger.warn(`Arquivo rejeitado (${file.name}):`, error.message);
+        } else {
+          logger.error("Erro ao processar arquivo:", error);
+        }
       }
     }
   };

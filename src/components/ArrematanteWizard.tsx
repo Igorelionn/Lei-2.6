@@ -11,6 +11,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, SelectGr
 import { ChevronLeft, ChevronRight, Check, X as XIcon, Upload, Trash2, Plus, AlertCircle, Eye, Users, ArrowLeftRight } from "lucide-react";
 import { StringDatePicker } from "@/components/ui/date-picker";
 import { parseCurrencyToNumber, openDocumentSafely } from "@/lib/utils";
+import { validateFile, FileValidationError } from "@/lib/file-validation";
 import { calcularValorTotal, obterQuantidadeTotalParcelas } from "@/lib/parcelamento-calculator";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/lib/supabase";
@@ -1298,9 +1299,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const maxSize = 20 * 1024 * 1024;
-        if (file.size > maxSize) throw new Error(`Muito grande (máx. 20MB)`);
-        if (file.size === 0) throw new Error(`Arquivo vazio`);
+        await validateFile(file, 'document');
 
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
         const base64 = await new Promise<string>((resolve) => {
@@ -1318,7 +1317,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
           url: base64,
         });
       } catch (error) {
-        erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
+        const msg = error instanceof FileValidationError ? error.message : (error instanceof Error ? error.message : 'Erro');
+        erros.push(`${file.name}: ${msg}`);
       }
     }
 
@@ -1359,9 +1359,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        const maxSize = 20 * 1024 * 1024;
-        if (file.size > maxSize) throw new Error(`Muito grande (máx. 20MB)`);
-        if (file.size === 0) throw new Error(`Arquivo vazio`);
+        await validateFile(file, 'document');
 
         const safeName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').replace(/\.{2,}/g, '_').substring(0, 255);
         const base64 = await new Promise<string>((resolve) => {
@@ -1379,7 +1377,8 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
           url: base64,
         });
       } catch (error) {
-        erros.push(`${file.name}: ${error instanceof Error ? error.message : 'Erro'}`);
+        const msg = error instanceof FileValidationError ? error.message : (error instanceof Error ? error.message : 'Erro');
+        erros.push(`${file.name}: ${msg}`);
       }
     }
 

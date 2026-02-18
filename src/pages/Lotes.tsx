@@ -21,6 +21,7 @@ import {
   Image, Upload, X, AlertCircle, Gavel, ChevronRight, MoreVertical
 } from "lucide-react";
 import { Lot, Auction, DocumentoInfo, MercadoriaInfo, LoteInfo } from "@/lib/types";
+import { openDocumentSafely } from "@/lib/utils";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useQueryClient } from "@tanstack/react-query";
@@ -2370,7 +2371,7 @@ function Lotes() {
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3 max-h-[60vh] overflow-y-auto">
                 {selectedLoteForPhotos.fotosMercadoria.map((foto, _index) => (
                   <div key={foto.id} className="group cursor-pointer" onClick={async () => {
-                    window.open(foto.url, '_blank');
+                    openDocumentSafely(foto.url, foto.nome || 'Foto');
                     try {
                       await logDocumentAction(
                         'view',

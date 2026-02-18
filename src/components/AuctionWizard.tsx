@@ -14,6 +14,7 @@ import { ChevronLeft, ChevronRight, Check, Plus, X as XIcon, Trash2, Image as Im
 import { calcularValorTotal } from "@/lib/parcelamento-calculator";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { logger } from "@/lib/logger";
+import { validateImageFile, FileValidationError } from "@/lib/file-validation";
 
 // Helper para converter números brasileiros (1.000,50) para número
 const parseBrazilianNumber = (value: string): number | undefined => {
@@ -695,21 +696,28 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                             if (files.length > 0) {
                               const currentImages = values.lotes?.[selectedLoteIndex]?.imagens || [];
                               
-                              // Converter arquivos para base64
-                              const newImagesPromises = files.map(file => {
-                                return new Promise<string>((resolve, reject) => {
-                                  const reader = new FileReader();
-                                  reader.onloadend = () => resolve(reader.result as string);
-                                  reader.onerror = reject;
-                                  reader.readAsDataURL(file);
-                                });
-                              });
+                              const newImages: string[] = [];
+                              for (const file of files) {
+                                try {
+                                  await validateImageFile(file);
+                                  const base64 = await new Promise<string>((resolve, reject) => {
+                                    const reader = new FileReader();
+                                    reader.onloadend = () => resolve(reader.result as string);
+                                    reader.onerror = reject;
+                                    reader.readAsDataURL(file);
+                                  });
+                                  newImages.push(base64);
+                                } catch (error) {
+                                  if (error instanceof FileValidationError) {
+                                    logger.warn(`Imagem rejeitada (${file.name}):`, error.message);
+                                  } else {
+                                    logger.error(`Erro ao converter ${file.name}:`, error);
+                                  }
+                                }
+                              }
                               
-                              try {
-                                const newImages = await Promise.all(newImagesPromises);
+                              if (newImages.length > 0) {
                                 updateLote(selectedLoteIndex, "imagens", [...currentImages, ...newImages]);
-                              } catch (error) {
-                                logger.error('Erro ao converter imagens:', error);
                               }
                             }
                           }}

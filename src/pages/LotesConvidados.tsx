@@ -812,31 +812,7 @@ export default function LotesConvidados() {
                         key={index} 
                         className="group relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-gray-400 transition-all cursor-pointer"
                         onClick={() => {
-                          const isBase64 = img.startsWith('data:');
-                          
-                          if (isBase64) {
-                            try {
-                              const matches = img.match(/^data:([^;]+);base64,(.+)$/);
-                              if (matches) {
-                                const mimeType = matches[1];
-                                const base64Data = matches[2];
-                                const byteCharacters = atob(base64Data);
-                                const byteNumbers = new Array(byteCharacters.length);
-                                for (let i = 0; i < byteCharacters.length; i++) {
-                                  byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                }
-                                const byteArray = new Uint8Array(byteNumbers);
-                                const blob = new Blob([byteArray], { type: mimeType });
-                                const blobUrl = URL.createObjectURL(blob);
-                                window.open(blobUrl, '_blank');
-                                setTimeout(() => URL.revokeObjectURL(blobUrl), 1000);
-                              }
-                            } catch (error) {
-                              logger.error('Erro ao abrir imagem:', error);
-                            }
-                          } else {
-                            window.open(img, '_blank');
-                          }
+                          openDocumentSafely(img, `Imagem ${index + 1}`);
                         }}
                       >
                         {/* 🔒 SEGURANÇA: Usando componente seguro sem innerHTML */}
@@ -887,50 +863,7 @@ export default function LotesConvidados() {
                                 key={index}
                                 className="group relative aspect-square rounded-lg overflow-hidden border-2 border-gray-200 hover:border-gray-400 transition-all cursor-pointer"
                                 onClick={() => {
-                                  logger.debug('🖼️ Clicou na imagem:', `Documento ${index + 1}`);
-                                  const isBase64 = doc.startsWith('data:');
-                                  logger.debug('📄 É base64:', isBase64);
-                                  
-                                  if (isBase64) {
-                                    try {
-                                      logger.debug('🔄 Processando imagem base64...');
-                                      const matches = doc.match(/^data:([^;]+);base64,(.+)$/);
-                                      if (matches) {
-                                        const mimeType = matches[1];
-                                        const base64Data = matches[2];
-                                        logger.debug(`✅ MIME: ${mimeType} Size: ${base64Data.length}`);
-                                        
-                                        const byteCharacters = atob(base64Data);
-                                        const byteNumbers = new Array(byteCharacters.length);
-                                        for (let i = 0; i < byteCharacters.length; i++) {
-                                          byteNumbers[i] = byteCharacters.charCodeAt(i);
-                                        }
-                                        const byteArray = new Uint8Array(byteNumbers);
-                                        const blob = new Blob([byteArray], { type: mimeType });
-                                        const blobUrl = URL.createObjectURL(blob);
-                                        logger.debug('✅ Blob URL criado:', blobUrl);
-                                        
-                                        const newWindow = window.open(blobUrl, '_blank');
-                                        logger.debug('🚀 Janela aberta:', newWindow !== null);
-                                        
-                                        if (newWindow) {
-                                          // Limpar URL após 2 minutos (consistente com docs)
-                                          setTimeout(() => {
-                                            URL.revokeObjectURL(blobUrl);
-                                            logger.debug('🧹 Blob URL da imagem limpo');
-                                          }, 120000);
-                                        } else {
-                                          logger.error('❌ Popup bloqueado');
-                                          URL.revokeObjectURL(blobUrl);
-                                        }
-                                      }
-                                    } catch (error) {
-                                      logger.error('❌ Erro ao abrir imagem:', error);
-                                    }
-                                  } else {
-                                    logger.debug('🌐 Abrindo URL da imagem:', doc.substring(0, 100));
-                                    window.open(doc, '_blank');
-                                  }
+                                  openDocumentSafely(doc, `Documento ${index + 1}`);
                                 }}
                               >
                                 {/* 🔒 SEGURANÇA: Usando componente seguro sem innerHTML */}

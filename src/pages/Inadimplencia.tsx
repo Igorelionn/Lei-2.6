@@ -25,6 +25,7 @@ import {
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { useEmailNotifications } from "@/hooks/use-email-notifications";
+import { validateFile, FileValidationError } from "@/lib/file-validation";
 import { obterValorTotalArrematante, calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import { ArrematanteInfo, Auction, LoteInfo } from "@/lib/types";
 
@@ -1798,10 +1799,25 @@ Arthur Lira Leilões`;
     setIsChargeModalOpen(true);
   };
 
-  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files) {
-      setAttachments(prev => [...prev, ...Array.from(files)]);
+      const validFiles: File[] = [];
+      for (const file of Array.from(files)) {
+        try {
+          await validateFile(file, 'document');
+          validFiles.push(file);
+        } catch (error) {
+          if (error instanceof FileValidationError) {
+            logger.warn(`Arquivo rejeitado (${file.name}):`, error.message);
+          } else {
+            logger.error(`Erro ao validar ${file.name}:`, error);
+          }
+        }
+      }
+      if (validFiles.length > 0) {
+        setAttachments(prev => [...prev, ...validFiles]);
+      }
     }
   };
 

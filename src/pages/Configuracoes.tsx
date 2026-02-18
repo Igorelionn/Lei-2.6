@@ -46,6 +46,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/hooks/use-auth";
 import { supabase } from "@/lib/supabase";
+import { validateImageFile, FileValidationError } from "@/lib/file-validation";
 
 // Interfaces de tipos para dados do banco
 interface TeamUser {
@@ -198,25 +199,25 @@ export default function Configuracoes() {
     loginAttempts: "5"
   });
 
-  const handleImageUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      // Validar tipo de arquivo
-      if (!file.type.startsWith('image/')) {
-        return;
-      }
-      
-      // Validar tamanho (máximo 5MB)
-      if (file.size > 5 * 1024 * 1024) {
-        return;
-      }
+      try {
+        await validateImageFile(file);
 
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageUrl = e.target?.result as string;
-        handleInputChange('profile', 'avatar', imageUrl);
-      };
-      reader.readAsDataURL(file);
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          const imageUrl = e.target?.result as string;
+          handleInputChange('profile', 'avatar', imageUrl);
+        };
+        reader.readAsDataURL(file);
+      } catch (error) {
+        if (error instanceof FileValidationError) {
+          logger.warn('Arquivo de imagem rejeitado:', error.message);
+        } else {
+          logger.error('Erro ao processar imagem:', error);
+        }
+      }
     }
   };
 
@@ -427,24 +428,8 @@ export default function Configuracoes() {
         return;
       }
 
-      // Buscar as credenciais usando SQL raw para evitar problemas de tipagem
-      const { data, error } = await untypedSupabase.from('user_credentials')
-        .select('password_hash')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error || !data) {
-        logger.error('Erro ao buscar credenciais', { error });
-        return;
-      }
-
-      const passwordFromDB = data.password_hash;
-      
-      if (!passwordFromDB) {
-        return;
-      }
-
-      // Verificar se a senha corresponde usando RPC function (mesma lógica do login)
+      // 🔒 SEGURANÇA: Usar apenas RPC verify_password (SECURITY DEFINER) para verificar senha
+      // Evita buscar password_hash diretamente do client-side
       const { data: passwordMatch, error: verifyError } = await untypedSupabase
         .rpc('verify_password', {
           user_email: user?.email,
@@ -452,7 +437,7 @@ export default function Configuracoes() {
         });
 
       if (verifyError) {
-        logger.error('Erro na verificação RPC', { error: verifyError });
+        logger.error('Erro na verificação de senha', { error: verifyError });
         return;
       }
 
@@ -1219,18 +1204,7 @@ export default function Configuracoes() {
         return;
       }
 
-      // Buscar credenciais do administrador
-      const { data, error } = await untypedSupabase.from('user_credentials')
-        .select('password_hash')
-        .eq('user_id', user?.id)
-        .single();
-
-      if (error || !data) {
-        logger.error('Erro ao buscar credenciais do admin', { error });
-        return;
-      }
-
-      // Verificar senha do administrador
+      // 🔒 SEGURANÇA: Usar apenas RPC verify_password (SECURITY DEFINER) para verificar senha do admin
       const { data: passwordMatch, error: verifyError } = await untypedSupabase
         .rpc('verify_password', {
           user_email: user?.email,
