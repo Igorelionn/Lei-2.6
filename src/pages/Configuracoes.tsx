@@ -117,6 +117,7 @@ export default function Configuracoes() {
   const [showModalPassword, setShowModalPassword] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [isVerifying, setIsVerifying] = useState(false);
+  const [passwordError, setPasswordError] = useState("");
   // Senha será buscada do banco de dados
   const [_actualPassword, setActualPassword] = useState("");
 
@@ -161,6 +162,7 @@ export default function Configuracoes() {
   const [showNewPasswordFields, setShowNewPasswordFields] = useState(false);
   const [showConfirmNewPasswordFields, setShowConfirmNewPasswordFields] = useState(false);
   const [isVerifyingAdminPassword, setIsVerifyingAdminPassword] = useState(false);
+  const [adminPasswordError, setAdminPasswordError] = useState("");
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [showAdminPasswordField, setShowAdminPasswordField] = useState(false);
   
@@ -422,26 +424,34 @@ export default function Configuracoes() {
 
   const handlePasswordVerification = async () => {
     setIsVerifying(true);
+    setPasswordError('');
     
     try {
       if (!currentPassword.trim()) {
+        setPasswordError('Digite sua senha atual');
         return;
       }
 
-      // 🔒 SEGURANÇA: Usar apenas RPC verify_password (SECURITY DEFINER) para verificar senha
-      // Evita buscar password_hash diretamente do client-side
+      if (!user?.email) {
+        setPasswordError('Erro: usuário não identificado');
+        return;
+      }
+
+      // 🔒 SEGURANÇA: Usar RPC verify_password (SECURITY DEFINER) para verificar senha
       const { data: passwordMatch, error: verifyError } = await untypedSupabase
         .rpc('verify_password', {
-          user_email: user?.email,
+          user_email: user.email,
           user_password: currentPassword
         });
 
       if (verifyError) {
         logger.error('Erro na verificação de senha', { error: verifyError });
+        setPasswordError('Erro ao verificar senha. Tente novamente.');
         return;
       }
 
       if (!passwordMatch) {
+        setPasswordError('Senha incorreta');
         return;
       }
       
@@ -451,15 +461,16 @@ export default function Configuracoes() {
       setProfile(prev => ({ ...prev, password: currentPassword }));
       setShowPasswordModal(false);
       setCurrentPassword("");
+      setPasswordError('');
       
       logger.info('Senha verificada com sucesso', { userName: user?.name });
-      // Log da revelação de senha
       try {
         await logUserAction('password_reveal', 'Revelou senha própria do perfil', 'config');
       } catch { /* silenciar erro de log */ }
       
     } catch (error) {
       logger.error('Erro na verificação', { error });
+      setPasswordError('Erro inesperado. Tente novamente.');
     } finally {
       setIsVerifying(false);
     }
@@ -470,6 +481,7 @@ export default function Configuracoes() {
     setCurrentPassword("");
     setIsVerifying(false);
     setShowModalPassword(false);
+    setPasswordError('');
   };
 
   const toggleModalPassword = () => {
@@ -659,24 +671,22 @@ export default function Configuracoes() {
       const phoneNumbers = newUser.phone.replace(/\D/g, '');
       const cleanPhone = phoneNumbers.length >= 10 ? phoneNumbers : null;
 
-      // Criar usuário
-      const { data: userData, error: userError } = await untypedSupabase
-        .from('users')
-        .insert({
-          name: newUser.name.trim(),
-          full_name: newUser.fullName.trim() || newUser.name.trim(),
-          email: newUser.email.trim().toLowerCase(),
-          phone: cleanPhone,
-          role: 'user',
-          registration_date: new Date().toISOString(),
-          created_at: new Date().toISOString(),
-          is_active: true,
-          ...permissions
-        })
-        .select('id')
-        .single();
+      // 🔒 SEGURANÇA: Criar usuário via RPC (SECURITY DEFINER) para bypass RLS
+      const { data: newUserId, error: userError } = await untypedSupabase
+        .rpc('create_user_record', {
+          user_name: newUser.name.trim(),
+          user_full_name: newUser.fullName.trim() || newUser.name.trim(),
+          user_email: newUser.email.trim().toLowerCase(),
+          user_phone: cleanPhone,
+          user_role: 'user',
+          user_can_edit: permissions.can_edit,
+          user_can_create: permissions.can_create,
+          user_can_delete: permissions.can_delete,
+          user_can_manage_users: permissions.can_manage_users
+        });
 
       if (userError) throw userError;
+      const userData = { id: newUserId };
 
       // Criar credenciais usando RPC para hash seguro
       const { error: credError } = await untypedSupabase
@@ -853,31 +863,20 @@ export default function Configuracoes() {
       const userName = selectedUserForAction.full_name || selectedUserForAction.name;
 
       // Registrar ação antes de excluir
-      await untypedSupabase.from('user_actions').insert({
-        user_id: user?.id,
-        action_type: 'user_delete',
-        action_description: `Excluiu permanentemente o usuário ${userName} (removido do sistema)`,
-        target_type: 'user',
-        target_id: userIdToDelete
-      });
+      try {
+        await logUserAction(
+          'user_delete',
+          `Excluiu permanentemente o usuário ${userName} (removido do sistema)`,
+          'user',
+          userIdToDelete
+        );
+      } catch { /* silenciar erro de log */ }
 
-      // 1. Excluir ações do usuário
-      await untypedSupabase
-        .from('user_actions')
-        .delete()
-        .eq('user_id', userIdToDelete);
-
-      // 2. Excluir credenciais do usuário  
-      await untypedSupabase
-        .from('user_credentials')
-        .delete()
-        .eq('user_id', userIdToDelete);
-
-      // 3. Excluir usuário da tabela principal
+      // 🔒 SEGURANÇA: Excluir usuário via RPC (SECURITY DEFINER) para bypass RLS
       const { error } = await untypedSupabase
-        .from('users')
-        .delete()
-        .eq('id', userIdToDelete);
+        .rpc('delete_user_complete', {
+          user_id_to_delete: userIdToDelete
+        });
 
       if (error) throw error;
 
@@ -1198,9 +1197,11 @@ export default function Configuracoes() {
 
   const handleAdminPasswordConfirmation = async () => {
     setIsVerifyingAdminPassword(true);
+    setAdminPasswordError('');
     
     try {
       if (!adminPasswordForConfirm.trim()) {
+        setAdminPasswordError('Digite sua senha de administrador');
         return;
       }
 
@@ -1213,19 +1214,23 @@ export default function Configuracoes() {
 
       if (verifyError) {
         logger.error('Erro na verificação RPC', { error: verifyError });
+        setAdminPasswordError('Erro ao verificar senha. Tente novamente.');
         return;
       }
 
       if (!passwordMatch) {
+        setAdminPasswordError('Senha incorreta');
         return;
       }
 
       // Senha confirmada - prosseguir para definir nova senha
+      setAdminPasswordError('');
       setShowAdminPasswordConfirmModal(false);
       setShowChangePasswordModal(true);
 
     } catch (error) {
       logger.error('Erro na verificação', { error });
+      setAdminPasswordError('Erro inesperado. Tente novamente.');
     } finally {
       setIsVerifyingAdminPassword(false);
     }
@@ -1245,27 +1250,20 @@ export default function Configuracoes() {
     setIsChangingPassword(true);
     
     try {
-      // Primeiro deletar credenciais existentes
-      const { error: deleteError } = await untypedSupabase
-        .from('user_credentials')
-        .delete()
-        .eq('user_id', selectedUserForPasswordChange.id);
-
-      if (deleteError) {
-        logger.error('Erro ao deletar credenciais antigas', { error: deleteError });
-        throw deleteError;
-      }
-
-      // Criar nova credencial com nova senha usando RPC function
-      const { error: createError } = await untypedSupabase
-        .rpc('create_user_password', {
+      // 🔒 SEGURANÇA: Alterar senha via RPC (SECURITY DEFINER) para bypass RLS
+      const { data: updated, error: updateError } = await untypedSupabase
+        .rpc('update_user_password', {
           user_email: selectedUserForPasswordChange.email,
-          user_password: newUserPassword
+          new_password: newUserPassword
         });
 
-      if (createError) {
-        logger.error('Erro ao criar nova senha', { error: createError });
-        throw createError;
+      if (updateError) {
+        logger.error('Erro ao alterar senha', { error: updateError });
+        throw updateError;
+      }
+
+      if (!updated) {
+        throw new Error('Não foi possível alterar a senha. Usuário não encontrado.');
       }
 
       // Log da ação
@@ -1846,11 +1844,19 @@ export default function Configuracoes() {
                   id="current-password"
                   type={showModalPassword ? "text" : "password"}
                   value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Digite sua senha atual"
-                  className="border-gray-300 pr-10"
+                  className={`border-gray-300 pr-10 ${passwordError ? 'border-red-400' : ''}`}
                   style={{ outline: 'none', boxShadow: 'none' }}
-                  onKeyPress={(e) => e.key === 'Enter' && !isVerifying && handlePasswordVerification()}
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter' && !isVerifying) {
+                      setPasswordError('');
+                      handlePasswordVerification();
+                    }
+                  }}
+                  onChange={(e) => {
+                    setCurrentPassword(e.target.value);
+                    if (passwordError) setPasswordError('');
+                  }}
                 />
                 <button
                   type="button"
@@ -1898,6 +1904,9 @@ export default function Configuracoes() {
                 </div>
                 </button>
               </div>
+              {passwordError && (
+                <p className="text-sm text-red-500 mt-1">{passwordError}</p>
+              )}
             </div>
           </div>
           <DialogFooter>
@@ -2754,9 +2763,12 @@ export default function Configuracoes() {
                   id="admin-password-confirm"
                   type={showAdminPasswordField ? "text" : "password"}
                   value={adminPasswordForConfirm}
-                  onChange={(e) => setAdminPasswordForConfirm(e.target.value)}
+                  onChange={(e) => {
+                    setAdminPasswordForConfirm(e.target.value);
+                    if (adminPasswordError) setAdminPasswordError('');
+                  }}
                   placeholder="Digite sua senha atual"
-                  className="border-gray-300 focus:border-gray-400 pr-10"
+                  className={`border-gray-300 focus:border-gray-400 pr-10 ${adminPasswordError ? 'border-red-400' : ''}`}
                   style={{ outline: 'none', boxShadow: 'none' }}
                   onKeyPress={(e) => e.key === 'Enter' && !isVerifyingAdminPassword && handleAdminPasswordConfirmation()}
                 />
@@ -2803,6 +2815,9 @@ export default function Configuracoes() {
                   </div>
                 </button>
               </div>
+              {adminPasswordError && (
+                <p className="text-sm text-red-500 mt-1">{adminPasswordError}</p>
+              )}
             </div>
           </div>
 
