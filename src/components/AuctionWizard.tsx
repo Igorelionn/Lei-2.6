@@ -2051,8 +2051,8 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
           <div className="max-w-md w-full space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Ícone de atenção */}
             <div className="flex justify-center">
-              <div className="w-12 h-12 rounded-full bg-gray-100 flex items-center justify-center">
-                <AlertCircle className="h-6 w-6 text-gray-600" />
+              <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                <AlertCircle className="h-8 w-8 text-gray-600" />
               </div>
             </div>
 
