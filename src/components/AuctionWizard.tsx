@@ -210,7 +210,8 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
       localStorage.setItem(DRAFT_TIMESTAMP_KEY, new Date().toISOString());
       setLastSaved(new Date());
       
-      setTimeout(() => setIsSaving(false), 500);
+      // Indicador aparece por apenas 800ms
+      setTimeout(() => setIsSaving(false), 800);
     } catch (error) {
       logger.error('Erro ao salvar rascunho', error);
       setIsSaving(false);
@@ -2086,18 +2087,12 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         </div>
       )}
 
-      {/* Indicador de Auto-Save */}
-      {!isEditMode && (
-        <div className="fixed bottom-6 left-6 z-50">
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg transition-all duration-300 ${
-            isSaving 
-              ? 'bg-blue-600 text-white' 
-              : 'bg-white text-gray-600 border border-gray-200'
-          }`}>
-            <Save className={`h-4 w-4 ${isSaving ? 'animate-pulse' : ''}`} />
-            <span className="text-sm font-medium">
-              {isSaving ? 'Salvando...' : lastSaved ? `Salvo ${formatRelativeTime(lastSaved)}` : 'Auto-save ativo'}
-            </span>
+      {/* Indicador de Auto-Save - Minimalista e discreto */}
+      {!isEditMode && isSaving && (
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200/50 shadow-sm">
+            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
+            <span className="text-xs text-gray-600 font-medium">Salvando</span>
           </div>
         </div>
       )}
