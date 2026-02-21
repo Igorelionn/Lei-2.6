@@ -2045,42 +2045,36 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         />
       )}
 
-      {/* Modal de Confirmação de Rascunho */}
+      {/* Modal de Confirmação de Rascunho - Clean e Minimalista */}
       {showDraftModal && draftData && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100000] p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
-            <div className="flex items-start gap-3">
-              <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                <Save className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="flex-1">
-                <h3 className="text-lg font-semibold text-gray-900">
-                  Rascunho Encontrado
-                </h3>
-                <p className="text-sm text-gray-600 mt-1">
-                  Encontramos um leilão que você estava criando. Deseja continuar de onde parou ou começar um novo?
+        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[100000] p-4 animate-in fade-in duration-200">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
+            {/* Título e Descrição */}
+            <div className="text-center space-y-2">
+              <h3 className="text-xl font-light text-gray-900">
+                Continuar de onde parou?
+              </h3>
+              {draftData.values.nome && (
+                <p className="text-sm text-gray-500 font-normal">
+                  {draftData.values.nome}
                 </p>
-                {draftData.values.nome && (
-                  <p className="text-xs text-gray-500 mt-2">
-                    <strong>Leilão:</strong> {draftData.values.nome}
-                  </p>
-                )}
-              </div>
+              )}
             </div>
             
-            <div className="flex gap-3">
-              <Button
-                onClick={discardDraft}
-                variant="outline"
-                className="flex-1"
-              >
-                Começar Novo
-              </Button>
+            {/* Botões */}
+            <div className="space-y-2">
               <Button
                 onClick={loadDraft}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
+                className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-normal text-sm transition-colors"
               >
-                Continuar Editando
+                Continuar
+              </Button>
+              <Button
+                onClick={discardDraft}
+                variant="ghost"
+                className="w-full h-11 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg font-normal text-sm"
+              >
+                Começar novo
               </Button>
             </div>
           </div>
