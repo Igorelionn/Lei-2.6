@@ -2045,41 +2045,47 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         />
       )}
 
-      {/* Modal de Confirmação de Rascunho - Ultra Minimalista */}
+      {/* Modal de Confirmação de Rascunho - Minimalista e Completo */}
       {showDraftModal && draftData && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-[100000] p-4 animate-in fade-in duration-300">
-          <div className="max-w-md w-full space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="max-w-lg w-full space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Ícone decorativo */}
+            <div className="flex justify-center">
+              <div className="relative">
+                <div className="w-16 h-16 rounded-full bg-gray-100 flex items-center justify-center">
+                  <Save className="h-7 w-7 text-gray-400" />
+                </div>
+                <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-blue-500 border-2 border-white" />
+              </div>
+            </div>
+
             {/* Conteúdo */}
-            <div className="text-center space-y-4">
-              <p className="text-xl font-bold text-gray-900">
-                Você tem um rascunho salvo
-              </p>
+            <div className="text-center space-y-6">
               {draftData.values.nome && (
-                <h3 className="text-base text-gray-600 font-normal px-4">
+                <h3 className="text-2xl text-gray-900 font-normal leading-relaxed px-8">
                   {draftData.values.nome}
                 </h3>
               )}
+              <p className="text-base text-gray-500">
+                Última edição salva automaticamente
+              </p>
             </div>
             
             {/* Botões com animação de troca de cor */}
-            <div className="space-y-1 group">
+            <div className="space-y-2 group px-4">
               <button
                 onClick={loadDraft}
-                className="w-full py-4 text-base text-gray-900 transition-all duration-300 ease-out group-hover:[&:not(:hover)]:text-gray-400"
+                className="w-full py-5 text-lg text-gray-900 transition-all duration-300 ease-out group-hover:[&:not(:hover)]:text-gray-400 hover:scale-[1.02]"
               >
                 Continuar editando
               </button>
+              <div className="w-full h-px bg-gray-200" />
               <button
                 onClick={discardDraft}
-                className="w-full py-4 text-base text-gray-400 transition-all duration-300 ease-out hover:text-gray-900"
+                className="w-full py-5 text-lg text-gray-400 transition-all duration-300 ease-out hover:text-gray-900 hover:scale-[1.02]"
               >
                 Começar do zero
               </button>
-            </div>
-
-            {/* Indicador visual sutil */}
-            <div className="flex justify-center">
-              <div className="w-12 h-0.5 bg-gray-200 rounded-full" />
             </div>
           </div>
         </div>
