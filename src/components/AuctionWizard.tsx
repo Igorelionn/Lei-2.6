@@ -2048,33 +2048,38 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
       {/* Modal de Confirmação de Rascunho - Ultra Minimalista */}
       {showDraftModal && draftData && (
         <div className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-[100000] p-4 animate-in fade-in duration-300">
-          <div className="max-w-xs w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="max-w-md w-full space-y-10 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* Conteúdo */}
-            <div className="text-center space-y-3">
-              <p className="text-base text-gray-500">
+            <div className="text-center space-y-4">
+              <p className="text-xl font-bold text-gray-900">
                 Você tem um rascunho salvo
               </p>
               {draftData.values.nome && (
-                <h3 className="text-lg text-gray-900 font-normal">
+                <h3 className="text-base text-gray-600 font-normal px-4">
                   {draftData.values.nome}
                 </h3>
               )}
             </div>
             
-            {/* Botões */}
-            <div className="space-y-3">
+            {/* Botões com animação de troca de cor */}
+            <div className="space-y-1 group">
               <button
                 onClick={loadDraft}
-                className="w-full py-3 text-sm text-gray-900 hover:text-gray-600 transition-colors duration-200"
+                className="w-full py-4 text-base text-gray-900 transition-all duration-300 ease-out group-hover:[&:not(:hover)]:text-gray-400"
               >
                 Continuar editando
               </button>
               <button
                 onClick={discardDraft}
-                className="w-full py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors duration-200"
+                className="w-full py-4 text-base text-gray-400 transition-all duration-300 ease-out hover:text-gray-900"
               >
                 Começar do zero
               </button>
+            </div>
+
+            {/* Indicador visual sutil */}
+            <div className="flex justify-center">
+              <div className="w-12 h-0.5 bg-gray-200 rounded-full" />
             </div>
           </div>
         </div>
