@@ -60,6 +60,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const saveTimeoutRef = useRef<NodeJS.Timeout>();
+  const draftCheckedRef = useRef(false); // Flag para verificar rascunho apenas uma vez
 
   const [currentStep, setCurrentStep] = useState(initialStep ?? 0);
   const [values, setValues] = useState<AuctionFormValues>(initial);
@@ -162,7 +163,10 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
 
   // Verificar se existe rascunho salvo ao montar o componente (apenas se não for modo edição)
   useEffect(() => {
-    if (isEditMode) return; // Não carregar rascunho se estiver editando
+    // Só verificar uma vez por sessão do componente
+    if (isEditMode || draftCheckedRef.current) return;
+    
+    draftCheckedRef.current = true; // Marcar como verificado
 
     const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
     const savedTimestamp = localStorage.getItem(DRAFT_TIMESTAMP_KEY);
@@ -177,14 +181,30 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         }
         
         // Verificar se o rascunho tem conteúdo SIGNIFICATIVO (não apenas espaços em branco)
+        // Requer pelo menos 3 caracteres em algum campo de texto OU lotes/custos/patrocinios com dados
         const hasSignificantContent = 
-          (parsed.values?.nome && typeof parsed.values.nome === 'string' && parsed.values.nome.trim().length > 0) ||
-          (parsed.values?.identificacao && typeof parsed.values.identificacao === 'string' && parsed.values.identificacao.trim().length > 0) ||
-          (parsed.values?.lotes && Array.isArray(parsed.values.lotes) && parsed.values.lotes.length > 0) ||
-          (parsed.values?.local && typeof parsed.values.local === 'string' && parsed.values.local.trim().length > 0) ||
-          (parsed.values?.endereco && typeof parsed.values.endereco === 'string' && parsed.values.endereco.trim().length > 0) ||
-          (parsed.costItems && Array.isArray(parsed.costItems) && parsed.costItems.length > 0) ||
-          (parsed.sponsorItems && Array.isArray(parsed.sponsorItems) && parsed.sponsorItems.length > 0);
+          (parsed.values?.nome && typeof parsed.values.nome === 'string' && parsed.values.nome.trim().length >= 3) ||
+          (parsed.values?.identificacao && typeof parsed.values.identificacao === 'string' && parsed.values.identificacao.trim().length >= 3) ||
+          (parsed.values?.local && typeof parsed.values.local === 'string' && parsed.values.local.trim().length >= 3) ||
+          (parsed.values?.endereco && typeof parsed.values.endereco === 'string' && parsed.values.endereco.trim().length >= 10) ||
+          (parsed.values?.lotes && Array.isArray(parsed.values.lotes) && parsed.values.lotes.length > 0 && 
+           parsed.values.lotes.some((l: any) => l.numero || l.descricao)) ||
+          (parsed.costItems && Array.isArray(parsed.costItems) && parsed.costItems.length > 0 && 
+           parsed.costItems.some((c: any) => c.descricao && c.descricao.trim().length > 0)) ||
+          (parsed.sponsorItems && Array.isArray(parsed.sponsorItems) && parsed.sponsorItems.length > 0 && 
+           parsed.sponsorItems.some((s: any) => s.nomePatrocinador && s.nomePatrocinador.trim().length > 0));
+        
+        // Log para debug
+        logger.debug('Verificando rascunho', { 
+          hasSignificantContent,
+          nome: parsed.values?.nome,
+          identificacao: parsed.values?.identificacao,
+          qtdLotes: parsed.values?.lotes?.length || 0,
+          local: parsed.values?.local,
+          endereco: parsed.values?.endereco,
+          qtdCustos: parsed.costItems?.length || 0,
+          qtdPatrocinios: parsed.sponsorItems?.length || 0
+        });
         
         // Só mostrar modal se houver conteúdo REAL
         if (hasSignificantContent) {
@@ -211,14 +231,18 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     if (isEditMode) return; // Não salvar rascunho se estiver editando leilão existente
     
     // Verificar se há conteúdo SIGNIFICATIVO para salvar (não apenas espaços em branco)
+    // Requer pelo menos 3 caracteres em algum campo de texto OU lotes/custos/patrocinios com dados reais
     const hasSignificantContent = 
-      (values.nome && typeof values.nome === 'string' && values.nome.trim().length > 0) ||
-      (values.identificacao && typeof values.identificacao === 'string' && values.identificacao.trim().length > 0) ||
-      (values.lotes && Array.isArray(values.lotes) && values.lotes.length > 0) ||
-      (values.local && typeof values.local === 'string' && values.local.trim().length > 0) ||
-      (values.endereco && typeof values.endereco === 'string' && values.endereco.trim().length > 0) ||
-      (costItems && Array.isArray(costItems) && costItems.length > 0) ||
-      (sponsorItems && Array.isArray(sponsorItems) && sponsorItems.length > 0);
+      (values.nome && typeof values.nome === 'string' && values.nome.trim().length >= 3) ||
+      (values.identificacao && typeof values.identificacao === 'string' && values.identificacao.trim().length >= 3) ||
+      (values.local && typeof values.local === 'string' && values.local.trim().length >= 3) ||
+      (values.endereco && typeof values.endereco === 'string' && values.endereco.trim().length >= 10) ||
+      (values.lotes && Array.isArray(values.lotes) && values.lotes.length > 0 && 
+       values.lotes.some(l => l.numero || l.descricao)) ||
+      (costItems && Array.isArray(costItems) && costItems.length > 0 && 
+       costItems.some(c => c.descricao && c.descricao.trim().length > 0)) ||
+      (sponsorItems && Array.isArray(sponsorItems) && sponsorItems.length > 0 && 
+       sponsorItems.some(s => s.nomePatrocinador && s.nomePatrocinador.trim().length > 0));
     
     // Só salvar se houver conteúdo REAL preenchido
     if (!hasSignificantContent) {
