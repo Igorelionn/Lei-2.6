@@ -172,43 +172,17 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         const parsed = JSON.parse(savedDraft);
         const timestamp = new Date(savedTimestamp);
         
-        // Verificar se o timestamp é válido e não é muito antigo (máximo 7 dias)
-        const now = new Date();
-        const daysDiff = (now.getTime() - timestamp.getTime()) / (1000 * 60 * 60 * 24);
+        // Verificar se o rascunho tem pelo menos algum campo preenchido (não é vazio)
+        const hasContent = parsed.values?.nome || parsed.values?.identificacao || 
+                          (parsed.values?.lotes && parsed.values.lotes.length > 0) ||
+                          parsed.values?.local;
         
-        if (daysDiff > 7) {
-          // Rascunho muito antigo, limpar
-          localStorage.removeItem(DRAFT_STORAGE_KEY);
-          localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
-          return;
-        }
-        
-        // Validações de segurança: verificar estrutura do rascunho
-        if (!parsed || typeof parsed !== 'object' || !parsed.values) {
-          throw new Error('Estrutura de rascunho inválida');
-        }
-        
-        // Verificar se o rascunho tem conteúdo significativo (não apenas campos vazios)
-        const hasSignificantContent = 
-          (parsed.values?.nome && parsed.values.nome.trim().length > 0) ||
-          (parsed.values?.identificacao && parsed.values.identificacao.trim().length > 0) ||
-          (parsed.values?.lotes && Array.isArray(parsed.values.lotes) && parsed.values.lotes.length > 0) ||
-          (parsed.values?.local && parsed.values.local.trim().length > 0) ||
-          (parsed.values?.endereco && parsed.values.endereco.trim().length > 0) ||
-          (parsed.values?.detalheCustos && Array.isArray(parsed.values.detalheCustos) && parsed.values.detalheCustos.length > 0) ||
-          (parsed.values?.detalhePatrocinios && Array.isArray(parsed.values.detalhePatrocinios) && parsed.values.detalhePatrocinios.length > 0);
-        
-        if (hasSignificantContent) {
+        if (hasContent) {
           setDraftData({ values: parsed.values, step: parsed.step || 0 });
           setShowDraftModal(true);
-        } else {
-          // Rascunho vazio, limpar
-          localStorage.removeItem(DRAFT_STORAGE_KEY);
-          localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
         }
       } catch (error) {
         logger.error('Erro ao carregar rascunho', error);
-        // Em caso de erro, limpar dados corrompidos
         localStorage.removeItem(DRAFT_STORAGE_KEY);
         localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
       }
@@ -218,21 +192,6 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   // Auto-save: salvar rascunho automaticamente após mudanças (apenas se não for modo edição)
   const saveDraft = useCallback(() => {
     if (isEditMode) return; // Não salvar rascunho se estiver editando leilão existente
-    
-    // Verificar se há conteúdo significativo para salvar
-    const hasSignificantContent = 
-      (values.nome && values.nome.trim().length > 0) ||
-      (values.identificacao && values.identificacao.trim().length > 0) ||
-      (values.lotes && values.lotes.length > 0) ||
-      (values.local && values.local.trim().length > 0) ||
-      (values.endereco && values.endereco.trim().length > 0) ||
-      (costItems && costItems.length > 0) ||
-      (sponsorItems && sponsorItems.length > 0);
-    
-    // Só salvar se houver conteúdo real
-    if (!hasSignificantContent) {
-      return;
-    }
     
     try {
       setIsSaving(true);
@@ -244,19 +203,10 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         selectedLoteIndex,
         selectedMercadoriaIndex,
         selectedCostIndex,
-        selectedSponsorIndex,
-        timestamp: new Date().toISOString()
+        selectedSponsorIndex
       };
       
-      // Validar tamanho do rascunho (máximo ~5MB para localStorage)
-      const draftString = JSON.stringify(draftToSave);
-      if (draftString.length > 5 * 1024 * 1024) {
-        logger.warn('Rascunho muito grande, não será salvo');
-        setIsSaving(false);
-        return;
-      }
-      
-      localStorage.setItem(DRAFT_STORAGE_KEY, draftString);
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
       localStorage.setItem(DRAFT_TIMESTAMP_KEY, new Date().toISOString());
       setLastSaved(new Date());
       
@@ -265,12 +215,6 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     } catch (error) {
       logger.error('Erro ao salvar rascunho', error);
       setIsSaving(false);
-      
-      // Se erro de quota, limpar rascunhos antigos
-      if (error instanceof Error && error.name === 'QuotaExceededError') {
-        localStorage.removeItem(DRAFT_STORAGE_KEY);
-        localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
-      }
     }
   }, [values, currentStep, costItems, sponsorItems, selectedLoteIndex, selectedMercadoriaIndex, selectedCostIndex, selectedSponsorIndex, isEditMode]);
 
@@ -547,7 +491,6 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
 
   const handleClose = () => {
     setIsClosing(true);
-    // Não limpar o rascunho ao fechar - deve ser mantido para recuperação futura
     setTimeout(() => {
       if (onCancel) onCancel();
     }, 300); // Duração da animação de fade-out
