@@ -2045,37 +2045,36 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         />
       )}
 
-      {/* Modal de Confirmação de Rascunho - Clean e Minimalista */}
+      {/* Modal de Confirmação de Rascunho - Ultra Minimalista */}
       {showDraftModal && draftData && (
-        <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-[100000] p-4 animate-in fade-in duration-200">
-          <div className="bg-white rounded-2xl shadow-2xl max-w-sm w-full p-8 space-y-6 animate-in fade-in zoom-in-95 duration-300">
-            {/* Título e Descrição */}
-            <div className="text-center space-y-2">
-              <h3 className="text-xl font-light text-gray-900">
-                Continuar de onde parou?
-              </h3>
+        <div className="fixed inset-0 bg-white/80 backdrop-blur-md flex items-center justify-center z-[100000] p-4 animate-in fade-in duration-300">
+          <div className="max-w-xs w-full space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            {/* Conteúdo */}
+            <div className="text-center space-y-3">
+              <p className="text-base text-gray-500">
+                Você tem um rascunho salvo
+              </p>
               {draftData.values.nome && (
-                <p className="text-sm text-gray-500 font-normal">
+                <h3 className="text-lg text-gray-900 font-normal">
                   {draftData.values.nome}
-                </p>
+                </h3>
               )}
             </div>
             
             {/* Botões */}
-            <div className="space-y-2">
-              <Button
+            <div className="space-y-3">
+              <button
                 onClick={loadDraft}
-                className="w-full h-11 bg-gray-900 hover:bg-gray-800 text-white rounded-lg font-normal text-sm transition-colors"
+                className="w-full py-3 text-sm text-gray-900 hover:text-gray-600 transition-colors duration-200"
               >
-                Continuar
-              </Button>
-              <Button
+                Continuar editando
+              </button>
+              <button
                 onClick={discardDraft}
-                variant="ghost"
-                className="w-full h-11 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg font-normal text-sm"
+                className="w-full py-3 text-sm text-gray-400 hover:text-gray-600 transition-colors duration-200"
               >
-                Começar novo
-              </Button>
+                Começar do zero
+              </button>
             </div>
           </div>
         </div>
