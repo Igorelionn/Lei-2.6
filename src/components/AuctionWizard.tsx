@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createPortal } from "react-dom";
 import { AuctionFormValues } from "@/components/AuctionForm";
 import { LoteInfo, MercadoriaInfo, ItemCustoInfo, ItemPatrocinioInfo } from "@/lib/types";
@@ -10,7 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Textarea } from "@/components/ui/textarea";
 import { StringDatePicker } from "@/components/ui/date-picker";
 import { ProprietarioWizard } from "@/components/ProprietarioWizard";
-import { ChevronLeft, ChevronRight, Check, Plus, X as XIcon, Trash2, Image as ImageIcon, AlertCircle } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Plus, X as XIcon, Trash2, Image as ImageIcon, AlertCircle, Save } from "lucide-react";
 import { calcularValorTotal } from "@/lib/parcelamento-calculator";
 import { parseCurrencyToNumber } from "@/lib/utils";
 import { logger } from "@/lib/logger";
@@ -35,12 +35,17 @@ interface AuctionWizardProps {
   onCancel?: () => void;
   initialStep?: number;
   initialLoteIndex?: number;
+  isEditMode?: boolean; // Indica se está editando um leilão existente
 }
 
-export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initialLoteIndex }: AuctionWizardProps) {
+const DRAFT_STORAGE_KEY = 'auction-draft';
+const DRAFT_TIMESTAMP_KEY = 'auction-draft-timestamp';
+
+export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initialLoteIndex, isEditMode }: AuctionWizardProps) {
   logger.debug('🎬 [AuctionWizard] Componente montado/atualizado:', {
     initialStep,
     initialLoteIndex,
+    isEditMode,
     initialValues: {
       nome: initial.nome,
       identificacao: initial.identificacao,
@@ -48,6 +53,13 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
       qtdLotes: initial.lotes?.length || 0
     }
   });
+
+  // Estado para controlar modal de rascunho
+  const [showDraftModal, setShowDraftModal] = useState(false);
+  const [draftData, setDraftData] = useState<{ values: AuctionFormValues; step: number } | null>(null);
+  const [lastSaved, setLastSaved] = useState<Date | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const saveTimeoutRef = useRef<NodeJS.Timeout>();
 
   const [currentStep, setCurrentStep] = useState(initialStep ?? 0);
   const [values, setValues] = useState<AuctionFormValues>(initial);
@@ -147,6 +159,122 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
       setDataInvalida(false);
     }
   }, [values.dataInicio, values.dataEncerramento]);
+
+  // Verificar se existe rascunho salvo ao montar o componente (apenas se não for modo edição)
+  useEffect(() => {
+    if (isEditMode) return; // Não carregar rascunho se estiver editando
+
+    const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+    const savedTimestamp = localStorage.getItem(DRAFT_TIMESTAMP_KEY);
+    
+    if (savedDraft && savedTimestamp) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        const timestamp = new Date(savedTimestamp);
+        
+        // Verificar se o rascunho tem pelo menos algum campo preenchido (não é vazio)
+        const hasContent = parsed.values?.nome || parsed.values?.identificacao || 
+                          (parsed.values?.lotes && parsed.values.lotes.length > 0) ||
+                          parsed.values?.local;
+        
+        if (hasContent) {
+          setDraftData({ values: parsed.values, step: parsed.step || 0 });
+          setShowDraftModal(true);
+        }
+      } catch (error) {
+        logger.error('Erro ao carregar rascunho', error);
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
+      }
+    }
+  }, [isEditMode]);
+
+  // Auto-save: salvar rascunho automaticamente após mudanças (apenas se não for modo edição)
+  const saveDraft = useCallback(() => {
+    if (isEditMode) return; // Não salvar rascunho se estiver editando leilão existente
+    
+    try {
+      setIsSaving(true);
+      const draftToSave = {
+        values,
+        step: currentStep,
+        costItems,
+        sponsorItems,
+        selectedLoteIndex,
+        selectedMercadoriaIndex,
+        selectedCostIndex,
+        selectedSponsorIndex
+      };
+      
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
+      localStorage.setItem(DRAFT_TIMESTAMP_KEY, new Date().toISOString());
+      setLastSaved(new Date());
+      
+      setTimeout(() => setIsSaving(false), 500);
+    } catch (error) {
+      logger.error('Erro ao salvar rascunho', error);
+      setIsSaving(false);
+    }
+  }, [values, currentStep, costItems, sponsorItems, selectedLoteIndex, selectedMercadoriaIndex, selectedCostIndex, selectedSponsorIndex, isEditMode]);
+
+  // Debounce para auto-save (salvar 2 segundos após última mudança)
+  useEffect(() => {
+    if (isEditMode) return;
+    
+    if (saveTimeoutRef.current) {
+      clearTimeout(saveTimeoutRef.current);
+    }
+    
+    saveTimeoutRef.current = setTimeout(() => {
+      saveDraft();
+    }, 2000);
+    
+    return () => {
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
+      }
+    };
+  }, [values, currentStep, saveDraft, isEditMode]);
+
+  // Limpar rascunho ao submeter com sucesso
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+    localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
+    setLastSaved(null);
+  }, []);
+
+  // Carregar rascunho
+  const loadDraft = useCallback(() => {
+    if (draftData) {
+      setValues(draftData.values);
+      setCurrentStep(draftData.step);
+      
+      // Tentar restaurar outros estados se disponíveis
+      try {
+        const savedDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (savedDraft) {
+          const parsed = JSON.parse(savedDraft);
+          if (parsed.costItems) setCostItems(parsed.costItems);
+          if (parsed.sponsorItems) setSponsorItems(parsed.sponsorItems);
+          if (parsed.selectedLoteIndex !== undefined) setSelectedLoteIndex(parsed.selectedLoteIndex);
+          if (parsed.selectedMercadoriaIndex !== undefined) setSelectedMercadoriaIndex(parsed.selectedMercadoriaIndex);
+          if (parsed.selectedCostIndex !== undefined) setSelectedCostIndex(parsed.selectedCostIndex);
+          if (parsed.selectedSponsorIndex !== undefined) setSelectedSponsorIndex(parsed.selectedSponsorIndex);
+        }
+      } catch (error) {
+        logger.error('Erro ao restaurar estados do rascunho', error);
+      }
+      
+      setShowDraftModal(false);
+    }
+  }, [draftData]);
+
+  // Descartar rascunho e começar novo
+  const discardDraft = useCallback(() => {
+    clearDraft();
+    setShowDraftModal(false);
+    setDraftData(null);
+  }, [clearDraft]);
 
   // Atualizar status automaticamente baseado nas datas
   useEffect(() => {
@@ -374,6 +502,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     setIsSubmitting(true);
     try {
       await onSubmit(values);
+      clearDraft(); // Limpar rascunho após sucesso
       handleClose();
     } finally {
       setIsSubmitting(false);
@@ -1137,6 +1266,14 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
               {/* Formulário do Patrocinador Selecionado */}
               {sponsorItems[selectedSponsorIndex] && (
                 <div className="space-y-8">
+                  {/* Valor de referência do patrocínio */}
+                  <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 flex items-center justify-between">
+                    <span className="text-sm text-gray-600">Valor do patrocínio</span>
+                    <span className="text-lg font-semibold text-gray-900">
+                      {sponsorItems[selectedSponsorIndex].valorNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                    </span>
+                  </div>
+
                   {/* Forma de Pagamento */}
                   <div className="space-y-3">
                     <Label className="text-lg font-normal text-gray-600">Como deseja pagar?</Label>
@@ -1297,7 +1434,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                         </div>
                       </div>
 
-                      {/* Preview do Valor Total */}
+                      {/* Preview do Valor Total com validação contra valor do patrocínio */}
                       {sponsorItems[selectedSponsorIndex].valorLance && 
                        sponsorItems[selectedSponsorIndex].fatorMultiplicador && (() => {
                         const valorLanceParsed = parseBrazilianNumber(sponsorItems[selectedSponsorIndex].valorLance || '');
@@ -1305,22 +1442,44 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                         if (valorLanceParsed && fatorParsed && valorLanceParsed > 0 && fatorParsed > 0) {
                           const valorTotalParcelas = calcularValorTotal(valorLanceParsed, fatorParsed);
                           const valorEntrada = sponsorItems[selectedSponsorIndex].valorEntradaNumerico || 0;
+                          const valorTotalPagamento = valorTotalParcelas + valorEntrada;
+                          const valorPatrocinio = sponsorItems[selectedSponsorIndex].valorNumerico;
+                          const diferenca = Math.abs(valorTotalPagamento - valorPatrocinio);
+                          const totalBate = diferenca < 0.01;
                           
                           return (
-                            <div className="space-y-1 text-sm text-gray-600">
+                            <div className="space-y-2 text-sm text-gray-600">
                               <div className="flex justify-between font-medium text-gray-900 pt-1">
                                 <span>Total das Parcelas</span>
                                 <span>
                                   {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorTotalParcelas)}
-                                  {sponsorItems[selectedSponsorIndex].formaPagamento === 'entrada_parcelamento' && valorEntrada > 0 && (
-                                    <span className="text-gray-600 font-normal">
-                                      {" + "}
-                                      {new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorEntrada)}
-                                      {" entrada"}
-                                    </span>
-                                  )}
                                 </span>
                               </div>
+                              {sponsorItems[selectedSponsorIndex].formaPagamento === 'entrada_parcelamento' && valorEntrada > 0 && (
+                                <div className="flex justify-between text-gray-600">
+                                  <span>Entrada</span>
+                                  <span>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorEntrada)}</span>
+                                </div>
+                              )}
+                              <div className={`flex justify-between font-semibold pt-1 border-t ${totalBate ? 'text-green-700' : 'text-red-600'}`}>
+                                <span>Total do Pagamento</span>
+                                <span>{new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(valorTotalPagamento)}</span>
+                              </div>
+                              {!totalBate && (
+                                <p className="text-xs text-red-500 flex items-center gap-1.5">
+                                  <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" />
+                                  {valorTotalPagamento > valorPatrocinio
+                                    ? `Excede o valor do patrocínio em ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(diferenca)}`
+                                    : `Faltam ${new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(diferenca)} para atingir o valor do patrocínio`
+                                  }
+                                </p>
+                              )}
+                              {totalBate && (
+                                <p className="text-xs text-green-600 flex items-center gap-1.5">
+                                  <Check className="h-3.5 w-3.5 flex-shrink-0" />
+                                  Valor do pagamento confere com o patrocínio
+                                </p>
+                              )}
                             </div>
                           );
                         }
@@ -1884,7 +2043,80 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
           }}
         />
       )}
+
+      {/* Modal de Confirmação de Rascunho */}
+      {showDraftModal && draftData && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100000] p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 space-y-4 animate-in fade-in zoom-in duration-200">
+            <div className="flex items-start gap-3">
+              <div className="flex-shrink-0 w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
+                <Save className="h-5 w-5 text-blue-600" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Rascunho Encontrado
+                </h3>
+                <p className="text-sm text-gray-600 mt-1">
+                  Encontramos um leilão que você estava criando. Deseja continuar de onde parou ou começar um novo?
+                </p>
+                {draftData.values.nome && (
+                  <p className="text-xs text-gray-500 mt-2">
+                    <strong>Leilão:</strong> {draftData.values.nome}
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                onClick={discardDraft}
+                variant="outline"
+                className="flex-1"
+              >
+                Começar Novo
+              </Button>
+              <Button
+                onClick={loadDraft}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                Continuar Editando
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Indicador de Auto-Save */}
+      {!isEditMode && (
+        <div className="fixed bottom-6 left-6 z-50">
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg shadow-lg transition-all duration-300 ${
+            isSaving 
+              ? 'bg-blue-600 text-white' 
+              : 'bg-white text-gray-600 border border-gray-200'
+          }`}>
+            <Save className={`h-4 w-4 ${isSaving ? 'animate-pulse' : ''}`} />
+            <span className="text-sm font-medium">
+              {isSaving ? 'Salvando...' : lastSaved ? `Salvo ${formatRelativeTime(lastSaved)}` : 'Auto-save ativo'}
+            </span>
+          </div>
+        </div>
+      )}
     </div>,
     document.body
   );
+}
+
+// Helper para formatar tempo relativo
+function formatRelativeTime(date: Date): string {
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffSec = Math.floor(diffMs / 1000);
+  const diffMin = Math.floor(diffSec / 60);
+  
+  if (diffSec < 10) return 'agora';
+  if (diffSec < 60) return `há ${diffSec}s`;
+  if (diffMin === 1) return 'há 1 min';
+  if (diffMin < 60) return `há ${diffMin} min`;
+  
+  return date.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
 }

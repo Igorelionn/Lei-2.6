@@ -1816,6 +1816,7 @@ function Leiloes() {
                 initial={createEmptyAuctionForm()}
                 onSubmit={handleCreateAuction}
                 onCancel={() => setIsCreateModalOpen(false)}
+                isEditMode={false}
               />
           )}
         </div>
@@ -2422,6 +2423,7 @@ function Leiloes() {
               initialLoteIndex={initialLoteIndex}
               onSubmit={handleEditAuction}
               onCancel={handleCancelEdit}
+              isEditMode={true}
             />
             );
           })()}
