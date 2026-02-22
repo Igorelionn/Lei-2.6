@@ -2170,15 +2170,6 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         </div>
       )}
 
-      {/* Indicador de Auto-Save - Minimalista e discreto */}
-      {!isEditMode && isSaving && (
-        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-2 duration-300">
-          <div className="flex items-center gap-2 px-3 py-2 rounded-full bg-white/90 backdrop-blur-sm border border-gray-200/50 shadow-sm">
-            <div className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse" />
-            <span className="text-xs text-gray-600 font-medium">Salvando</span>
-          </div>
-        </div>
-      )}
     </div>,
     document.body
   );
