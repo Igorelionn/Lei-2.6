@@ -82,6 +82,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
   const [sponsorItems, setSponsorItems] = useState<ItemPatrocinioInfo[]>(initial.detalhePatrocinios || []);
   const [selectedCostIndex, setSelectedCostIndex] = useState(0);
   const [selectedSponsorIndex, setSelectedSponsorIndex] = useState(0);
+  const [invalidDateWarning, setInvalidDateWarning] = useState<string | null>(null);
   
   // Estado para o wizard de proprietário
   const [proprietarioWizardOpen, setProprietarioWizardOpen] = useState(false);
@@ -1834,11 +1835,19 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                     value={sponsorItems[selectedSponsorIndex].mesInicioPagamento || ""}
                     onChange={(v) => {
                       const newItems = [...sponsorItems];
+                      
+                      // Limpar aviso ao tentar nova data
+                      setInvalidDateWarning(null);
+                      
                       if (v && newItems[selectedSponsorIndex].diaVencimentoMensal) {
                         const [ano, mes, dia] = v.split('-').map(Number);
+                        const diaVencimento = newItems[selectedSponsorIndex].diaVencimentoMensal;
                         
-                        if (dia !== newItems[selectedSponsorIndex].diaVencimentoMensal) {
-                          // Data incompatível - não atualizar
+                        if (dia !== diaVencimento) {
+                          // Data incompatível - mostrar aviso
+                          setInvalidDateWarning(
+                            `A data selecionada (dia ${dia}) não corresponde ao dia de vencimento configurado (dia ${diaVencimento}). Por favor, selecione uma data no dia ${diaVencimento}.`
+                          );
                           return;
                         }
                         
@@ -1854,6 +1863,14 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                     placeholder="Ex: 01/01/2024"
                     className="wizard-input h-14 text-base border-0 border-b-2 border-gray-200 rounded-none focus-visible:border-gray-800 focus-visible:ring-0 focus-visible:outline-none px-0 bg-transparent"
                   />
+                  
+                  {/* Aviso de data inválida */}
+                  {invalidDateWarning && (
+                    <p className="text-sm text-red-600">
+                      {invalidDateWarning}
+                    </p>
+                  )}
+                  
                   {sponsorItems[selectedSponsorIndex].mesInicioPagamento && (() => {
                     const [ano, mes, dia] = sponsorItems[selectedSponsorIndex].mesInicioPagamento.split('-').map(Number);
                     const dataInicio = new Date(ano, mes - 1, dia);
