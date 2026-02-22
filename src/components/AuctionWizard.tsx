@@ -292,6 +292,16 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     // Só salvar se houver conteúdo REAL preenchido
     if (!hasSignificantContent) {
       console.log('⚠️ AUTO-SAVE: Não há conteúdo significativo para salvar - IGNORADO');
+      
+      // Se não há conteúdo mas existe rascunho salvo, LIMPAR!
+      const existingDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
+      if (existingDraft) {
+        console.log('🗑️ AUTO-SAVE: Limpando rascunho anterior (conteúdo foi apagado)');
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+        localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
+        setLastSaved(null);
+      }
+      
       return;
     }
     
