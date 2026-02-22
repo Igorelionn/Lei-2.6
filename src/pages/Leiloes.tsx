@@ -2439,13 +2439,6 @@ function Leiloes() {
                 Visualize todas as informações detalhadas do leilão
               </DialogDescription>
           </DialogHeader>
-            <button
-              onClick={() => setViewingAuction(null)}
-              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-60 focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-400 focus:!outline-none focus:!shadow-none"
-              aria-label="Fechar"
-            >
-              <X className="h-5 w-5 text-gray-500" />
-            </button>
           </div>
           
           {/* Conteúdo com Scroll */}
