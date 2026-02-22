@@ -175,37 +175,9 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
       try {
         const parsed = JSON.parse(savedDraft);
         
-        // LOG COMPLETO: Dump do rascunho
-        console.log('========================================');
-        console.log('🔍 RASCUNHO ENCONTRADO NO LOCALSTORAGE');
-        console.log('========================================');
-        console.log('Timestamp:', savedTimestamp);
-        console.log('Estrutura completa:', JSON.stringify(parsed, null, 2));
-        console.log('========================================');
-        
         // Validação de estrutura e segurança
         if (!parsed || typeof parsed !== 'object' || !parsed.values) {
-          console.log('❌ ERRO: Estrutura de rascunho inválida');
           throw new Error('Estrutura de rascunho inválida');
-        }
-        
-        // Análise detalhada de cada campo
-        console.log('📋 ANÁLISE DETALHADA:');
-        console.log('values.nome:', parsed.values?.nome, '| length:', parsed.values?.nome?.trim?.()?.length || 0);
-        console.log('values.identificacao:', parsed.values?.identificacao, '| length:', parsed.values?.identificacao?.trim?.()?.length || 0);
-        console.log('values.local:', parsed.values?.local, '| length:', parsed.values?.local?.trim?.()?.length || 0);
-        console.log('values.endereco:', parsed.values?.endereco, '| length:', parsed.values?.endereco?.trim?.()?.length || 0);
-        console.log('values.lotes:', parsed.values?.lotes?.length || 0, 'itens');
-        if (parsed.values?.lotes?.length > 0) {
-          console.log('  → Lotes com conteúdo:', parsed.values.lotes.filter((l: any) => l.numero || l.descricao).length);
-        }
-        console.log('costItems:', parsed.costItems?.length || 0, 'itens');
-        if (parsed.costItems?.length > 0) {
-          console.log('  → Custos com descrição:', parsed.costItems.filter((c: any) => c.descricao && c.descricao.trim().length > 0).length);
-        }
-        console.log('sponsorItems:', parsed.sponsorItems?.length || 0, 'itens');
-        if (parsed.sponsorItems?.length > 0) {
-          console.log('  → Patrocínios com nome:', parsed.sponsorItems.filter((s: any) => s.nomePatrocinador && s.nomePatrocinador.trim().length > 0).length);
         }
         
         // Verificar se o rascunho tem conteúdo SIGNIFICATIVO (não apenas espaços em branco ou valores padrões)
@@ -229,42 +201,25 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         const checkPatrocinios = parsed.sponsorItems && Array.isArray(parsed.sponsorItems) && parsed.sponsorItems.length > 0 && 
            parsed.sponsorItems.some((s: any) => s.nomePatrocinador && s.nomePatrocinador.trim().length > 0);
         
-        console.log('✅ VALIDAÇÕES:');
-        console.log('  Nome válido (>= 3 chars):', checkNome);
-        console.log('  Identificação válida (>= 3 chars):', checkIdentificacao);
-        console.log('  Local válido (>= 3 chars):', checkLocal);
-        console.log('  Endereço válido (>= 10 chars):', checkEndereco);
-        console.log('  Lotes válidos:', checkLotes);
-        console.log('  Custos válidos:', checkCustos);
-        console.log('  Patrocínios válidos:', checkPatrocinios);
-        
         const hasSignificantContent = checkNome || checkIdentificacao || checkLocal || checkEndereco || checkLotes || checkCustos || checkPatrocinios;
-        
-        console.log('🎯 RESULTADO: hasSignificantContent =', hasSignificantContent);
-        console.log('========================================');
         
         // Só mostrar modal se houver conteúdo REAL
         if (hasSignificantContent) {
           setDraftData({ values: parsed.values, step: parsed.step || 0 });
           setShowDraftModal(true);
-          logger.info('✅ Rascunho encontrado com conteúdo válido - MODAL EXIBIDO');
-          console.log('✅ MODAL DE RASCUNHO SERÁ EXIBIDO');
+          logger.info('Rascunho encontrado com conteúdo válido');
         } else {
           // Rascunho vazio ou apenas espaços, limpar
           localStorage.removeItem(DRAFT_STORAGE_KEY);
           localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
-          logger.debug('🗑️ Rascunho vazio removido');
-          console.log('🗑️ RASCUNHO VAZIO - REMOVIDO DO LOCALSTORAGE');
+          logger.debug('Rascunho vazio removido');
         }
       } catch (error) {
-        console.log('❌ ERRO ao carregar rascunho:', error);
         logger.error('Erro ao carregar rascunho', error);
         // Limpar dados corrompidos
         localStorage.removeItem(DRAFT_STORAGE_KEY);
         localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
       }
-    } else {
-      console.log('ℹ️ Nenhum rascunho encontrado no localStorage');
     }
   }, [isEditMode]);
 
@@ -291,29 +246,15 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     
     // Só salvar se houver conteúdo REAL preenchido
     if (!hasSignificantContent) {
-      console.log('⚠️ AUTO-SAVE: Não há conteúdo significativo para salvar - IGNORADO');
-      
       // Se não há conteúdo mas existe rascunho salvo, LIMPAR!
       const existingDraft = localStorage.getItem(DRAFT_STORAGE_KEY);
       if (existingDraft) {
-        console.log('🗑️ AUTO-SAVE: Limpando rascunho anterior (conteúdo foi apagado)');
         localStorage.removeItem(DRAFT_STORAGE_KEY);
         localStorage.removeItem(DRAFT_TIMESTAMP_KEY);
         setLastSaved(null);
       }
-      
       return;
     }
-    
-    console.log('💾 AUTO-SAVE: Salvando rascunho...');
-    console.log('Valores a serem salvos:', {
-      nome: values.nome,
-      identificacao: values.identificacao,
-      local: values.local,
-      qtdLotes: values.lotes?.length || 0,
-      qtdCustos: costItems?.length || 0,
-      qtdPatrocinios: sponsorItems?.length || 0
-    });
     
     try {
       setIsSaving(true);
@@ -329,12 +270,10 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         timestamp: new Date().toISOString()
       };
       
-      console.log('💾 Salvando no localStorage...');
       // Salvar no localStorage (persiste mesmo fechando o navegador/app)
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draftToSave));
       localStorage.setItem(DRAFT_TIMESTAMP_KEY, new Date().toISOString());
       setLastSaved(new Date());
-      console.log('✅ AUTO-SAVE: Rascunho salvo com sucesso!');
       
       // Indicador aparece por apenas 800ms
       setTimeout(() => setIsSaving(false), 800);
@@ -376,7 +315,6 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     return () => {
       // Ao desmontar, salvar imediatamente se houver alterações pendentes
       if (!isEditMode) {
-        console.log('🚪 FECHANDO FORMULÁRIO - Salvando rascunho final...');
         saveDraft();
       }
     };
@@ -391,19 +329,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
 
   // Carregar rascunho
   const loadDraft = useCallback(() => {
-    console.log('========================================');
-    console.log('🔄 CARREGANDO RASCUNHO');
-    console.log('========================================');
-    console.log('draftData disponível:', !!draftData);
-    
     if (draftData) {
-      console.log('Dados do rascunho a serem carregados:');
-      console.log('  nome:', draftData.values?.nome);
-      console.log('  identificacao:', draftData.values?.identificacao);
-      console.log('  local:', draftData.values?.local);
-      console.log('  lotes:', draftData.values?.lotes?.length || 0);
-      console.log('  step:', draftData.step);
-      
       setValues(draftData.values);
       setCurrentStep(draftData.step);
       
@@ -418,20 +344,12 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
           if (parsed.selectedMercadoriaIndex !== undefined) setSelectedMercadoriaIndex(parsed.selectedMercadoriaIndex);
           if (parsed.selectedCostIndex !== undefined) setSelectedCostIndex(parsed.selectedCostIndex);
           if (parsed.selectedSponsorIndex !== undefined) setSelectedSponsorIndex(parsed.selectedSponsorIndex);
-          
-          console.log('Estados adicionais restaurados com sucesso');
         }
       } catch (error) {
-        console.log('❌ Erro ao restaurar estados:', error);
         logger.error('Erro ao restaurar estados do rascunho', error);
       }
       
-      console.log('✅ RASCUNHO CARREGADO - Formulário preenchido');
-      console.log('========================================');
       setShowDraftModal(false);
-    } else {
-      console.log('⚠️ AVISO: draftData está vazio ou undefined!');
-      console.log('========================================');
     }
   }, [draftData]);
 
