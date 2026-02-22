@@ -371,6 +371,17 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     };
   }, [values, currentStep, saveDraft, isEditMode]);
 
+  // Salvar rascunho ao desmontar componente (quando fechar o formulário)
+  useEffect(() => {
+    return () => {
+      // Ao desmontar, salvar imediatamente se houver alterações pendentes
+      if (!isEditMode) {
+        console.log('🚪 FECHANDO FORMULÁRIO - Salvando rascunho final...');
+        saveDraft();
+      }
+    };
+  }, [isEditMode, saveDraft]);
+
   // Limpar rascunho ao submeter com sucesso
   const clearDraft = useCallback(() => {
     localStorage.removeItem(DRAFT_STORAGE_KEY);
