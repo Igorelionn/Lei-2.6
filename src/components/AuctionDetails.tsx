@@ -8,6 +8,7 @@ import { Separator } from "@/components/ui/separator";
 import { supabaseClient } from "@/lib/supabase-client";
 import { useEffect, useState } from "react";
 import { ImageWithFallback } from "@/components/ImageWithFallback"; // 🔒 SEGURANÇA: Componente seguro sem innerHTML
+import { calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import { 
   Calendar, 
   MapPin, 
@@ -274,6 +275,43 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
     }).format(value);
   };
 
+  // Função para calcular total pago pelos arrematantes
+  const calcularTotalPagoArrematantes = () => {
+    return todosArrematantes.reduce((sum, arr) => {
+      if (arr.pago) {
+        const valor = typeof arr.valorPagar === 'string'
+          ? parseFloat(arr.valorPagar.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0
+          : arr.valorPagarNumerico || 0;
+        return sum + valor;
+      }
+      const parcelasPagas = arr.parcelasPagas || 0;
+      if (parcelasPagas > 0) {
+        const valorBase = typeof arr.valorPagar === 'string'
+          ? parseFloat(arr.valorPagar.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0
+          : arr.valorPagarNumerico || 0;
+        const loteArrematado = arr.loteId ? auction.lotes?.find(lote => lote.id === arr.loteId) : null;
+        const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+
+        if (tipoPagamento === 'entrada_parcelamento') {
+          const valorEntrada = arr.valorEntrada
+            ? (typeof arr.valorEntrada === 'string' ? parseFloat(arr.valorEntrada.replace(/[^\d,.-]/g, '').replace(',', '.')) : arr.valorEntrada)
+            : valorBase * 0.3;
+          if (parcelasPagas === 1) return sum + valorEntrada;
+          const estrutura = calcularEstruturaParcelas(valorBase, arr.parcelasTriplas || 0, arr.parcelasDuplas || 0, arr.parcelasSimples || 0);
+          let total = valorEntrada;
+          for (let i = 0; i < parcelasPagas - 1 && i < estrutura.length; i++) total += estrutura[i]?.valor || 0;
+          return sum + total;
+        } else if (tipoPagamento === 'parcelamento') {
+          const estrutura = calcularEstruturaParcelas(valorBase, arr.parcelasTriplas || 0, arr.parcelasDuplas || 0, arr.parcelasSimples || 0);
+          let total = 0;
+          for (let i = 0; i < parcelasPagas && i < estrutura.length; i++) total += estrutura[i]?.valor || 0;
+          return sum + total;
+        }
+      }
+      return sum;
+    }, 0);
+  };
+
   const formatDate = (dateString: string) => {
     // Adiciona o horário UTC para evitar problemas de fuso horário
     const date = new Date(dateString + 'T12:00:00.000Z');
@@ -501,7 +539,8 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
                         </span>
                         <span className="text-lg font-light text-gray-900 tracking-tight">
                           {(() => {
-                            const saldo = (auction.patrociniosTotal || 0) - auction.custosNumerico;
+                            const totalPagoArrematantes = calcularTotalPagoArrematantes();
+                            const saldo = (auction.patrociniosTotal || 0) + totalPagoArrematantes - auction.custosNumerico;
                             return formatCurrency(saldo);
                           })()}
                         </span>

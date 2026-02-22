@@ -258,7 +258,11 @@ export const PdfReport: React.FC<PdfReportProps> = ({ auction }) => {
             <div style={styles.gridItem}>
               <p style={styles.label}>Saldo</p>
               <p style={styles.valueLarge}>
-                {formatCurrency((auction.patrociniosTotal || 0) - auction.custosNumerico)}
+                {(() => {
+                  const { totalPago } = calcFinanceiro();
+                  const saldoFinal = (auction.patrociniosTotal || 0) + totalPago - auction.custosNumerico;
+                  return formatCurrency(saldoFinal);
+                })()}
               </p>
             </div>
           )}

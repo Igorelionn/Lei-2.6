@@ -3,6 +3,7 @@ import { Auction, AuctionStatus, DocumentoInfo, MercadoriaInfo, LoteInfo, ItemCu
 import { parseCurrencyToNumber, openDocumentSafely } from "@/lib/utils";
 import { useActivityLogger } from "@/hooks/use-activity-logger";
 import { logger } from "@/lib/logger";
+import { calcularEstruturaParcelas } from "@/lib/parcelamento-calculator";
 import { calcularValorTotal } from "@/lib/parcelamento-calculator";
 import { ParcelamentoPreview } from "@/components/ParcelamentoPreview";
 import { ProprietarioWizard } from "@/components/ProprietarioWizard";
@@ -88,6 +89,44 @@ export function AuctionForm({
   
   // Set para rastrear URLs blob temporárias que precisam ser limpas
   const tempBlobUrlsRef = useRef(new Set<string>());
+
+  // Função para calcular total pago pelos arrematantes
+  const calcularTotalPagoArrematantes = () => {
+    const todosArrematantes = values.arrematantes || [];
+    return todosArrematantes.reduce((sum, arr) => {
+      if (arr.pago) {
+        const valor = typeof arr.valorPagar === 'string'
+          ? parseFloat(arr.valorPagar.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0
+          : arr.valorPagarNumerico || 0;
+        return sum + valor;
+      }
+      const parcelasPagas = arr.parcelasPagas || 0;
+      if (parcelasPagas > 0) {
+        const valorBase = typeof arr.valorPagar === 'string'
+          ? parseFloat(arr.valorPagar.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0
+          : arr.valorPagarNumerico || 0;
+        const loteArrematado = arr.loteId ? values.lotes?.find(lote => lote.id === arr.loteId) : null;
+        const tipoPagamento = loteArrematado?.tipoPagamento || values.tipoPagamento;
+
+        if (tipoPagamento === 'entrada_parcelamento') {
+          const valorEntrada = arr.valorEntrada
+            ? (typeof arr.valorEntrada === 'string' ? parseFloat(arr.valorEntrada.replace(/[^\d,.-]/g, '').replace(',', '.')) : arr.valorEntrada)
+            : valorBase * 0.3;
+          if (parcelasPagas === 1) return sum + valorEntrada;
+          const estrutura = calcularEstruturaParcelas(valorBase, arr.parcelasTriplas || 0, arr.parcelasDuplas || 0, arr.parcelasSimples || 0);
+          let total = valorEntrada;
+          for (let i = 0; i < parcelasPagas - 1 && i < estrutura.length; i++) total += estrutura[i]?.valor || 0;
+          return sum + total;
+        } else if (tipoPagamento === 'parcelamento') {
+          const estrutura = calcularEstruturaParcelas(valorBase, arr.parcelasTriplas || 0, arr.parcelasDuplas || 0, arr.parcelasSimples || 0);
+          let total = 0;
+          for (let i = 0; i < parcelasPagas && i < estrutura.length; i++) total += estrutura[i]?.valor || 0;
+          return sum + total;
+        }
+      }
+      return sum;
+    }, 0);
+  };
 
   // Atualizar o estado quando as props initial mudarem, mas apenas se o usuário não fez alterações
   useEffect(() => {
@@ -1202,7 +1241,8 @@ export function AuctionForm({
                               : 'text-gray-900'
                           }`}>
                             {(() => {
-                              const saldo = (values.patrociniosTotal || 0) - (values.custosNumerico || 0);
+                              const totalPagoArrematantes = calcularTotalPagoArrematantes();
+                              const saldo = (values.patrociniosTotal || 0) + totalPagoArrematantes - (values.custosNumerico || 0);
                               return saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                             })()}
                           </span>
