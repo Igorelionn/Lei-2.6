@@ -95,17 +95,22 @@ export default function LotesConvidados() {
     fetchLeiloes();
   }, []);
 
-  const filteredLotes = guestLots.filter(lote => {
-    const matchesSearch = !searchTerm || 
-      lote.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lote.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      lote.proprietario.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (lote.leilao_nome && lote.leilao_nome.toLowerCase().includes(searchTerm.toLowerCase()));
-    const matchesStatus = statusFilter === "todos" || lote.status === statusFilter;
-    const matchesArchived = showArchived ? lote.arquivado : !lote.arquivado;
-    
-    return matchesSearch && matchesStatus && matchesArchived;
-  });
+  const filteredLotes = guestLots
+    .filter((lote, index, self) => 
+      // Remove duplicatas baseado no ID único
+      index === self.findIndex((l) => l.id === lote.id)
+    )
+    .filter(lote => {
+      const matchesSearch = !searchTerm || 
+        lote.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lote.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        lote.proprietario.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (lote.leilao_nome && lote.leilao_nome.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = statusFilter === "todos" || lote.status === statusFilter;
+      const matchesArchived = showArchived ? lote.arquivado : !lote.arquivado;
+      
+      return matchesSearch && matchesStatus && matchesArchived;
+    });
 
   const handleSmoothTransition = (callback: () => void) => {
     setIsTransitioning(true);
