@@ -1731,7 +1731,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                 sponsorItems[selectedSponsorIndex].formaPagamento === 'entrada_parcelamento') && (
                 <div className="space-y-3">
                   <Label className="text-lg font-normal text-gray-600">Dia do vencimento mensal</Label>
-                  <p className="text-sm text-gray-500 -mt-1">Este dia será usado automaticamente para o início do pagamento</p>
+                  <p className="text-sm text-gray-500 -mt-1">Este dia será usado automaticamente para o início do pagamento das parcelas</p>
                   <Input
                     type="number"
                     min="1"
