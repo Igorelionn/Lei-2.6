@@ -153,7 +153,18 @@ export function useGuestLots() {
         })
       );
 
-      return lotsWithMerchandise;
+      // Remover duplicatas baseado no ID (segurança extra)
+      const uniqueLots = lotsWithMerchandise.filter((lot, index, self) =>
+        index === self.findIndex((l) => l.id === lot.id)
+      );
+
+      logger.debug('Guest lots carregados:', {
+        total: lotsWithMerchandise.length,
+        unique: uniqueLots.length,
+        hasDuplicates: lotsWithMerchandise.length !== uniqueLots.length
+      });
+
+      return uniqueLots;
     },
   });
 
