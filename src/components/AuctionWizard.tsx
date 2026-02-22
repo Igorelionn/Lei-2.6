@@ -209,19 +209,19 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         }
         
         // Verificar se o rascunho tem conteúdo SIGNIFICATIVO (não apenas espaços em branco ou valores padrões)
-        // Requer pelo menos 3 caracteres em algum campo de texto OU lotes/custos/patrocinios com dados
-        // IMPORTANTE: Ignorar valores padrões que vêm do formulário inicial
-        const checkNome = parsed.values?.nome && typeof parsed.values.nome === 'string' && parsed.values.nome.trim().length >= 3;
-        const checkIdentificacao = parsed.values?.identificacao && typeof parsed.values.identificacao === 'string' && parsed.values.identificacao.trim().length >= 3;
+        // IMPORTANTE: Aceitar QUALQUER texto digitado pelo usuário (mesmo 1 caractere)
+        // Apenas ignorar valores padrões do formulário inicial
+        const checkNome = parsed.values?.nome && typeof parsed.values.nome === 'string' && parsed.values.nome.trim().length > 0;
+        const checkIdentificacao = parsed.values?.identificacao && typeof parsed.values.identificacao === 'string' && parsed.values.identificacao.trim().length > 0;
         
         // IGNORAR "local" se for um valor padrão (presencial/online/hibrido)
         const localPadrao = ['presencial', 'online', 'hibrido', ''];
         const checkLocal = parsed.values?.local && 
           typeof parsed.values.local === 'string' && 
-          parsed.values.local.trim().length >= 3 &&
+          parsed.values.local.trim().length > 0 &&
           !localPadrao.includes(parsed.values.local.toLowerCase());
         
-        const checkEndereco = parsed.values?.endereco && typeof parsed.values.endereco === 'string' && parsed.values.endereco.trim().length >= 10;
+        const checkEndereco = parsed.values?.endereco && typeof parsed.values.endereco === 'string' && parsed.values.endereco.trim().length > 0;
         const checkLotes = parsed.values?.lotes && Array.isArray(parsed.values.lotes) && parsed.values.lotes.length > 0 && 
            parsed.values.lotes.some((l: any) => l.numero || l.descricao);
         const checkCustos = parsed.costItems && Array.isArray(parsed.costItems) && parsed.costItems.length > 0 && 
@@ -273,15 +273,15 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
     if (isEditMode) return; // Não salvar rascunho se estiver editando leilão existente
     
     // Verificar se há conteúdo SIGNIFICATIVO para salvar (não apenas espaços em branco ou valores padrões)
-    // Requer pelo menos 3 caracteres em algum campo de texto OU lotes/custos/patrocinios com dados reais
-    // IMPORTANTE: Ignorar valores padrões que vêm do formulário inicial
+    // IMPORTANTE: Aceitar QUALQUER texto digitado pelo usuário (mesmo 1 caractere)
+    // Apenas ignorar valores padrões do formulário inicial
     const localPadrao = ['presencial', 'online', 'hibrido', ''];
     
     const hasSignificantContent = 
-      (values.nome && typeof values.nome === 'string' && values.nome.trim().length >= 3) ||
-      (values.identificacao && typeof values.identificacao === 'string' && values.identificacao.trim().length >= 3) ||
-      (values.local && typeof values.local === 'string' && values.local.trim().length >= 3 && !localPadrao.includes(values.local.toLowerCase())) ||
-      (values.endereco && typeof values.endereco === 'string' && values.endereco.trim().length >= 10) ||
+      (values.nome && typeof values.nome === 'string' && values.nome.trim().length > 0) ||
+      (values.identificacao && typeof values.identificacao === 'string' && values.identificacao.trim().length > 0) ||
+      (values.local && typeof values.local === 'string' && values.local.trim().length > 0 && !localPadrao.includes(values.local.toLowerCase())) ||
+      (values.endereco && typeof values.endereco === 'string' && values.endereco.trim().length > 0) ||
       (values.lotes && Array.isArray(values.lotes) && values.lotes.length > 0 && 
        values.lotes.some(l => l.numero || l.descricao)) ||
       (costItems && Array.isArray(costItems) && costItems.length > 0 && 
