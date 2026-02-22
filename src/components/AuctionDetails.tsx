@@ -501,8 +501,8 @@ export function AuctionDetails({ auction }: AuctionDetailsProps) {
                         </span>
                         <span className="text-lg font-light text-gray-900 tracking-tight">
                           {(() => {
-                            const saldo = auction.custosNumerico - (auction.patrociniosTotal || 0);
-                            return formatCurrency(Math.abs(saldo));
+                            const saldo = (auction.patrociniosTotal || 0) - auction.custosNumerico;
+                            return formatCurrency(saldo);
                           })()}
                         </span>
                       </div>

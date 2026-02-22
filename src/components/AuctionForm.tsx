@@ -1202,8 +1202,8 @@ export function AuctionForm({
                               : 'text-gray-900'
                           }`}>
                             {(() => {
-                              const saldo = (values.custosNumerico || 0) - (values.patrociniosTotal || 0);
-                              return Math.abs(saldo).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+                              const saldo = (values.patrociniosTotal || 0) - (values.custosNumerico || 0);
+                              return saldo.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
                             })()}
                           </span>
                         </div>
