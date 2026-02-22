@@ -95,14 +95,31 @@ export function useGuestLots() {
           status,
           arquivado,
           created_at,
-          updated_at,
-          auctions!guest_lots_leilao_id_fkey (
-            nome
-          )
+          updated_at
         `)
         .order('created_at', { ascending: false });
 
       if (lotsError) throw lotsError;
+
+      logger.debug('Dados brutos de guest_lots:', {
+        total: lotsData?.length,
+        ids: lotsData?.map(l => l.id)
+      });
+
+      // Buscar nomes dos leilões separadamente
+      const leilaoIds = [...new Set(lotsData?.map(l => l.leilao_id).filter(Boolean))];
+      const leiloesMap = new Map<string, string>();
+      
+      if (leilaoIds.length > 0) {
+        const { data: leiloesData } = await supabaseClient
+          .from('auctions')
+          .select('id, nome')
+          .in('id', leilaoIds);
+        
+        leiloesData?.forEach(leilao => {
+          leiloesMap.set(leilao.id, leilao.nome);
+        });
+      }
 
       // Buscar mercadorias para cada lote
       const lotsWithMerchandise = await Promise.all(
@@ -136,8 +153,7 @@ export function useGuestLots() {
             celular_proprietario: lot.celular_proprietario,
             email_proprietario: lot.email_proprietario,
             leilao_id: lot.leilao_id || undefined,
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            leilao_nome: (lot.auctions as any)?.nome || undefined,
+            leilao_nome: lot.leilao_id ? leiloesMap.get(lot.leilao_id) : undefined,
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
             imagens: (lot.imagens as any) || [],
             // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -158,10 +174,10 @@ export function useGuestLots() {
         index === self.findIndex((l) => l.id === lot.id)
       );
 
-      logger.debug('Guest lots carregados:', {
-        total: lotsWithMerchandise.length,
-        unique: uniqueLots.length,
-        hasDuplicates: lotsWithMerchandise.length !== uniqueLots.length
+      logger.debug('Guest lots processados:', {
+        totalBruto: lotsWithMerchandise.length,
+        totalUnico: uniqueLots.length,
+        duplicatasRemovidas: lotsWithMerchandise.length - uniqueLots.length
       });
 
       return uniqueLots;
