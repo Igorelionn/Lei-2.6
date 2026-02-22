@@ -2430,7 +2430,7 @@ function Leiloes() {
 
       {/* Modal de Visualização de Detalhes */}
       <Dialog open={!!viewingAuction} onOpenChange={(open) => !open && setViewingAuction(null)}>
-        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden p-0">
+        <DialogContent className="max-w-[95vw] sm:max-w-6xl max-h-[90vh] overflow-hidden p-0 [&>button]:hidden">
           {/* Header Fixo */}
           <div className="sticky top-0 bg-white z-50 px-3 sm:px-4 lg:px-6 py-3 sm:py-4 border-b border-gray-200 shadow-sm">
           <DialogHeader>
@@ -2439,6 +2439,13 @@ function Leiloes() {
                 Visualize todas as informações detalhadas do leilão
               </DialogDescription>
           </DialogHeader>
+            <button
+              onClick={() => setViewingAuction(null)}
+              className="absolute top-4 right-4 p-2 hover:bg-gray-100 rounded-full transition-colors z-60 focus:!ring-0 focus:!ring-offset-0 focus:!border-gray-400 focus:!outline-none focus:!shadow-none"
+              aria-label="Fechar"
+            >
+              <X className="h-5 w-5 text-gray-500" />
+            </button>
           </div>
           
           {/* Conteúdo com Scroll */}
