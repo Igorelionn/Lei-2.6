@@ -1350,14 +1350,6 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
               {/* Formulário do Patrocinador Selecionado */}
               {sponsorItems[selectedSponsorIndex] && (
                 <div className="space-y-8">
-                  {/* Valor de referência do patrocínio */}
-                  <div className="rounded-lg bg-gray-50 border border-gray-200 p-4 flex items-center justify-between">
-                    <span className="text-sm text-gray-600">Valor do patrocínio</span>
-                    <span className="text-lg font-semibold text-gray-900">
-                      {sponsorItems[selectedSponsorIndex].valorNumerico.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </span>
-                  </div>
-
                   {/* Forma de Pagamento */}
                   <div className="space-y-3">
                     <Label className="text-lg font-normal text-gray-600">Como deseja pagar?</Label>
