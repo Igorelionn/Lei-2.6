@@ -2058,12 +2058,14 @@ function Leiloes() {
           ) : filteredAuctions.length === 0 ? (
            <div className={`text-center py-6 sm:py-8 md:py-12 lg:py-16 px-3 sm:px-4 md:px-6 max-w-2xl md:max-w-3xl mx-auto ${!isLoadingResults ? 'fade-in' : ''}`}>
              {/* Debug Info - Remover depois */}
-             <div className="fixed top-4 right-4 bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-mono z-50 shadow-lg">
+             <div className="fixed top-4 right-4 bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-mono z-50 shadow-lg space-y-1">
                <div className="block sm:hidden">Mobile (&lt;640px)</div>
                <div className="hidden sm:block md:hidden">SM (640px+)</div>
                <div className="hidden md:block lg:hidden">MD (768px+)</div>
                <div className="hidden lg:block">LG (1024px+)</div>
-               <div className="mt-1">Width: {typeof window !== 'undefined' ? window.innerWidth : '?'}px</div>
+               <div>Screen: {typeof window !== 'undefined' ? window.innerWidth : '?'}px</div>
+               <div>Container: max-w-3xl</div>
+               <div className="text-yellow-300">95% = {typeof window !== 'undefined' ? Math.floor(window.innerWidth * 0.95) : '?'}px</div>
              </div>
              
              <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
@@ -2079,7 +2081,17 @@ function Leiloes() {
              {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                  <DialogTrigger asChild>
-                   <Button className="gap-1 sm:gap-1.5 bg-blue-600 hover:bg-blue-700 text-[10px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 lg:px-6 h-8 sm:h-9 md:h-10 lg:h-11 w-auto max-w-[95%] mx-auto">
+                   <Button 
+                     className="gap-1 sm:gap-1.5 bg-blue-600 hover:bg-blue-700 text-[10px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 lg:px-6 h-8 sm:h-9 md:h-10 lg:h-11 w-auto max-w-[95%] mx-auto"
+                     onClick={(e) => {
+                       const btn = e.currentTarget;
+                       console.log('🔵 Botão Info:', {
+                         width: btn.offsetWidth,
+                         maxWidth: window.getComputedStyle(btn).maxWidth,
+                         parentWidth: btn.parentElement?.offsetWidth
+                       });
+                     }}
+                   >
                      <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 flex-shrink-0" />
                      <span className="truncate whitespace-nowrap">Criar Primeiro Leilão</span>
                    </Button>
