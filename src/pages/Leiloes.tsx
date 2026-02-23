@@ -2056,12 +2056,12 @@ function Leiloes() {
              ))}
            </div>
           ) : filteredAuctions.length === 0 ? (
-           <div className={`text-center py-8 sm:py-12 md:py-16 px-4 sm:px-6 max-w-3xl mx-auto ${!isLoadingResults ? 'fade-in' : ''}`}>
-             <div className="h-20 w-20 sm:h-24 sm:w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-3 sm:mb-4">
-               <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
+           <div className={`text-center py-6 sm:py-8 md:py-12 lg:py-16 px-3 sm:px-4 md:px-6 max-w-2xl md:max-w-3xl mx-auto ${!isLoadingResults ? 'fade-in' : ''}`}>
+             <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
+               <Calendar className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400" />
              </div>
-             <h3 className="text-sm sm:text-base md:text-lg font-semibold mb-2 text-gray-900 px-2">Nenhum leilão encontrado</h3>
-             <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-4 sm:mb-6 max-w-sm sm:max-w-md mx-auto px-2 leading-relaxed">
+             <h3 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold mb-1.5 sm:mb-2 text-gray-900 px-1 sm:px-2">Nenhum leilão encontrado</h3>
+             <p className="text-[10px] sm:text-xs md:text-sm lg:text-base text-muted-foreground mb-3 sm:mb-4 md:mb-6 max-w-[280px] sm:max-w-sm md:max-w-md mx-auto px-1 sm:px-2 leading-relaxed">
                {searchTerm || statusFilter !== "todos" || localFilter !== "todos" 
                  ? "Nenhum leilão corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
                  : "Ainda não há leilões cadastrados no sistema. Comece criando seu primeiro leilão."
@@ -2070,8 +2070,8 @@ function Leiloes() {
              {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                  <DialogTrigger asChild>
-                   <Button className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm md:text-base px-3 sm:px-4 md:px-6 h-9 sm:h-10 md:h-11 w-auto max-w-[90%] sm:max-w-none mx-auto">
-                     <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                   <Button className="gap-1 sm:gap-1.5 bg-blue-600 hover:bg-blue-700 text-[10px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 lg:px-6 h-8 sm:h-9 md:h-10 lg:h-11 w-auto max-w-[95%] mx-auto">
+                     <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 flex-shrink-0" />
                      <span className="truncate whitespace-nowrap">Criar Primeiro Leilão</span>
                    </Button>
                  </DialogTrigger>
