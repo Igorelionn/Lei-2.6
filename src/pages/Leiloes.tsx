@@ -2070,9 +2070,9 @@ function Leiloes() {
              {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                  <DialogTrigger asChild>
-                   <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base px-4 sm:px-6 h-10 sm:h-11 w-auto max-w-[90vw] sm:max-w-none">
-                     <Plus className="h-4 w-4 flex-shrink-0" />
-                     <span className="truncate">Criar Primeiro Leilão</span>
+                   <Button className="gap-1.5 bg-blue-600 hover:bg-blue-700 text-xs sm:text-sm md:text-base px-3 sm:px-4 md:px-6 h-9 sm:h-10 md:h-11 w-auto max-w-[85vw] sm:max-w-[90vw] md:max-w-none mx-auto">
+                     <Plus className="h-3.5 w-3.5 sm:h-4 sm:w-4 flex-shrink-0" />
+                     <span className="truncate whitespace-nowrap">Criar Primeiro Leilão</span>
                    </Button>
                  </DialogTrigger>
                </Dialog>
