@@ -2056,12 +2056,12 @@ function Leiloes() {
              ))}
            </div>
           ) : filteredAuctions.length === 0 ? (
-           <div className={`text-center py-16 ${!isLoadingResults ? 'fade-in' : ''}`}>
+           <div className={`text-center py-16 px-4 ${!isLoadingResults ? 'fade-in' : ''}`}>
              <div className="h-24 w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
                <Calendar className="h-12 w-12 text-gray-400" />
              </div>
-             <h3 className="text-lg font-semibold mb-2 text-gray-900">Nenhum leilão encontrado</h3>
-             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
+             <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900">Nenhum leilão encontrado</h3>
+             <p className="text-sm sm:text-base text-muted-foreground mb-6 max-w-md mx-auto px-4">
                {searchTerm || statusFilter !== "todos" || localFilter !== "todos" 
                  ? "Nenhum leilão corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
                  : "Ainda não há leilões cadastrados no sistema. Comece criando seu primeiro leilão."
@@ -2070,9 +2070,9 @@ function Leiloes() {
              {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                  <DialogTrigger asChild>
-                   <Button className="gap-2 bg-blue-600 hover:bg-blue-700">
-                     <Plus className="h-4 w-4" />
-                     Criar Primeiro Leilão
+                   <Button className="gap-2 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base px-4 sm:px-6 h-10 sm:h-11 w-auto max-w-[90vw] sm:max-w-none">
+                     <Plus className="h-4 w-4 flex-shrink-0" />
+                     <span className="truncate">Criar Primeiro Leilão</span>
                    </Button>
                  </DialogTrigger>
                </Dialog>
