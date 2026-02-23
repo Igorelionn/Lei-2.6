@@ -2056,22 +2056,27 @@ function Leiloes() {
              ))}
            </div>
           ) : filteredAuctions.length === 0 ? (
-           <div className={`text-center py-6 sm:py-8 md:py-12 lg:py-16 px-4 sm:px-6 md:px-8 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl mx-auto ${!isLoadingResults ? 'fade-in' : ''}`}>
+           <div className={`text-center py-6 sm:py-8 md:py-12 lg:py-16 px-4 sm:px-6 md:px-8 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl mx-auto overflow-x-hidden ${!isLoadingResults ? 'fade-in' : ''}`}>
              {/* Debug Info - Remover depois */}
-             <div className="fixed top-4 right-4 bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-mono z-50 shadow-lg space-y-1">
+             <div className="fixed top-4 right-4 bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-mono z-50 shadow-lg space-y-1 max-w-[200px]">
                <div className="block sm:hidden">Mobile (&lt;640px)</div>
                <div className="hidden sm:block md:hidden">SM (640px+)</div>
                <div className="hidden md:block lg:hidden">MD (768px+)</div>
                <div className="hidden lg:block xl:hidden">LG (1024px+)</div>
                <div className="hidden xl:block">XL (1280px+)</div>
                <div>Screen: {typeof window !== 'undefined' ? window.innerWidth : '?'}px</div>
-               <div className="text-yellow-300">Container:</div>
+               <div className="text-yellow-300 text-[10px]">
+                 Zoom: {typeof window !== 'undefined' ? Math.round((window.outerWidth / window.innerWidth) * 100) : '?'}%
+               </div>
                <div className="text-green-300 text-[10px]">
                  <span className="sm:hidden">max-w-xs (320px)</span>
                  <span className="hidden sm:block md:hidden">max-w-sm (384px)</span>
                  <span className="hidden md:block lg:hidden">max-w-md (448px)</span>
                  <span className="hidden lg:block xl:hidden">max-w-lg (512px)</span>
                  <span className="hidden xl:block">max-w-xl (576px)</span>
+               </div>
+               <div className="text-red-300 text-[10px]">
+                 Overflow? {typeof document !== 'undefined' && document.body.scrollWidth > window.innerWidth ? 'SIM!' : 'Não'}
                </div>
              </div>
              
@@ -2086,7 +2091,7 @@ function Leiloes() {
                }
              </p>
              {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
-               <div className="flex justify-center">
+               <div className="flex justify-center overflow-x-hidden">
                  <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                    <DialogTrigger asChild>
                      <Button 
@@ -2097,7 +2102,10 @@ function Leiloes() {
                            width: btn.offsetWidth,
                            maxWidth: window.getComputedStyle(btn).maxWidth,
                            parentWidth: btn.parentElement?.offsetWidth,
-                           overflow: window.getComputedStyle(btn).overflow
+                           overflow: window.getComputedStyle(btn).overflow,
+                           bodyScrollWidth: document.body.scrollWidth,
+                           windowInnerWidth: window.innerWidth,
+                           hasHorizontalScroll: document.body.scrollWidth > window.innerWidth
                          });
                        }}
                      >
