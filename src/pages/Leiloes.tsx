@@ -2056,29 +2056,36 @@ function Leiloes() {
              ))}
            </div>
           ) : filteredAuctions.length === 0 ? (
-           <div className={`text-center py-6 sm:py-8 md:py-12 lg:py-16 px-3 sm:px-4 md:px-6 w-full max-w-full overflow-hidden ${!isLoadingResults ? 'fade-in' : ''}`}>
-             <div className="w-full max-w-2xl md:max-w-3xl mx-auto">
-               <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
-                 <Calendar className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400" />
-               </div>
-               <h3 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold mb-1.5 sm:mb-2 text-gray-900 break-words">Nenhum leilão encontrado</h3>
-               <p className="text-[10px] sm:text-xs md:text-sm lg:text-base text-muted-foreground mb-3 sm:mb-4 md:mb-6 mx-auto leading-relaxed break-words hyphens-auto" style={{maxWidth: 'min(280px, 90vw)'}}>
-                 {searchTerm || statusFilter !== "todos" || localFilter !== "todos" 
-                   ? "Nenhum leilão corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
-                   : "Ainda não há leilões cadastrados no sistema. Comece criando seu primeiro leilão."
-                 }
-               </p>
-               {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
-                 <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                   <DialogTrigger asChild>
-                     <Button className="gap-1 sm:gap-1.5 bg-blue-600 hover:bg-blue-700 text-[10px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 lg:px-6 h-8 sm:h-9 md:h-10 lg:h-11 mx-auto" style={{maxWidth: 'min(280px, 90vw)'}}>
-                       <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 flex-shrink-0" />
-                       <span className="truncate whitespace-nowrap">Criar Primeiro Leilão</span>
-                     </Button>
-                   </DialogTrigger>
-                 </Dialog>
-               )}
+           <div className={`text-center py-6 sm:py-8 md:py-12 lg:py-16 px-3 sm:px-4 md:px-6 max-w-2xl md:max-w-3xl mx-auto ${!isLoadingResults ? 'fade-in' : ''}`}>
+             {/* Debug Info - Remover depois */}
+             <div className="fixed top-4 right-4 bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-mono z-50 shadow-lg">
+               <div className="block sm:hidden">Mobile (&lt;640px)</div>
+               <div className="hidden sm:block md:hidden">SM (640px+)</div>
+               <div className="hidden md:block lg:hidden">MD (768px+)</div>
+               <div className="hidden lg:block">LG (1024px+)</div>
+               <div className="mt-1">Width: {typeof window !== 'undefined' ? window.innerWidth : '?'}px</div>
              </div>
+             
+             <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
+               <Calendar className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400" />
+             </div>
+             <h3 className="text-xs sm:text-sm md:text-base lg:text-lg font-semibold mb-1.5 sm:mb-2 text-gray-900 px-1 sm:px-2">Nenhum leilão encontrado</h3>
+             <p className="text-[10px] sm:text-xs md:text-sm lg:text-base text-muted-foreground mb-3 sm:mb-4 md:mb-6 max-w-[280px] sm:max-w-sm md:max-w-md mx-auto px-1 sm:px-2 leading-relaxed">
+               {searchTerm || statusFilter !== "todos" || localFilter !== "todos" 
+                 ? "Nenhum leilão corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
+                 : "Ainda não há leilões cadastrados no sistema. Comece criando seu primeiro leilão."
+               }
+             </p>
+             {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
+               <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                 <DialogTrigger asChild>
+                   <Button className="gap-1 sm:gap-1.5 bg-blue-600 hover:bg-blue-700 text-[10px] sm:text-xs md:text-sm lg:text-base px-2 sm:px-3 md:px-4 lg:px-6 h-8 sm:h-9 md:h-10 lg:h-11 w-auto max-w-[95%] mx-auto">
+                     <Plus className="h-3 w-3 sm:h-3.5 sm:w-3.5 md:h-4 md:w-4 flex-shrink-0" />
+                     <span className="truncate whitespace-nowrap">Criar Primeiro Leilão</span>
+                   </Button>
+                 </DialogTrigger>
+               </Dialog>
+             )}
            </div>
           ) : (
                         <div className={`${!isLoadingResults ? 'fade-in' : ''} overflow-y-auto max-h-full custom-scrollbar`}>
