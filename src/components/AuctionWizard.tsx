@@ -535,6 +535,11 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
         stepName: steps[nextStep]?.title
       });
       setCurrentStep(nextStep);
+      
+      // Resetar selectedSponsorIndex ao entrar na etapa de "Pagamento dos Patrocinadores"
+      if (steps[nextStep]?.id === "pagamento-patrocinios") {
+        setSelectedSponsorIndex(0);
+      }
     }
   };
 
