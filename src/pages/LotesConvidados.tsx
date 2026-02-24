@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
+import { metrics } from "@/lib/metrics";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -48,6 +49,13 @@ export default function LotesConvidados() {
   
   // Estados para gerenciar arrematantes
   const [addingArrematanteFor, setAddingArrematanteFor] = useState<GuestLot | null>(null);
+
+  // Track component mount
+  useEffect(() => {
+    metrics.trackRender('LotesConvidados');
+    metrics.trackUserAction('page-view:lotes-convidados');
+    logger.info('📄 Página Lotes Convidados carregada');
+  }, []);
   const [editingArrematanteId, setEditingArrematanteId] = useState<string | null>(null);
   const [_isSavingArrematante, setIsSavingArrematante] = useState(false);
   
@@ -95,12 +103,41 @@ export default function LotesConvidados() {
     fetchLeiloes();
   }, []);
 
-  const filteredLotes = guestLots
-    .filter((lote, index, self) => 
-      // Remove duplicatas baseado no ID único
+  const filteredLotes = useMemo(() => {
+    metrics.startPerformance('filter-guest-lots');
+    
+    logger.debug('🔍 Iniciando filtragem de lotes', {
+      totalLotes: guestLots.length,
+      searchTerm,
+      statusFilter,
+      showArchived
+    });
+
+    // Primeiro: detectar e remover duplicatas
+    const duplicatesBeforeFilter = guestLots.length;
+    const uniqueLotes = guestLots.filter((lote, index, self) => 
       index === self.findIndex((l) => l.id === lote.id)
-    )
-    .filter(lote => {
+    );
+    const duplicatesRemoved = duplicatesBeforeFilter - uniqueLotes.length;
+
+    if (duplicatesRemoved > 0) {
+      logger.error(`🔴 DUPLICATAS DETECTADAS NO FRONTEND!`, {
+        totalBruto: duplicatesBeforeFilter,
+        totalUnico: uniqueLotes.length,
+        duplicatasRemovidas: duplicatesRemoved,
+        lotesDuplicados: guestLots
+          .map(l => l.numero)
+          .filter((num, idx, arr) => arr.indexOf(num) !== idx)
+      });
+      metrics.trackError(
+        new Error('Duplicatas detectadas em guestLots array'),
+        'frontend-guest-lots-duplicates',
+        { duplicatesRemoved, totalBruto: duplicatesBeforeFilter }
+      );
+    }
+
+    // Segundo: aplicar filtros
+    const filtered = uniqueLotes.filter(lote => {
       const matchesSearch = !searchTerm || 
         lote.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
         lote.descricao.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -111,6 +148,18 @@ export default function LotesConvidados() {
       
       return matchesSearch && matchesStatus && matchesArchived;
     });
+
+    logger.info('✅ Filtragem de lotes concluída', {
+      totalInicial: guestLots.length,
+      apósDeduplicacao: uniqueLotes.length,
+      apósFiltros: filtered.length,
+      duplicatasRemovidas: duplicatesRemoved
+    });
+
+    metrics.endPerformance('filter-guest-lots');
+
+    return filtered;
+  }, [guestLots, searchTerm, statusFilter, showArchived]);
 
   const handleSmoothTransition = (callback: () => void) => {
     setIsTransitioning(true);
