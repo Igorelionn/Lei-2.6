@@ -239,7 +239,18 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
       (values.local && typeof values.local === 'string' && values.local.trim().length > 0 && !localPadrao.includes(values.local.toLowerCase())) ||
       (values.endereco && typeof values.endereco === 'string' && values.endereco.trim().length > 0) ||
       (values.lotes && Array.isArray(values.lotes) && values.lotes.length > 0 && 
-       values.lotes.some(l => l.numero || l.descricao)) ||
+       values.lotes.some(l => 
+         l.numero || 
+         l.descricao || 
+         (l.mercadorias && l.mercadorias.some(m => 
+           m.titulo || 
+           m.descricao || 
+           m.tipo || 
+           m.nome ||
+           (m.quantidade && m.quantidade > 0) ||
+           (m.valorNumerico && m.valorNumerico > 0)
+         ))
+       )) ||
       (costItems && Array.isArray(costItems) && costItems.length > 0 && 
        costItems.some(c => c.descricao && c.descricao.trim().length > 0)) ||
       (sponsorItems && Array.isArray(sponsorItems) && sponsorItems.length > 0 && 
