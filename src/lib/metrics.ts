@@ -251,7 +251,7 @@ export const metrics = new MetricsCollector();
 if (typeof window !== 'undefined') {
   (window as any).__metrics = metrics;
   (window as any).__dumpMetrics = () => metrics.dumpMetrics();
-  (window as any.__clearMetrics = () => metrics.clear());
+  (window as any).__clearMetrics = () => metrics.clear();
 }
 
 // Helper functions
