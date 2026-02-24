@@ -1014,6 +1014,56 @@ function Leiloes() {
   // Filtrar leilões ativos/arquivados
   const activeAuctions = auctions.filter(auction => showArchived ? auction.arquivado : !auction.arquivado);
 
+  // 🔍 LOG DETALHADO: Diagnóstico completo dos leilões
+  useEffect(() => {
+    console.group('🔍 DIAGNÓSTICO COMPLETO - Leilões');
+    console.log('1️⃣ Dados brutos do hook:', {
+      'auctions (array completo)': auctions,
+      'total de leilões': auctions?.length || 0,
+      'isLoading': isLoading,
+      'IDs dos leilões': auctions?.map(a => a.id) || []
+    });
+    
+    console.log('2️⃣ Filtros ativos:', {
+      'showArchived': showArchived,
+      'searchTerm': searchTerm,
+      'statusFilter': statusFilter,
+      'localFilter': localFilter
+    });
+    
+    console.log('3️⃣ Leilões após filtro de arquivados:', {
+      'activeAuctions': activeAuctions,
+      'total': activeAuctions.length,
+      'arquivados removidos': (auctions?.length || 0) - activeAuctions.length
+    });
+    
+    console.log('4️⃣ Análise individual de cada leilão:', 
+      auctions?.map(auction => ({
+        id: auction.id,
+        nome: auction.nome,
+        arquivado: auction.arquivado,
+        status: auction.status,
+        local: auction.local,
+        'vai aparecer?': showArchived ? auction.arquivado : !auction.arquivado
+      }))
+    );
+    
+    console.log('5️⃣ Leilões filtrados final:', {
+      'filteredAuctions.length': activeAuctions.filter((auction) => {
+        const matchesSearch = auction.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             auction.identificacao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                             auction.endereco?.toLowerCase().includes(searchTerm.toLowerCase());
+        
+        const matchesStatus = statusFilter === "todos" || auction.status === statusFilter;
+        const matchesLocal = localFilter === "todos" || auction.local === localFilter;
+        
+        return matchesSearch && matchesStatus && matchesLocal;
+      }).length
+    });
+    
+    console.groupEnd();
+  }, [auctions, activeAuctions, isLoading, showArchived, searchTerm, statusFilter, localFilter]);
+
   // Contadores para filtros
   const getStatusCount = (status: AuctionStatus | "todos") => {
     if (status === "todos") return activeAuctions.length;
@@ -1842,44 +1892,44 @@ function Leiloes() {
              </div>
            </div>
            
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-0 lg:divide-x lg:divide-gray-200">
-            <div className="text-center px-4 lg:px-6">
-              <div className="mb-3 lg:mb-4">
-                <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 lg:mb-3">Total de Leilões</p>
-                <div className="h-px w-16 lg:w-20 bg-gray-300 mx-auto mb-3 lg:mb-4"></div>
-              </div>
-              <p className="text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">{auctions.length}</p>
-              <p className="text-xs lg:text-sm text-gray-600 font-medium">Eventos Cadastrados</p>
-            </div>
-            
-            <div className="text-center px-4 lg:px-6">
-              <div className="mb-3 lg:mb-4">
-                <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 lg:mb-3">Em Andamento</p>
-                <div className="h-px w-16 lg:w-20 bg-gray-300 mx-auto mb-3 lg:mb-4"></div>
-              </div>
-              <p className="text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">
-                {auctions.filter(a => a.status === "em_andamento").length}
-              </p>
-              <p className="text-xs lg:text-sm text-gray-600 font-medium">Leilões Ativos</p>
-            </div>
-            
-            <div className="text-center px-4 lg:px-6">
-              <div className="mb-3 lg:mb-4">
-                <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 lg:mb-3">Programados</p>
-                <div className="h-px w-16 lg:w-20 bg-gray-300 mx-auto mb-3 lg:mb-4"></div>
-              </div>
-              <p className="text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">
-                {auctions.filter(a => a.status === "agendado").length}
-              </p>
-              <p className="text-xs lg:text-sm text-gray-600 font-medium">Eventos Futuros</p>
-            </div>
-            
-            <div className="text-center px-4 lg:px-6">
-              <div className="mb-3 lg:mb-4">
-                <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 lg:mb-3">Investimento</p>
-                <div className="h-px w-16 lg:w-20 bg-gray-300 mx-auto mb-3 lg:mb-4"></div>
-              </div>
-              <p className="text-xl lg:text-2xl xl:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
+           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-2 sm:gap-4 xl:gap-0 xl:divide-x xl:divide-gray-200">
+             <div className="text-center px-4 xl:px-6">
+               <div className="mb-3 xl:mb-4">
+                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Total de Leilões</p>
+                 <div className="h-px w-16 xl:w-20 bg-gray-300 mx-auto mb-3 xl:mb-4"></div>
+               </div>
+               <p className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">{auctions.length}</p>
+               <p className="text-xs xl:text-sm text-gray-600 font-medium">Eventos Cadastrados</p>
+             </div>
+             
+             <div className="text-center px-4 xl:px-6">
+               <div className="mb-3 xl:mb-4">
+                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Em Andamento</p>
+                 <div className="h-px w-16 xl:w-20 bg-gray-300 mx-auto mb-3 xl:mb-4"></div>
+               </div>
+               <p className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">
+                 {auctions.filter(a => a.status === "em_andamento").length}
+               </p>
+               <p className="text-xs xl:text-sm text-gray-600 font-medium">Leilões Ativos</p>
+             </div>
+             
+             <div className="text-center px-4 xl:px-6">
+               <div className="mb-3 xl:mb-4">
+                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Programados</p>
+                 <div className="h-px w-16 xl:w-20 bg-gray-300 mx-auto mb-3 xl:mb-4"></div>
+               </div>
+               <p className="text-xl sm:text-2xl lg:text-3xl xl:text-4xl font-extralight text-gray-900 mb-2 tracking-tight">
+                 {auctions.filter(a => a.status === "agendado").length}
+               </p>
+               <p className="text-xs xl:text-sm text-gray-600 font-medium">Eventos Futuros</p>
+             </div>
+             
+             <div className="text-center px-4 xl:px-6">
+               <div className="mb-3 xl:mb-4">
+                 <p className="text-xs font-semibold text-gray-700 uppercase tracking-[0.15em] mb-2 xl:mb-3">Investimento</p>
+                 <div className="h-px w-16 xl:w-20 bg-gray-300 mx-auto mb-3 xl:mb-4"></div>
+               </div>
+               <p className="text-lg sm:text-xl xl:text-3xl font-extralight text-gray-900 mb-2 tracking-tight">
                  {formatCurrency(auctions.reduce((sum, a) => {
                    if (a.custosNumerico !== undefined) {
                      return sum + a.custosNumerico;
