@@ -1014,56 +1014,6 @@ function Leiloes() {
   // Filtrar leilões ativos/arquivados
   const activeAuctions = auctions.filter(auction => showArchived ? auction.arquivado : !auction.arquivado);
 
-  // 🔍 LOG DETALHADO: Diagnóstico completo dos leilões
-  useEffect(() => {
-    console.group('🔍 DIAGNÓSTICO COMPLETO - Leilões');
-    console.log('1️⃣ Dados brutos do hook:', {
-      'auctions (array completo)': auctions,
-      'total de leilões': auctions?.length || 0,
-      'isLoading': isLoading,
-      'IDs dos leilões': auctions?.map(a => a.id) || []
-    });
-    
-    console.log('2️⃣ Filtros ativos:', {
-      'showArchived': showArchived,
-      'searchTerm': searchTerm,
-      'statusFilter': statusFilter,
-      'localFilter': localFilter
-    });
-    
-    console.log('3️⃣ Leilões após filtro de arquivados:', {
-      'activeAuctions': activeAuctions,
-      'total': activeAuctions.length,
-      'arquivados removidos': (auctions?.length || 0) - activeAuctions.length
-    });
-    
-    console.log('4️⃣ Análise individual de cada leilão:', 
-      auctions?.map(auction => ({
-        id: auction.id,
-        nome: auction.nome,
-        arquivado: auction.arquivado,
-        status: auction.status,
-        local: auction.local,
-        'vai aparecer?': showArchived ? auction.arquivado : !auction.arquivado
-      }))
-    );
-    
-    console.log('5️⃣ Leilões filtrados final:', {
-      'filteredAuctions.length': activeAuctions.filter((auction) => {
-        const matchesSearch = auction.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             auction.identificacao?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                             auction.endereco?.toLowerCase().includes(searchTerm.toLowerCase());
-        
-        const matchesStatus = statusFilter === "todos" || auction.status === statusFilter;
-        const matchesLocal = localFilter === "todos" || auction.local === localFilter;
-        
-        return matchesSearch && matchesStatus && matchesLocal;
-      }).length
-    });
-    
-    console.groupEnd();
-  }, [auctions, activeAuctions, isLoading, showArchived, searchTerm, statusFilter, localFilter]);
-
   // Contadores para filtros
   const getStatusCount = (status: AuctionStatus | "todos") => {
     if (status === "todos") return activeAuctions.length;
@@ -2105,30 +2055,30 @@ function Leiloes() {
                </div>
              ))}
            </div>
-          ) : filteredAuctions.length === 0 ? (
-           <div className={`text-center py-16 px-4 ${!isLoadingResults ? 'fade-in' : ''}`}>
-             <div className="h-24 w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
-               <Calendar className="h-12 w-12 text-gray-400" />
-             </div>
-             <h3 className="text-lg font-semibold mb-2 text-gray-900">Nenhum leilão encontrado</h3>
-             <p className="text-muted-foreground mb-6 max-w-md mx-auto px-4">
-               {searchTerm || statusFilter !== "todos" || localFilter !== "todos" 
-                 ? "Nenhum leilão corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
-                 : "Ainda não há leilões cadastrados no sistema. Comece criando seu primeiro leilão."
-               }
-             </p>
-             {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
-               <div className="flex justify-center px-4">
-                 <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                   <DialogTrigger asChild>
-                     <Button className="gap-2 bg-blue-600 hover:bg-blue-700 w-full sm:w-auto max-w-xs">
-                       <Plus className="h-4 w-4 flex-shrink-0" />
-                       <span className="truncate">Criar Primeiro Leilão</span>
-                     </Button>
-                   </DialogTrigger>
-                 </Dialog>
-               </div>
-             )}
+         ) : filteredAuctions.length === 0 ? (
+          <div className={`text-center py-12 px-4 sm:py-16 ${!isLoadingResults ? 'fade-in' : ''}`}>
+            <div className="h-20 w-20 sm:h-24 sm:w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
+            </div>
+            <h3 className="text-base sm:text-lg font-semibold mb-2 text-gray-900 px-4">Nenhum leilão encontrado</h3>
+            <p className="text-sm sm:text-base text-muted-foreground mb-6 max-w-md mx-auto px-4">
+              {searchTerm || statusFilter !== "todos" || localFilter !== "todos" 
+                ? "Nenhum leilão corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
+                : "Ainda não há leilões cadastrados no sistema. Comece criando seu primeiro leilão."
+              }
+            </p>
+            {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
+              <div className="px-4">
+                <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button className="gap-2 bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
+                      <Plus className="h-4 w-4" />
+                      Criar Primeiro Leilão
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+              </div>
+            )}
            </div>
           ) : (
                         <div className={`${!isLoadingResults ? 'fade-in' : ''} overflow-y-auto max-h-full custom-scrollbar`}>
