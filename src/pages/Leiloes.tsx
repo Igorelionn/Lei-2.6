@@ -2011,8 +2011,8 @@ function Leiloes() {
              </div>
           </div>
                  </CardHeader>
-         <CardContent className="h-[calc(100vh-550px)]">
-                     {isLoadingResults ? (
+        <CardContent className="h-[calc(100vh-550px)] overflow-auto">
+                    {isLoadingResults ? (
            <div className={`space-y-4 ${isTransitioning ? 'slide-in-left' : ''}`}>
              {/* Skeleton Cards */}
              {[...Array(3)].map((_, index) => (
@@ -2056,7 +2056,7 @@ function Leiloes() {
              ))}
            </div>
          ) : filteredAuctions.length === 0 ? (
-          <div className={`text-center py-12 px-4 sm:py-16 ${!isLoadingResults ? 'fade-in' : ''}`}>
+          <div className={`text-center py-12 px-4 sm:py-16 max-w-full overflow-hidden ${!isLoadingResults ? 'fade-in' : ''}`}>
             <div className="h-20 w-20 sm:h-24 sm:w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
               <Calendar className="h-10 w-10 sm:h-12 sm:w-12 text-gray-400" />
             </div>
@@ -2068,12 +2068,12 @@ function Leiloes() {
               }
             </p>
             {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
-              <div className="px-4">
+              <div className="px-4 flex justify-center">
                 <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
                   <DialogTrigger asChild>
-                    <Button className="gap-2 bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
-                      <Plus className="h-4 w-4" />
-                      Criar Primeiro Leilão
+                    <Button className="gap-2 bg-blue-600 hover:bg-blue-700 min-w-0 max-w-full">
+                      <Plus className="h-4 w-4 flex-shrink-0" />
+                      <span className="truncate">Criar Primeiro Leilão</span>
                     </Button>
                   </DialogTrigger>
                 </Dialog>
