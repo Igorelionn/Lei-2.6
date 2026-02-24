@@ -3,7 +3,6 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabaseClient } from "@/lib/supabase-client";
 import { LoteInfo, ArrematanteInfo } from "@/lib/types";
 import { logger } from "@/lib/logger";
-import { metrics, withPerformance, withQuery } from "@/lib/metrics";
 
 // Tipos para o lote de convidado
 export interface GuestLotMerchandise {
@@ -79,187 +78,144 @@ export function useGuestLots() {
     refetchOnWindowFocus: false, // ⚡ Não refazer automaticamente ao focar janela
     refetchOnMount: true, // ✅ Refazer ao montar se dados estiverem stale (>30s)
     queryFn: async () => {
-      return withPerformance('guest-lots-query', async () => {
-        // Query principal de guest_lots
-        const lotsData = await withQuery('guest_lots', 'select', async () => {
-          const { data, error } = await supabaseClient
-            .from('guest_lots')
-            .select(`
-              id,
-              numero,
-              descricao,
-              proprietario,
-              codigo_pais,
-              celular_proprietario,
-              email_proprietario,
-              leilao_id,
-              imagens,
-              documentos,
-              observacoes,
-              status,
-              arquivado,
-              created_at,
-              updated_at
-            `)
-            .order('created_at', { ascending: false });
+      logger.info('🔍 [useGuestLots] Iniciando query de guest_lots...');
+      
+      const { data: lotsData, error: lotsError } = await supabaseClient
+        .from('guest_lots')
+        .select(`
+          id,
+          numero,
+          descricao,
+          proprietario,
+          codigo_pais,
+          celular_proprietario,
+          email_proprietario,
+          leilao_id,
+          imagens,
+          documentos,
+          observacoes,
+          status,
+          arquivado,
+          created_at,
+          updated_at
+        `)
+        .order('created_at', { ascending: false });
 
-          if (error) {
-            logger.error('❌ Erro ao buscar guest_lots:', error);
-            metrics.trackError(new Error(error.message), 'guest-lots-fetch', { code: error.code, details: error.details });
-            throw error;
+      if (lotsError) throw lotsError;
+
+      logger.info('📊 [useGuestLots] Dados brutos recebidos:', {
+        totalRegistros: lotsData?.length,
+        ids: lotsData?.map(l => ({ id: l.id, numero: l.numero })),
+        hasDuplicateIds: lotsData ? lotsData.length !== new Set(lotsData.map(l => l.id)).size : false
+      });
+
+      // Buscar nomes dos leilões separadamente
+      const leilaoIds = [...new Set(lotsData?.map(l => l.leilao_id).filter(Boolean))];
+      const leiloesMap = new Map<string, string>();
+      
+      if (leilaoIds.length > 0) {
+        const { data: leiloesData } = await supabaseClient
+          .from('auctions')
+          .select('id, nome')
+          .in('id', leilaoIds);
+        
+        leiloesData?.forEach(leilao => {
+          leiloesMap.set(leilao.id, leilao.nome);
+        });
+        
+        logger.info('🏛️ [useGuestLots] Leilões carregados:', leiloesData?.length);
+      }
+
+      // Buscar mercadorias para cada lote
+      logger.info('🔄 [useGuestLots] Processando mercadorias e arrematantes...');
+      const lotsWithMerchandise = await Promise.all(
+        (lotsData || []).map(async (lot, index) => {
+          const { data: merchandiseData, error: merchandiseError } = await supabaseClient
+            .from('guest_lot_merchandise')
+            .select('*')
+            .eq('guest_lot_id', lot.id)
+            .order('created_at', { ascending: true });
+
+          if (merchandiseError) {
+            logger.error('Erro ao buscar mercadorias:', merchandiseError);
           }
 
-          logger.info('✅ Guest lots buscados com sucesso', {
-            count: data?.length || 0,
-            ids: data?.map(l => l.id)
-          });
+          // Buscar arrematantes vinculados ao lote
+          const { data: arrematantesData, error: arrematantesError } = await supabaseClient
+            .from('bidders')
+            .select('id, nome, email, telefone, pago, valor_pagar_numerico')
+            .eq('guest_lot_id', lot.id);
 
-          return data;
-        });
+          if (arrematantesError) {
+            logger.error('Erro ao buscar arrematantes:', arrematantesError);
+          }
 
-        logger.debug('📊 Dados brutos de guest_lots:', {
-          total: lotsData?.length,
-          ids: lotsData?.map(l => l.id),
-          numeros: lotsData?.map(l => ({ id: l.id, numero: l.numero }))
-        });
-
-        // Verificar duplicatas nos dados brutos
-        const idsUnicos = new Set(lotsData?.map(l => l.id));
-        if (idsUnicos.size !== lotsData?.length) {
-          logger.error('🔴 DUPLICATAS DETECTADAS nos dados brutos do banco!', {
-            totalRegistros: lotsData?.length,
-            idsUnicos: idsUnicos.size,
-            duplicatas: lotsData?.length! - idsUnicos.size
-          });
-          metrics.trackError(
-            new Error('Duplicatas detectadas em guest_lots'), 
-            'guest-lots-duplicates',
-            { totalRegistros: lotsData?.length, idsUnicos: idsUnicos.size }
-          );
-        }
-
-        // Buscar nomes dos leilões separadamente
-        const leilaoIds = [...new Set(lotsData?.map(l => l.leilao_id).filter(Boolean))];
-        const leiloesMap = new Map<string, string>();
-        
-        if (leilaoIds.length > 0) {
-          await withQuery('auctions', 'select', async () => {
-            const { data: leiloesData } = await supabaseClient
-              .from('auctions')
-              .select('id, nome')
-              .in('id', leilaoIds);
-            
-            leiloesData?.forEach(leilao => {
-              leiloesMap.set(leilao.id, leilao.nome);
+          const processed = {
+            id: lot.id,
+            numero: lot.numero,
+            descricao: lot.descricao,
+            proprietario: lot.proprietario,
+            codigo_pais: lot.codigo_pais,
+            celular_proprietario: lot.celular_proprietario,
+            email_proprietario: lot.email_proprietario,
+            leilao_id: lot.leilao_id || undefined,
+            leilao_nome: lot.leilao_id ? leiloesMap.get(lot.leilao_id) : undefined,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            imagens: (lot.imagens as any) || [],
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            documentos: (lot.documentos as any) || [],
+            observacoes: lot.observacoes || undefined,
+            status: lot.status as 'disponivel' | 'arrematado' | 'arquivado',
+            arquivado: lot.arquivado || false,
+            mercadorias: merchandiseData || [],
+            arrematantes: arrematantesData || [],
+            created_at: lot.created_at || '',
+            updated_at: lot.updated_at || '',
+          } as GuestLot;
+          
+          if (index < 3) { // Log apenas dos primeiros 3 para não poluir
+            logger.debug(`✅ [useGuestLots] Lote processado ${index + 1}:`, {
+              id: processed.id,
+              numero: processed.numero,
+              mercadorias: processed.mercadorias.length
             });
+          }
+          
+          return processed;
+        })
+      );
 
-            logger.debug('✅ Leilões carregados para mapeamento', {
-              count: leiloesData?.length,
-              ids: leiloesData?.map(l => l.id)
-            });
+      logger.info('📦 [useGuestLots] Lotes com mercadorias processados:', {
+        totalProcessado: lotsWithMerchandise.length,
+        idsProcessados: lotsWithMerchandise.map(l => ({ id: l.id, numero: l.numero }))
+      });
 
-            return leiloesData;
-          }, { ids: leilaoIds });
-        }
+      // Remover duplicatas baseado no ID (segurança extra)
+      const uniqueLots = lotsWithMerchandise.filter((lot, index, self) =>
+        index === self.findIndex((l) => l.id === lot.id)
+      );
 
-        // Buscar mercadorias e arrematantes para cada lote
-        const lotsWithMerchandise = await Promise.all(
-          (lotsData || []).map(async (lot) => {
-            logger.debug(`🔍 Processando lote ${lot.numero} (${lot.id})`);
-
-            // Buscar mercadorias
-            const merchandiseData = await withQuery('guest_lot_merchandise', 'select', async () => {
-              const { data, error } = await supabaseClient
-                .from('guest_lot_merchandise')
-                .select('*')
-                .eq('guest_lot_id', lot.id)
-                .order('created_at', { ascending: true });
-
-              if (error) {
-                logger.error(`❌ Erro ao buscar mercadorias do lote ${lot.id}:`, error);
-              }
-
-              logger.debug(`  📦 Mercadorias do lote ${lot.numero}:`, { count: data?.length });
-
-              return data;
-            }, { guest_lot_id: lot.id });
-
-            // Buscar arrematantes
-            const arrematantesData = await withQuery('bidders', 'select', async () => {
-              const { data, error } = await supabaseClient
-                .from('bidders')
-                .select('id, nome, email, telefone, pago, valor_pagar_numerico')
-                .eq('guest_lot_id', lot.id);
-
-              if (error) {
-                logger.error(`❌ Erro ao buscar arrematantes do lote ${lot.id}:`, error);
-              }
-
-              logger.debug(`  👤 Arrematantes do lote ${lot.numero}:`, { count: data?.length });
-
-              return data;
-            }, { guest_lot_id: lot.id });
-
-            const processedLot = {
-              id: lot.id,
-              numero: lot.numero,
-              descricao: lot.descricao,
-              proprietario: lot.proprietario,
-              codigo_pais: lot.codigo_pais,
-              celular_proprietario: lot.celular_proprietario,
-              email_proprietario: lot.email_proprietario,
-              leilao_id: lot.leilao_id || undefined,
-              leilao_nome: lot.leilao_id ? leiloesMap.get(lot.leilao_id) : undefined,
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              imagens: (lot.imagens as any) || [],
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              documentos: (lot.documentos as any) || [],
-              observacoes: lot.observacoes || undefined,
-              status: lot.status as 'disponivel' | 'arrematado' | 'arquivado',
-              arquivado: lot.arquivado || false,
-              mercadorias: merchandiseData || [],
-              arrematantes: arrematantesData || [],
-              created_at: lot.created_at || '',
-              updated_at: lot.updated_at || '',
-            } as GuestLot;
-
-            logger.debug(`  ✅ Lote ${lot.numero} processado`, {
-              mercadorias: merchandiseData?.length,
-              arrematantes: arrematantesData?.length
-            });
-
-            return processedLot;
-          })
-        );
-
-        // Remover duplicatas baseado no ID (segurança extra)
-        const uniqueLots = lotsWithMerchandise.filter((lot, index, self) =>
-          index === self.findIndex((l) => l.id === lot.id)
-        );
-
-        const duplicatasRemovidas = lotsWithMerchandise.length - uniqueLots.length;
-
-        logger.info('📊 Guest lots processados - RESUMO FINAL:', {
+      const duplicatasEncontradas = lotsWithMerchandise.length - uniqueLots.length;
+      
+      if (duplicatasEncontradas > 0) {
+        logger.warn('⚠️ [useGuestLots] DUPLICATAS ENCONTRADAS E REMOVIDAS:', {
           totalBruto: lotsWithMerchandise.length,
           totalUnico: uniqueLots.length,
-          duplicatasRemovidas,
-          lotesPorNumero: uniqueLots.reduce((acc, l) => {
-            acc[l.numero] = (acc[l.numero] || 0) + 1;
-            return acc;
-          }, {} as Record<string, number>)
+          duplicatasRemovidas: duplicatasEncontradas,
+          idsRemovidos: lotsWithMerchandise
+            .filter((lot, index, self) => index !== self.findIndex((l) => l.id === lot.id))
+            .map(l => ({ id: l.id, numero: l.numero }))
         });
+      } else {
+        logger.info('✅ [useGuestLots] Nenhuma duplicata encontrada');
+      }
 
-        if (duplicatasRemovidas > 0) {
-          logger.warn(`⚠️ ATENÇÃO: ${duplicatasRemovidas} duplicata(s) removida(s) no processamento!`);
-          metrics.trackError(
-            new Error('Duplicatas removidas durante processamento'),
-            'guest-lots-deduplication',
-            { duplicatasRemovidas, totalBruto: lotsWithMerchandise.length }
-          );
-        }
-
-        return uniqueLots;
+      logger.info('🎯 [useGuestLots] Retornando resultado final:', {
+        totalLotes: uniqueLots.length,
+        lotes: uniqueLots.map(l => ({ id: l.id, numero: l.numero, descricao: l.descricao }))
       });
+
+      return uniqueLots;
     },
   });
 
