@@ -1781,7 +1781,7 @@ function Leiloes() {
 }
 
   return (
-    <div className="space-y-4 sm:space-y-6">
+    <div className="space-y-4 sm:space-y-6 overflow-x-hidden max-w-full">
       {/* Header */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <div>
@@ -2056,67 +2056,28 @@ function Leiloes() {
              ))}
            </div>
           ) : filteredAuctions.length === 0 ? (
-           <div className={`text-center py-6 sm:py-8 md:py-12 lg:py-16 px-4 sm:px-6 md:px-8 w-full max-w-xs sm:max-w-sm md:max-w-md lg:max-w-lg xl:max-w-xl mx-auto overflow-x-hidden ${!isLoadingResults ? 'fade-in' : ''}`}>
-             {/* Debug Info - Remover depois */}
-             <div className="fixed top-4 right-4 bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-mono z-50 shadow-lg space-y-1 max-w-[200px]">
-               <div className="block sm:hidden">Mobile (&lt;640px)</div>
-               <div className="hidden sm:block md:hidden">SM (640px+)</div>
-               <div className="hidden md:block lg:hidden">MD (768px+)</div>
-               <div className="hidden lg:block xl:hidden">LG (1024px+)</div>
-               <div className="hidden xl:block">XL (1280px+)</div>
-               <div>Screen: {typeof window !== 'undefined' ? window.innerWidth : '?'}px</div>
-               <div className="text-yellow-300 text-[10px]">
-                 Zoom: {typeof window !== 'undefined' ? Math.round((window.outerWidth / window.innerWidth) * 100) : '?'}%
-               </div>
-               <div className="text-green-300 text-[10px]">
-                 <span className="sm:hidden">max-w-xs (320px)</span>
-                 <span className="hidden sm:block md:hidden">max-w-sm (384px)</span>
-                 <span className="hidden md:block lg:hidden">max-w-md (448px)</span>
-                 <span className="hidden lg:block xl:hidden">max-w-lg (512px)</span>
-                 <span className="hidden xl:block">max-w-xl (576px)</span>
-               </div>
-               <div className="text-red-300 text-[10px]">
-                 Overflow? {typeof document !== 'undefined' && document.body.scrollWidth > window.innerWidth ? 'SIM!' : 'Não'}
-               </div>
-             </div>
-             
-             <div className="h-16 w-16 sm:h-20 sm:w-20 md:h-24 md:w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-2 sm:mb-3 md:mb-4">
-               <Calendar className="h-8 w-8 sm:h-10 sm:w-10 md:h-12 md:w-12 text-gray-400" />
-             </div>
-             <h3 className="text-sm sm:text-base md:text-lg lg:text-xl font-semibold mb-2 text-gray-900 break-words">Nenhum leilão encontrado</h3>
-             <p className="text-xs sm:text-sm md:text-base text-muted-foreground mb-4 sm:mb-6 leading-relaxed break-words">
-               {searchTerm || statusFilter !== "todos" || localFilter !== "todos" 
-                 ? "Nenhum leilão corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
-                 : "Ainda não há leilões cadastrados no sistema. Comece criando seu primeiro leilão."
-               }
-             </p>
-             {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
-               <div className="flex justify-center overflow-x-hidden">
-                 <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
-                   <DialogTrigger asChild>
-                     <Button 
-                       className="gap-2 bg-blue-600 hover:bg-blue-700 text-sm sm:text-base px-4 sm:px-6 h-10 sm:h-11 inline-flex items-center justify-center"
-                       onClick={(e) => {
-                         const btn = e.currentTarget;
-                         console.log('🔵 Botão Info:', {
-                           width: btn.offsetWidth,
-                           maxWidth: window.getComputedStyle(btn).maxWidth,
-                           parentWidth: btn.parentElement?.offsetWidth,
-                           overflow: window.getComputedStyle(btn).overflow,
-                           bodyScrollWidth: document.body.scrollWidth,
-                           windowInnerWidth: window.innerWidth,
-                           hasHorizontalScroll: document.body.scrollWidth > window.innerWidth
-                         });
-                       }}
-                     >
-                       <Plus className="h-4 w-4 flex-shrink-0" />
-                       <span className="whitespace-nowrap">Criar Primeiro Leilão</span>
-                     </Button>
-                   </DialogTrigger>
-                 </Dialog>
-               </div>
-             )}
-           </div>
+           <div className={`text-center py-16 ${!isLoadingResults ? 'fade-in' : ''}`}>
+            <div className="h-24 w-24 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <Calendar className="h-12 w-12 text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold mb-2 text-gray-900">Nenhum leilão encontrado</h3>
+            <p className="text-muted-foreground mb-6 max-w-md mx-auto px-4">
+              {searchTerm || statusFilter !== "todos" || localFilter !== "todos" 
+                ? "Nenhum leilão corresponde aos filtros aplicados. Tente ajustar os critérios de busca."
+                : "Ainda não há leilões cadastrados no sistema. Comece criando seu primeiro leilão."
+              }
+            </p>
+            {!searchTerm && statusFilter === "todos" && localFilter === "todos" && (
+              <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+                <DialogTrigger asChild>
+                  <Button className="gap-2 bg-blue-600 hover:bg-blue-700 mx-auto max-w-[90vw] sm:max-w-none">
+                    <Plus className="h-4 w-4" />
+                    <span className="whitespace-nowrap">Criar Primeiro Leilão</span>
+                  </Button>
+                </DialogTrigger>
+              </Dialog>
+            )}
+          </div>
           ) : (
                         <div className={`${!isLoadingResults ? 'fade-in' : ''} overflow-y-auto max-h-full custom-scrollbar`}>
               <div className="overflow-x-auto">
