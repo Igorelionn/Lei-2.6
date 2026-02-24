@@ -110,12 +110,31 @@ const LoadingFallback = () => (
 );
 
 const App = () => {
-  // Inicializar sistema de métricas
-  if (typeof window !== 'undefined' && !window.__metrics) {
-    console.log('📊 Sistema de Métricas Inicializado');
-    console.log('Use: window.__dumpMetrics() para ver todas as métricas');
-    console.log('Use: window.__metrics para acessar o objeto diretamente');
-    console.log('Use: window.__clearMetrics() para limpar as métricas');
+  // Inicializar sistema de métricas e expor ao window
+  if (typeof window !== 'undefined') {
+    // Expor ao window diretamente
+    (window as any).__metrics = metrics;
+    (window as any).__dumpMetrics = () => {
+      console.group('📊 METRICS DUMP');
+      console.log('⏱️ Performance:', metrics.getPerformanceSummary());
+      console.log('❌ Errors:', metrics.getErrorSummary());
+      console.log('🗃️ Queries:', metrics.getQuerySummary());
+      console.log('👤 User Actions:', metrics.getUserActionSummary());
+      console.groupEnd();
+    };
+    (window as any).__clearMetrics = () => {
+      metrics.clear();
+      console.log('🧹 Métricas limpas com sucesso!');
+    };
+    
+    // Log de inicialização apenas uma vez
+    if (!(window as any).__metricsInitialized) {
+      (window as any).__metricsInitialized = true;
+      console.log('📊 Sistema de Métricas Inicializado');
+      console.log('Use: window.__dumpMetrics() para ver todas as métricas');
+      console.log('Use: window.__metrics para acessar o objeto diretamente');
+      console.log('Use: window.__clearMetrics() para limpar as métricas');
+    }
   }
 
   return (
