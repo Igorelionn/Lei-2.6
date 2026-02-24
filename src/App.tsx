@@ -114,14 +114,7 @@ const App = () => {
   if (typeof window !== 'undefined') {
     // Expor ao window diretamente
     (window as any).__metrics = metrics;
-    (window as any).__dumpMetrics = () => {
-      console.group('📊 METRICS DUMP');
-      console.log('⏱️ Performance:', metrics.getPerformanceSummary());
-      console.log('❌ Errors:', metrics.getErrorSummary());
-      console.log('🗃️ Queries:', metrics.getQuerySummary());
-      console.log('👤 User Actions:', metrics.getUserActionSummary());
-      console.groupEnd();
-    };
+    (window as any).__dumpMetrics = () => metrics.dumpMetrics();
     (window as any).__clearMetrics = () => {
       metrics.clear();
       console.log('🧹 Métricas limpas com sucesso!');
