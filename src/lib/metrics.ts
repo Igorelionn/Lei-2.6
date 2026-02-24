@@ -224,13 +224,43 @@ class MetricsCollector {
     };
   }
 
-  // Dump all metrics to console
+  // Dump all metrics to console (only if there's data)
   dumpMetrics(): void {
+    const perfSummary = this.getPerformanceSummary();
+    const errorSummary = this.getErrorSummary();
+    const querySummary = this.getQuerySummary();
+    const actionSummary = this.getUserActionSummary();
+    
+    const hasData = 
+      Object.keys(perfSummary.active).length > 0 ||
+      Object.keys(perfSummary.completed).length > 0 ||
+      errorSummary.total > 0 ||
+      querySummary.total > 0 ||
+      actionSummary.total > 0;
+    
+    if (!hasData) {
+      console.log('📊 Nenhuma métrica coletada ainda. Use o sistema normalmente e tente novamente.');
+      return;
+    }
+    
     console.group('📊 METRICS DUMP');
-    console.log('⏱️ Performance:', this.getPerformanceSummary());
-    console.log('❌ Errors:', this.getErrorSummary());
-    console.log('🗃️ Queries:', this.getQuerySummary());
-    console.log('👤 User Actions:', this.getUserActionSummary());
+    
+    if (Object.keys(perfSummary.active).length > 0 || Object.keys(perfSummary.completed).length > 0) {
+      console.log('⏱️ Performance:', perfSummary);
+    }
+    
+    if (errorSummary.total > 0) {
+      console.log('❌ Errors:', errorSummary);
+    }
+    
+    if (querySummary.total > 0) {
+      console.log('🗃️ Queries:', querySummary);
+    }
+    
+    if (actionSummary.total > 0) {
+      console.log('👤 User Actions:', actionSummary);
+    }
+    
     console.groupEnd();
   }
 
