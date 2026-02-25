@@ -3293,12 +3293,13 @@ function Arrematantes() {
                                  arrematante?.parcelasDuplas != null || 
                                  arrematante?.parcelasSimples != null);
                               
-                              // ✅ Parcelas são calculadas sobre o valor TOTAL (entrada e parcelas são independentes)
+                              // ✅ Parcelas são calculadas sobre o valor das parcelas (SEM entrada)
                               let valorParcelaBase = 0;
                               if (temEstruturaParcelas) {
-                                // Calcular estrutura e pegar valor da próxima parcela
+                                // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+                                const valorParaParcelas = (arrematante.valorPagarNumerico || 0) - valorEntrada;
                                 const estrutura = calcularEstruturaParcelas(
-                                  arrematante.valorPagarNumerico || 0,
+                                  valorParaParcelas,
                                   arrematante?.parcelasTriplas || 0,
                                   arrematante?.parcelasDuplas || 0,
                                   arrematante?.parcelasSimples || 0
@@ -3306,6 +3307,15 @@ function Arrematantes() {
                                 // Para entrada + parcelamento, se parcelasPagas > 0, a entrada já foi paga
                                 const parcelaIndex = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
                                 valorParcelaBase = estrutura[parcelaIndex]?.valor || ((arrematante.valorPagarNumerico || 0) / quantidadeParcelas);
+                                
+                                console.log('📊 [Arrematantes - valorParcelaBase calculado]', {
+                                  arrematante: arrematante.nome,
+                                  valorPagarNumerico: arrematante.valorPagarNumerico,
+                                  valorEntrada,
+                                  valorParaParcelas,
+                                  parcelaIndex,
+                                  valorParcelaBase
+                                });
                               } else {
                                 // Sistema antigo: divisão simples
                                 valorParcelaBase = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
@@ -3313,12 +3323,29 @@ function Arrematantes() {
                               
                               if (parcelasPagas === 0) {
                                 // Entrada ainda não foi paga - verificar se está atrasada
-                                if (!arrematante.pago && loteArrematado?.dataEntrada) {
-                                  const dataEntrada = new Date(loteArrematado.dataEntrada + 'T23:59:59');
+                                // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+                                const dataEntradaConfig = arrematante?.dataEntrada || loteArrematado?.dataEntrada;
+                                
+                                console.log('📊 [Arrematantes - valorParcelaExibir - entrada]', {
+                                  arrematante: arrematante.nome,
+                                  valorEntrada,
+                                  dataEntradaConfig,
+                                  dataEntradaArrematante: arrematante?.dataEntrada,
+                                  dataEntradaLote: loteArrematado?.dataEntrada,
+                                  percentualJurosAtraso: arrematante.percentualJurosAtraso
+                                });
+                                
+                                if (!arrematante.pago && dataEntradaConfig) {
+                                  const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
                                   if (now > dataEntrada && arrematante.percentualJurosAtraso) {
                                     const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                                     if (mesesAtraso >= 1) {
                                       valorParcelaExibir = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+                                      console.log('📊 [Arrematantes - entrada COM juros]', {
+                                        valorEntrada,
+                                        mesesAtraso,
+                                        valorComJuros: valorParcelaExibir
+                                      });
                                     } else {
                                       valorParcelaExibir = valorEntrada;
                                     }
