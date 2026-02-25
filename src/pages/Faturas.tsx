@@ -833,7 +833,15 @@ function Faturas() {
           if (now > dataEntrada && arrematante?.percentualJurosAtraso) {
             const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
             if (mesesAtraso >= 1) {
-              valorTotalComJuros += calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+              const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+              valorTotalComJuros += valorEntradaComJuros;
+              console.log('📊 [Faturas - entrada com juros]', {
+                valorEntrada,
+                mesesAtraso,
+                percentualJuros: arrematante.percentualJurosAtraso,
+                valorEntradaComJuros,
+                valorTotalComJurosAcumulado: valorTotalComJuros
+              });
             } else {
               valorTotalComJuros += valorEntrada;
             }
