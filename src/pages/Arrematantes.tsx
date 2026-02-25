@@ -3353,7 +3353,9 @@ function Arrematantes() {
                                       valorTotalPendente += estrutura[i]?.valor || 0;
                                     }
                                   } else {
-                                    valorTotalPendente += (arrematante.valorPagarNumerico || 0);
+                                    // Somar apenas o valor das parcelas (sem a entrada)
+                                    const valorRestante = (arrematante.valorPagarNumerico || 0) - valorEntrada;
+                                    valorTotalPendente += valorRestante;
                                   }
                                 } else {
                                   // Apenas parcelas pendentes (entrada já foi paga)
