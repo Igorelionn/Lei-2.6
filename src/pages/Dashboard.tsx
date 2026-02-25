@@ -561,7 +561,16 @@ export default function Dashboard() {
     .filter(({ arrematante }) => !arrematante.pago)
     .reduce((total, { auction, arrematante }) => {
       const loteArrematado = auction.lotes?.find(lote => lote.id === arrematante?.loteId);
-      const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
+      // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+      const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
+      
+      console.log('📊 [Dashboard - tipoPagamento detectado]', {
+        arrematante: arrematante.nome,
+        tipoPagamento,
+        arrematanteTipo: arrematante.tipoPagamento,
+        loteTipo: loteArrematado?.tipoPagamento,
+        auctionTipo: auction.tipoPagamento
+      });
       
       // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
       const valorTotal = obterValorTotalArrematante({

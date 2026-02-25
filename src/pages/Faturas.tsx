@@ -809,6 +809,18 @@ function Faturas() {
         arrematante?.parcelasSimples || 0
       );
       
+      console.log('📊 [Faturas - calcularValorTotalLeilaoComJuros]', {
+        arrematante: arrematante.nome,
+        valorPagarNumerico: arrematante.valorPagarNumerico,
+        valorEntrada,
+        valorParaParcelas,
+        quantidadeParcelas,
+        estruturaParcelas,
+        parcelasTriplas: arrematante?.parcelasTriplas,
+        parcelasDuplas: arrematante?.parcelasDuplas,
+        parcelasSimples: arrematante?.parcelasSimples
+      });
+      
       const parcelasPagas = arrematante.parcelasPagas || 0;
 
       // Calcular valor da entrada (com juros se atrasada)
