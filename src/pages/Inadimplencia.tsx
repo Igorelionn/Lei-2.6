@@ -269,7 +269,7 @@ const HoverSyncHeader = ({
 export default function Inadimplencia() {
   const { auctions, isLoading } = useSupabaseAuctions();
   const { logReportAction, logBidderAction } = useActivityLogger();
-  const { enviarCobranca, enviarLembrete, testarEnvioCobranca } = useEmailNotifications();
+  const { enviarCobranca, enviarLembrete } = useEmailNotifications();
 
   // Função para calcular juros progressivos mês a mês
   const calcularJurosProgressivos = (valorOriginal: number, percentualJuros: number, mesesAtraso: number) => {
@@ -311,11 +311,6 @@ export default function Inadimplencia() {
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
   const [selectedArrematanteForExport, setSelectedArrematanteForExport] = useState<string>("");
   const [_isExportSelectOpen, setIsExportSelectOpen] = useState(false);
-
-  // Estados para modal de teste de envio
-  const [isTestEmailModalOpen, setIsTestEmailModalOpen] = useState(false);
-  const [testEmailLogs, setTestEmailLogs] = useState<string[]>([]);
-  const [isTestingSend, setIsTestingSend] = useState(false);
 
 
   // Função para abrir histórico do arrematante
@@ -1861,54 +1856,6 @@ Arthur Lira Leilões`;
     }
   };
 
-  // Função para testar envio de cobrança
-  const handleTestEmailSend = async (auctionProcessado: AuctionWithOverdueInfo) => {
-    const auctionOriginal = auctions.find(a => a.id === auctionProcessado.id);
-    
-    if (!auctionOriginal) {
-      return;
-    }
-    
-    setSelectedDebtor(auctionProcessado);
-    setTestEmailLogs([]);
-    setIsTestEmailModalOpen(true);
-    setIsTestingSend(true);
-
-    // Log do teste de envio de cobrança
-    try {
-      logReportAction('view', 'teste_cobranca', `Testou envio de cobrança para "${auctionProcessado.arrematante?.nome}"`, {
-        metadata: { arrematante: auctionProcessado.arrematante?.nome, auction_id: auctionProcessado.id }
-      });
-    } catch { /* silenciar erro de log */ }
-
-    try {
-      const result = await testarEnvioCobranca(auctionOriginal);
-      
-      setTestEmailLogs(result.detalhes || []);
-      
-      if (!result.success) {
-        logger.warn('Teste concluído com avisos:', result.message);
-      }
-    } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
-      setTestEmailLogs([
-        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-        '❌ ERRO CRÍTICO',
-        '',
-        `Exceção: ${errorMessage}`,
-        '',
-        'Verifique:',
-        '• Chave API configurada',
-        '• Email do arrematante válido',
-        '• Conexão com internet',
-        '• Console do navegador (F12)',
-        '━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━',
-      ]);
-    } finally {
-      setIsTestingSend(false);
-    }
-  };
-
   const getSeverityBadge = (severity: string, daysOverdue: number) => {
       const daysText = daysOverdue === 1 ? '1 dia' : `${daysOverdue} dias`;
       
@@ -2183,16 +2130,6 @@ Arthur Lira Leilões`;
                                 title="Ver relatório do arrematante"
                               >
                                 <History className="h-4 w-4 text-blue-900" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleTestEmailSend(auction)}
-                                className="h-10 w-10 sm:h-6 sm:w-6 p-0 hover:bg-amber-100"
-                                title="Testar envio de cobrança"
-                                disabled={!auction.arrematante?.email}
-                              >
-                                <Send className="h-4 w-4 text-amber-600" />
                               </Button>
                         </div>
                             <p className="text-sm text-gray-500">
@@ -3079,67 +3016,6 @@ Arthur Lira Leilões`;
               </div>
             </div>
           )}
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal de Teste de Envio de Cobrança */}
-      <Dialog open={isTestEmailModalOpen} onOpenChange={setIsTestEmailModalOpen}>
-        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[80vh]">
-          <DialogHeader>
-            <DialogTitle className="text-xl font-bold flex items-center gap-2">
-              <Send className="h-5 w-5 text-amber-600" />
-              Teste de Envio de Cobrança
-            </DialogTitle>
-            <DialogDescription className="space-y-2">
-              <p>Logs detalhados do envio de emails de cobrança para {selectedDebtor?.arrematante?.nome}</p>
-              <div className="bg-amber-50 border border-amber-200 rounded-md p-3 text-sm text-amber-800">
-                <strong>⚠️ Modo de Teste:</strong> Este teste ignora a verificação de duplicatas e enviará emails mesmo que já tenham sido enviados hoje. Use apenas para testar o sistema.
-              </div>
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="space-y-4">
-            {isTestingSend ? (
-              <div className="flex flex-col items-center justify-center py-12">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-amber-600 mb-4"></div>
-                <p className="text-gray-600">Enviando emails de teste...</p>
-                <p className="text-sm text-gray-500 mt-2">Isso pode levar alguns segundos</p>
-              </div>
-            ) : (
-              <div className="bg-gray-900 text-green-400 p-4 rounded-lg font-mono text-sm overflow-auto max-h-[50vh]">
-                {testEmailLogs.length > 0 ? (
-                  testEmailLogs.map((log, index) => (
-                    <div key={index} className="whitespace-pre-wrap">
-                      {log}
-                    </div>
-                  ))
-                ) : (
-                  <p className="text-gray-400">Aguardando execução do teste...</p>
-                )}
-              </div>
-            )}
-            
-            <div className="flex justify-between items-center gap-2 pt-4 border-t">
-              <p className="text-sm text-gray-500">
-                {testEmailLogs.length > 0 && `${testEmailLogs.length} linhas de log`}
-              </p>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    navigator.clipboard.writeText(testEmailLogs.join('\n'));
-                  }}
-                  disabled={testEmailLogs.length === 0}
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Copiar Logs
-                </Button>
-                <Button onClick={() => setIsTestEmailModalOpen(false)}>
-                  Fechar
-                </Button>
-              </div>
-            </div>
-          </div>
         </DialogContent>
       </Dialog>
 
