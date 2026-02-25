@@ -815,7 +815,7 @@ function Faturas() {
         valorEntrada,
         valorParaParcelas,
         quantidadeParcelas,
-        estruturaParcelas,
+        estruturaParcelas: estruturaParcelas.map((p, i) => ({ index: i, valor: p.valor, tipo: p.tipo })),
         parcelasTriplas: arrematante?.parcelasTriplas,
         parcelasDuplas: arrematante?.parcelasDuplas,
         parcelasSimples: arrematante?.parcelasSimples
