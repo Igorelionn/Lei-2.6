@@ -732,7 +732,27 @@ function Faturas() {
         arrematante.valorPagarNumerico * 0.3;
       
       if (fatura.parcela === 1) {
-        // Entrada
+        // Entrada - verificar se está atrasada e aplicar juros
+        const now = new Date();
+        const dataEntradaConfig = arrematante?.dataEntrada || loteArrematado?.dataEntrada;
+        
+        if (dataEntradaConfig) {
+          const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
+          if (now > dataEntrada && arrematante?.percentualJurosAtraso) {
+            const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+            if (mesesAtraso >= 1) {
+              const valorComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+              console.log('📊 [Faturas - entrada COM juros]', {
+                valorEntrada,
+                mesesAtraso,
+                percentualJuros: arrematante.percentualJurosAtraso,
+                valorComJuros
+              });
+              return valorComJuros;
+            }
+          }
+        }
+        
         return valorEntrada;
       } else {
         // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
@@ -746,7 +766,24 @@ function Faturas() {
         
         // Parcelas mensais (parcela 2 = índice 0, parcela 3 = índice 1, etc.)
         const indice = fatura.parcela - 2;
-        return estruturaParcelas[indice]?.valor || fatura.valorLiquido;
+        const valorDaParcela = estruturaParcelas[indice]?.valor || fatura.valorLiquido;
+        
+        // Verificar se a parcela está atrasada e aplicar juros
+        if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
+          const mesNormalizado = normalizarMesInicioPagamento(arrematante.mesInicioPagamento);
+          const [startYear, startMonth] = mesNormalizado.split('-').map(Number);
+          const now = new Date();
+          
+          const parcelaDate = new Date(startYear, startMonth - 1 + indice, arrematante.diaVencimentoMensal, 23, 59, 59);
+          if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
+            const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+            if (mesesAtraso >= 1) {
+              return calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+            }
+          }
+        }
+        
+        return valorDaParcela;
       }
     }
     
