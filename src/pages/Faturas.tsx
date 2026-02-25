@@ -940,9 +940,18 @@ function Faturas() {
         const arrematante = auction.arrematante;
         if (!arrematante) return total; // 🔒 Type guard
         
-        const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
-        const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
-        let valorAReceber = 0;
+      const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
+      // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+      const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
+      let valorAReceber = 0;
+      
+      console.log('📊 [Faturas - calcularTotalAReceber - tipoPagamento]', {
+        arrematante: arrematante.nome,
+        tipoPagamento,
+        arrematanteTipo: arrematante.tipoPagamento,
+        loteTipo: loteArrematado?.tipoPagamento,
+        auctionTipo: auction.tipoPagamento
+      });
 
         if (tipoPagamento === "a_vista") {
           // À vista: valor total com juros se atrasado
