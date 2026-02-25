@@ -709,6 +709,13 @@ function Faturas() {
     const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
     const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
     
+    console.log('📊 [Faturas - calcularValorDaParcela]', {
+      arrematante: arrematante.nome,
+      parcela: fatura.parcela,
+      tipoPagamento,
+      valorLiquido: fatura.valorLiquido
+    });
+    
     // Para à vista, retornar valor total
     if (tipoPagamento === "a_vista") {
       return fatura.valorLiquido;

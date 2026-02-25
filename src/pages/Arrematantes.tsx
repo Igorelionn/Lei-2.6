@@ -3376,7 +3376,23 @@ function Arrematantes() {
                                 
                                 if (parcelasPagas === 0) {
                                   // Entrada + todas as parcelas pendentes
-                                  valorTotalPendente = valorEntrada;
+                                  // ✅ Calcular entrada com juros se atrasada
+                                  const dataEntradaConfig = arrematante?.dataEntrada || loteArrematado?.dataEntrada;
+                                  if (dataEntradaConfig) {
+                                    const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
+                                    if (now > dataEntrada && arrematante?.percentualJurosAtraso) {
+                                      const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+                                      if (mesesAtraso >= 1) {
+                                        valorTotalPendente = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+                                      } else {
+                                        valorTotalPendente = valorEntrada;
+                                      }
+                                    } else {
+                                      valorTotalPendente = valorEntrada;
+                                    }
+                                  } else {
+                                    valorTotalPendente = valorEntrada;
+                                  }
                                   
                                   if (temEstruturaParcelas) {
                                     // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
@@ -3396,8 +3412,27 @@ function Arrematantes() {
                                       estrutura
                                     });
                                     
-                                    for (let i = 0; i < quantidadeParcelas; i++) {
-                                      valorTotalPendente += estrutura[i]?.valor || 0;
+                                    // ✅ Aplicar juros em cada parcela atrasada
+                                    if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
+                                      const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
+                                      for (let i = 0; i < quantidadeParcelas; i++) {
+                                        const valorDaParcela = estrutura[i]?.valor || 0;
+                                        const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+                                        if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
+                                          const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+                                          if (mesesAtraso >= 1) {
+                                            valorTotalPendente += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                                          } else {
+                                            valorTotalPendente += valorDaParcela;
+                                          }
+                                        } else {
+                                          valorTotalPendente += valorDaParcela;
+                                        }
+                                      }
+                                    } else {
+                                      for (let i = 0; i < quantidadeParcelas; i++) {
+                                        valorTotalPendente += estrutura[i]?.valor || 0;
+                                      }
                                     }
                                   } else {
                                     // Somar apenas o valor das parcelas (sem a entrada)
@@ -3416,8 +3451,28 @@ function Arrematantes() {
                                       arrematante?.parcelasSimples || 0
                                     );
                                     const parcelasEfetivasPagas = parcelasPagas - 1; // -1 porque parcelasPagas inclui entrada
-                                    for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
-                                      valorTotalPendente += estrutura[i]?.valor || 0;
+                                    
+                                    // ✅ Aplicar juros em cada parcela atrasada
+                                    if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
+                                      const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
+                                      for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+                                        const valorDaParcela = estrutura[i]?.valor || 0;
+                                        const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
+                                        if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
+                                          const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+                                          if (mesesAtraso >= 1) {
+                                            valorTotalPendente += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                                          } else {
+                                            valorTotalPendente += valorDaParcela;
+                                          }
+                                        } else {
+                                          valorTotalPendente += valorDaParcela;
+                                        }
+                                      }
+                                    } else {
+                                      for (let i = parcelasEfetivasPagas; i < quantidadeParcelas; i++) {
+                                        valorTotalPendente += estrutura[i]?.valor || 0;
+                                      }
                                     }
                                   } else {
                                     const valorPorParcela = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
