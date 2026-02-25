@@ -202,20 +202,26 @@ function Faturas() {
         }
         
         // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
-        const valorTotal = obterValorTotalArrematante({
-          usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
-          valorLance: arrematante?.valorLance,
-          fatorMultiplicador: arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
-          valorPagarNumerico: arrematante.valorPagarNumerico || 0,
-          percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
-        }, auction.percentualComissaoLeiloeiro);
+        // ⚠️ EXCEÇÃO: Para entrada_parcelamento, usar valorPagarNumerico diretamente
+        // pois a comissão já foi calculada sobre (entrada + parcelas) no momento da criação
+        const valorTotal = tipoPagamento === 'entrada_parcelamento' 
+          ? (arrematante.valorPagarNumerico || 0)
+          : obterValorTotalArrematante({
+              usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
+              valorLance: arrematante?.valorLance,
+              fatorMultiplicador: arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
+              valorPagarNumerico: arrematante.valorPagarNumerico || 0,
+              percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
+            }, auction.percentualComissaoLeiloeiro);
         
         console.log('📊 [Faturas - valorTotal calculado]', {
           arrematante: arrematante.nome,
+          tipoPagamento,
           usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
           valorLance: arrematante?.valorLance,
           fatorMultiplicador: arrematante?.fatorMultiplicador,
           valorPagarNumerico: arrematante.valorPagarNumerico,
+          valorEntrada: arrematante.valorEntrada,
           percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro,
           percentualComissaoLeilao: auction.percentualComissaoLeiloeiro,
           valorTotalCalculado: valorTotal
