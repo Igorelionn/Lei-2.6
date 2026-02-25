@@ -3379,12 +3379,23 @@ function Arrematantes() {
                                   valorTotalPendente = valorEntrada;
                                   
                                   if (temEstruturaParcelas) {
+                                    // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+                                    const valorParaParcelas = (arrematante.valorPagarNumerico || 0) - valorEntrada;
                                     const estrutura = calcularEstruturaParcelas(
-                                      arrematante.valorPagarNumerico || 0,
+                                      valorParaParcelas,
                                       arrematante?.parcelasTriplas || 0,
                                       arrematante?.parcelasDuplas || 0,
                                       arrematante?.parcelasSimples || 0
                                     );
+                                    
+                                    console.log('📊 [Arrematantes - display valorTotal - entrada não paga]', {
+                                      arrematante: arrematante.nome,
+                                      valorPagarNumerico: arrematante.valorPagarNumerico,
+                                      valorEntrada,
+                                      valorParaParcelas,
+                                      estrutura
+                                    });
+                                    
                                     for (let i = 0; i < quantidadeParcelas; i++) {
                                       valorTotalPendente += estrutura[i]?.valor || 0;
                                     }
@@ -3396,8 +3407,10 @@ function Arrematantes() {
                                 } else {
                                   // Apenas parcelas pendentes (entrada já foi paga)
                                   if (temEstruturaParcelas) {
+                                    // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+                                    const valorParaParcelas = (arrematante.valorPagarNumerico || 0) - valorEntrada;
                                     const estrutura = calcularEstruturaParcelas(
-                                      arrematante.valorPagarNumerico || 0,
+                                      valorParaParcelas,
                                       arrematante?.parcelasTriplas || 0,
                                       arrematante?.parcelasDuplas || 0,
                                       arrematante?.parcelasSimples || 0
@@ -3411,6 +3424,11 @@ function Arrematantes() {
                                     valorTotalPendente = (quantidadeParcelas - (parcelasPagas - 1)) * valorPorParcela;
                                   }
                                 }
+                                
+                                console.log('📊 [Arrematantes - display valorTotal - resultado]', {
+                                  arrematante: arrematante.nome,
+                                  valorTotalPendente
+                                });
                               } else if (tipoPagamento === 'parcelamento') {
                                 // Parcelamento simples: somar parcelas pendentes
                                 if (temEstruturaParcelas) {

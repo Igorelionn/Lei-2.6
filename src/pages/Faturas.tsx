@@ -801,6 +801,15 @@ function Faturas() {
         arrematante?.parcelasSimples || 0
       );
       
+      console.log('📊 [Faturas - calcularValorTotalLeilaoComJuros - início]', {
+        arrematante: arrematante.nome,
+        valorPagarNumerico: arrematante.valorPagarNumerico,
+        valorEntrada,
+        valorParaParcelas,
+        estruturaParcelas,
+        quantidadeParcelas
+      });
+      
       const parcelasPagas = arrematante.parcelasPagas || 0;
 
       // Calcular valor da entrada (com juros se atrasada)
@@ -838,7 +847,15 @@ function Faturas() {
           if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
             const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
             if (mesesAtraso >= 1) {
-              valorTotalComJuros += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+              const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+              valorTotalComJuros += valorComJuros;
+              console.log('📊 [Faturas - parcela com juros]', {
+                parcela: i + 1,
+                valorOriginal: valorDaParcela,
+                mesesAtraso,
+                percentualJuros: arrematante.percentualJurosAtraso,
+                valorComJuros
+              });
             } else {
               valorTotalComJuros += valorDaParcela;
             }
@@ -852,6 +869,11 @@ function Faturas() {
           valorTotalComJuros += estruturaParcelas[i]?.valor || 0;
         }
       }
+      
+      console.log('📊 [Faturas - calcularValorTotalLeilaoComJuros - resultado]', {
+        arrematante: arrematante.nome,
+        valorTotalComJuros
+      });
     } else {
       // Parcelamento simples - usar estrutura real de parcelas
       const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
