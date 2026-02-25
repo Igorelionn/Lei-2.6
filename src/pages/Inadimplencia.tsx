@@ -1267,8 +1267,10 @@ Atenciosamente,
               let dataEntrada = null;
               let dataPrimeiraParcela = null;
               
-                if (loteArrematado.dataEntrada) {
-                const dateStr = loteArrematado.dataEntrada;
+              // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+              const dataEntradaConfig = arrematante.dataEntrada || loteArrematado.dataEntrada;
+                if (dataEntradaConfig) {
+                const dateStr = dataEntradaConfig;
                 const [year, month, day] = dateStr.split('-').map(Number);
                 dataEntrada = new Date(year, month - 1, day);
               }
@@ -1351,8 +1353,10 @@ Atenciosamente,
             let dataEntrada = null;
             let dataPrimeiraParcela = null;
             
-            if (loteArrematado.dataEntrada) {
-              const dateStr = loteArrematado.dataEntrada;
+            // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+            const dataEntradaConfig = arrematante.dataEntrada || loteArrematado.dataEntrada;
+            if (dataEntradaConfig) {
+              const dateStr = dataEntradaConfig;
               const [year, month, day] = dateStr.split('-').map(Number);
               dataEntrada = new Date(year, month - 1, day);
             }
@@ -1405,8 +1409,10 @@ Atenciosamente,
           let dataEntrada = null;
           let dataPrimeiraParcela = null;
           
-          if (loteArrematado.dataEntrada) {
-            const dateStr = loteArrematado.dataEntrada;
+          // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+          const dataEntradaConfig = arrematante.dataEntrada || loteArrematado.dataEntrada;
+          if (dataEntradaConfig) {
+            const dateStr = dataEntradaConfig;
             const [year, month, day] = dateStr.split('-').map(Number);
             dataEntrada = new Date(year, month - 1, day);
           }
@@ -1474,8 +1480,10 @@ Atenciosamente,
           
           // Verificar se entrada está atrasada (separado das parcelas mensais)
           if (parcelasPagas === 0) {
-            if (loteArrematado.dataEntrada) {
-              const dateStr = loteArrematado.dataEntrada;
+            // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+            const dataEntradaConfig = arrematante.dataEntrada || loteArrematado.dataEntrada;
+            if (dataEntradaConfig) {
+              const dateStr = dataEntradaConfig;
               const [year, month, day] = dateStr.split('-').map(Number);
               const dataEntrada = new Date(year, month - 1, day);
               dataEntrada.setHours(23, 59, 59, 999);
@@ -1546,26 +1554,31 @@ Atenciosamente,
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
           
-          // Calcular estrutura real de parcelas
+          // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+          const valorParaParcelas = valorTotal - valorEntrada;
           const estruturaParcelas = calcularEstruturaParcelas(
-            valorTotal,
+            valorParaParcelas,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
             arrematante?.parcelasSimples || 0
           );
           
           // Se entrada não foi paga, somar valor da entrada (com juros se aplicável)
-          if (parcelasPagas === 0 && loteArrematado.dataEntrada) {
-            const dataEntrada = new Date(loteArrematado.dataEntrada + 'T23:59:59');
-            const now = new Date();
-            if (now > dataEntrada) {
-              // Calcular meses de atraso da entrada
-              const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-              if (mesesAtraso >= 1 && arrematante.percentualJurosAtraso) {
-                const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
-                valorTotalEmAtraso += valorEntradaComJuros;
-              } else {
-                valorTotalEmAtraso += valorEntrada;
+          if (parcelasPagas === 0) {
+            // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+            const dataEntradaConfig = arrematante.dataEntrada || loteArrematado.dataEntrada;
+            if (dataEntradaConfig) {
+              const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
+              const now = new Date();
+              if (now > dataEntrada) {
+                // Calcular meses de atraso da entrada
+                const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+                if (mesesAtraso >= 1 && arrematante.percentualJurosAtraso) {
+                  const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+                  valorTotalEmAtraso += valorEntradaComJuros;
+                } else {
+                  valorTotalEmAtraso += valorEntrada;
+                }
               }
             }
           }

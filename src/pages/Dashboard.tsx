@@ -611,9 +611,10 @@ export default function Dashboard() {
           valorTotal * 0.3;
         const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
         
-        // Calcular estrutura real de parcelas (valorTotal já inclui comissão)
+        // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+        const valorParaParcelas = valorTotal - valorEntrada;
         const estruturaParcelas = calcularEstruturaParcelas(
-          valorTotal,
+          valorParaParcelas,
           arrematante?.parcelasTriplas || 0,
           arrematante?.parcelasDuplas || 0,
           arrematante?.parcelasSimples || 0
@@ -623,8 +624,10 @@ export default function Dashboard() {
         
         // Verificar entrada se não foi paga
         if (parcelasPagas === 0) {
-          if (loteArrematado?.dataEntrada) {
-            const dataEntrada = new Date(loteArrematado.dataEntrada + 'T23:59:59');
+          // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+          const dataEntradaConfig = arrematante.dataEntrada || loteArrematado?.dataEntrada;
+          if (dataEntradaConfig) {
+            const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
             if (now > dataEntrada && arrematante?.percentualJurosAtraso) {
               const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
               if (mesesAtraso >= 1) {

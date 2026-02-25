@@ -1976,10 +1976,14 @@ function Arrematantes() {
           let entradaAtrasada = false;
           
           // Verificar se entrada está atrasada
-          if (parcelasPagas === 0 && loteArrematado?.dataEntrada) {
-            const dataEntrada = new Date(loteArrematado.dataEntrada + 'T23:59:59');
-            if (now > dataEntrada) {
-              entradaAtrasada = true;
+          // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+          if (parcelasPagas === 0) {
+            const dataEntradaConfig = arrematante.dataEntrada || loteArrematado?.dataEntrada;
+            if (dataEntradaConfig) {
+              const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
+              if (now > dataEntrada) {
+                entradaAtrasada = true;
+              }
             }
           }
           
