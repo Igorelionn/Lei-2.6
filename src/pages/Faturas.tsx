@@ -990,7 +990,15 @@ function Faturas() {
               if (now > dataEntrada && arrematante?.percentualJurosAtraso) {
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  valorAReceber += calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+                  const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+                  valorAReceber += valorEntradaComJuros;
+                  console.log('📊 [Faturas - calcularTotalAReceber - entrada com juros]', {
+                    valorEntrada,
+                    mesesAtraso,
+                    percentualJuros: arrematante.percentualJurosAtraso,
+                    valorEntradaComJuros,
+                    valorAReceberAcumulado: valorAReceber
+                  });
                 } else {
                   valorAReceber += valorEntrada;
                 }
@@ -1005,20 +1013,30 @@ function Faturas() {
             if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
               const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
               
+              let totalParcelasCalculado = 0;
               for (let i = 0; i < quantidadeParcelas; i++) {
                 const valorDaParcela = estruturaParcelas[i]?.valor || 0;
                 const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
                 if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                   const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                   if (mesesAtraso >= 1) {
-                    valorAReceber += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                    const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                    valorAReceber += valorComJuros;
+                    totalParcelasCalculado += valorComJuros;
                   } else {
                     valorAReceber += valorDaParcela;
+                    totalParcelasCalculado += valorDaParcela;
                   }
                 } else {
                   valorAReceber += valorDaParcela;
+                  totalParcelasCalculado += valorDaParcela;
                 }
               }
+              console.log('📊 [Faturas - calcularTotalAReceber - parcelas]', {
+                quantidadeParcelas,
+                totalParcelasCalculado,
+                valorAReceberFinal: valorAReceber
+              });
             } else {
               // Se não tem dados de vencimento, somar valor total das parcelas sem juros
               for (let i = 0; i < quantidadeParcelas; i++) {
