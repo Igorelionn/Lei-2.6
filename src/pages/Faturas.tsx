@@ -295,8 +295,10 @@ function Faturas() {
             
             let estruturaParcelas: Array<{ numero: number; tipo: string; valor: number; multiplicador: number }> = [];
             if (temEstruturaParcelas) {
+              // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+              const valorParaParcelas = valorTotal - valorEntrada;
               estruturaParcelas = calcularEstruturaParcelas(
-                valorTotal,
+                valorParaParcelas,
                 arrematante?.parcelasTriplas || 0,
                 arrematante?.parcelasDuplas || 0,
                 arrematante?.parcelasSimples || 0
@@ -684,23 +686,25 @@ function Faturas() {
       return fatura.valorLiquido;
     }
     
-    // Calcular estrutura real de parcelas
-    const estruturaParcelas = calcularEstruturaParcelas(
-      arrematante.valorPagarNumerico,
-      arrematante?.parcelasTriplas || 0,
-      arrematante?.parcelasDuplas || 0,
-      arrematante?.parcelasSimples || 0
-    );
-    
     // Para entrada + parcelamento, parcela 1 = entrada
     if (tipoPagamento === "entrada_parcelamento") {
+      const valorEntrada = arrematante.valorEntrada ? 
+        parseCurrencyToNumber(arrematante.valorEntrada) : 
+        arrematante.valorPagarNumerico * 0.3;
+      
       if (fatura.parcela === 1) {
         // Entrada
-        const valorEntrada = arrematante.valorEntrada ? 
-          parseCurrencyToNumber(arrematante.valorEntrada) : 
-          arrematante.valorPagarNumerico * 0.3;
         return valorEntrada;
       } else {
+        // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+        const valorParaParcelas = arrematante.valorPagarNumerico - valorEntrada;
+        const estruturaParcelas = calcularEstruturaParcelas(
+          valorParaParcelas,
+          arrematante?.parcelasTriplas || 0,
+          arrematante?.parcelasDuplas || 0,
+          arrematante?.parcelasSimples || 0
+        );
+        
         // Parcelas mensais (parcela 2 = índice 0, parcela 3 = índice 1, etc.)
         const indice = fatura.parcela - 2;
         return estruturaParcelas[indice]?.valor || fatura.valorLiquido;
@@ -708,6 +712,13 @@ function Faturas() {
     }
     
     // Para parcelamento simples
+    const estruturaParcelas = calcularEstruturaParcelas(
+      arrematante.valorPagarNumerico,
+      arrematante?.parcelasTriplas || 0,
+      arrematante?.parcelasDuplas || 0,
+      arrematante?.parcelasSimples || 0
+    );
+    
     const indice = fatura.parcela - 1;
     return estruturaParcelas[indice]?.valor || fatura.valorLiquido;
   };
@@ -753,9 +764,10 @@ function Faturas() {
         arrematante.valorPagarNumerico * 0.3;
       const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
       
-      // Calcular estrutura real de parcelas
+      // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+      const valorParaParcelas = arrematante.valorPagarNumerico - valorEntrada;
       const estruturaParcelas = calcularEstruturaParcelas(
-        arrematante.valorPagarNumerico,
+        valorParaParcelas,
         arrematante?.parcelasTriplas || 0,
         arrematante?.parcelasDuplas || 0,
         arrematante?.parcelasSimples || 0
@@ -893,9 +905,10 @@ function Faturas() {
             arrematante.valorPagarNumerico * 0.3;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           
-          // Calcular estrutura real de parcelas
+          // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+          const valorParaParcelas = arrematante.valorPagarNumerico - valorEntrada;
           const estruturaParcelas = calcularEstruturaParcelas(
-            arrematante.valorPagarNumerico,
+            valorParaParcelas,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
             arrematante?.parcelasSimples || 0

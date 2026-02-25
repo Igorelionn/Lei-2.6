@@ -13,7 +13,6 @@ import { AuthProvider } from "@/hooks/use-auth";
 import { MigrationNotification } from "@/components/MigrationNotification";
 import { SpeedInsights } from '@vercel/speed-insights/react';
 import { Analytics } from '@vercel/analytics/react';
-import { metrics } from "@/lib/metrics"; // Importar para inicializar e expor ao window
 
 // Error boundary para componentes de analytics que podem falhar em mobile (ad blockers, etc.)
 class SafeAnalytics extends Component<{ children: ReactNode }, { hasError: boolean }> {
@@ -109,46 +108,25 @@ const LoadingFallback = () => (
   </div>
 );
 
-const App = () => {
-  // Inicializar sistema de métricas e expor ao window
-  if (typeof window !== 'undefined') {
-    // Expor ao window diretamente
-    (window as any).__metrics = metrics;
-    (window as any).__dumpMetrics = () => metrics.dumpMetrics();
-    (window as any).__clearMetrics = () => {
-      metrics.clear();
-      console.log('🧹 Métricas limpas com sucesso!');
-    };
-    
-    // Log de inicialização apenas uma vez
-    if (!(window as any).__metricsInitialized) {
-      (window as any).__metricsInitialized = true;
-      console.log('📊 Sistema de Métricas Inicializado');
-      console.log('Use: window.__dumpMetrics() para ver todas as métricas');
-      console.log('Use: window.__metrics para acessar o objeto diretamente');
-      console.log('Use: window.__clearMetrics() para limpar as métricas');
-    }
-  }
-
-  return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <SafeAnalytics>
-          <SpeedInsights />
-          <Analytics />
-        </SafeAnalytics>
-        <AuthProvider>
-                <AppWithRealtime>
-                  <MigrationNotification />
-                  <BrowserRouter future={{
-                    v7_startTransition: true,
-                    v7_relativeSplatPath: true
-                  }}>
-              <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  <Route path="/login" element={<Login />} />
+const App = () => (
+  <QueryClientProvider client={queryClient}>
+    <TooltipProvider>
+      <Toaster />
+      <Sonner />
+      <SafeAnalytics>
+        <SpeedInsights />
+        <Analytics />
+      </SafeAnalytics>
+      <AuthProvider>
+              <AppWithRealtime>
+                <MigrationNotification />
+                <BrowserRouter future={{
+                  v7_startTransition: true,
+                  v7_relativeSplatPath: true
+                }}>
+            <Suspense fallback={<LoadingFallback />}>
+              <Routes>
+                <Route path="/login" element={<Login />} />
 
               <Route
                 path="/"
@@ -271,7 +249,6 @@ const App = () => {
       </AuthProvider>
     </TooltipProvider>
   </QueryClientProvider>
-  );
-};
+);
 
 export default App;

@@ -54,20 +54,6 @@ export default function LotesConvidados() {
   // Estado para controlar popovers de mercadorias abertos (animação do chevron)
   const [openPopovers, setOpenPopovers] = useState<Record<string, boolean>>({});
 
-  // Log ao receber dados do hook
-  useEffect(() => {
-    logger.info('📥 [LotesConvidados] Dados recebidos do useGuestLots:', {
-      total: guestLots.length,
-      isLoading,
-      lotes: guestLots.map(l => ({ id: l.id, numero: l.numero, descricao: l.descricao })),
-      hasDuplicateIds: guestLots.length !== new Set(guestLots.map(l => l.id)).size
-    });
-    
-    if (guestLots.length !== new Set(guestLots.map(l => l.id)).size) {
-      logger.error('🚨 [LotesConvidados] DUPLICATAS DETECTADAS nos dados recebidos!');
-    }
-  }, [guestLots, isLoading]);
-
   // Calcular estatísticas dos lotes
   const stats = {
     total: guestLots.filter(l => !l.arquivado).length,
@@ -110,19 +96,10 @@ export default function LotesConvidados() {
   }, []);
 
   const filteredLotes = guestLots
-    .filter((lote, index, self) => {
+    .filter((lote, index, self) => 
       // Remove duplicatas baseado no ID único
-      const isDuplicate = index !== self.findIndex((l) => l.id === lote.id);
-      if (isDuplicate) {
-        logger.warn('⚠️ [LotesConvidados] Duplicata detectada no filtro:', {
-          id: lote.id,
-          numero: lote.numero,
-          index,
-          firstIndex: self.findIndex((l) => l.id === lote.id)
-        });
-      }
-      return !isDuplicate;
-    })
+      index === self.findIndex((l) => l.id === lote.id)
+    )
     .filter(lote => {
       const matchesSearch = !searchTerm || 
         lote.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -134,22 +111,6 @@ export default function LotesConvidados() {
       
       return matchesSearch && matchesStatus && matchesArchived;
     });
-
-  // Log do resultado final do filtro
-  useEffect(() => {
-    logger.info('🔍 [LotesConvidados] Lotes após filtros:', {
-      totalFiltrado: filteredLotes.length,
-      searchTerm,
-      statusFilter,
-      showArchived,
-      lotesFiltrados: filteredLotes.map(l => ({ id: l.id, numero: l.numero })),
-      hasDuplicates: filteredLotes.length !== new Set(filteredLotes.map(l => l.id)).size
-    });
-    
-    if (filteredLotes.length !== new Set(filteredLotes.map(l => l.id)).size) {
-      logger.error('🚨 [LotesConvidados] DUPLICATAS AINDA PRESENTES após filtros!');
-    }
-  }, [filteredLotes, searchTerm, statusFilter, showArchived]);
 
   const handleSmoothTransition = (callback: () => void) => {
     setIsTransitioning(true);

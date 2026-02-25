@@ -78,8 +78,6 @@ export function useGuestLots() {
     refetchOnWindowFocus: false, // ⚡ Não refazer automaticamente ao focar janela
     refetchOnMount: true, // ✅ Refazer ao montar se dados estiverem stale (>30s)
     queryFn: async () => {
-      logger.info('🔍 [useGuestLots] Iniciando query de guest_lots...');
-      
       const { data: lotsData, error: lotsError } = await supabaseClient
         .from('guest_lots')
         .select(`
@@ -103,10 +101,9 @@ export function useGuestLots() {
 
       if (lotsError) throw lotsError;
 
-      logger.info('📊 [useGuestLots] Dados brutos recebidos:', {
-        totalRegistros: lotsData?.length,
-        ids: lotsData?.map(l => ({ id: l.id, numero: l.numero })),
-        hasDuplicateIds: lotsData ? lotsData.length !== new Set(lotsData.map(l => l.id)).size : false
+      logger.debug('Dados brutos de guest_lots:', {
+        total: lotsData?.length,
+        ids: lotsData?.map(l => l.id)
       });
 
       // Buscar nomes dos leilões separadamente
@@ -122,14 +119,11 @@ export function useGuestLots() {
         leiloesData?.forEach(leilao => {
           leiloesMap.set(leilao.id, leilao.nome);
         });
-        
-        logger.info('🏛️ [useGuestLots] Leilões carregados:', leiloesData?.length);
       }
 
       // Buscar mercadorias para cada lote
-      logger.info('🔄 [useGuestLots] Processando mercadorias e arrematantes...');
       const lotsWithMerchandise = await Promise.all(
-        (lotsData || []).map(async (lot, index) => {
+        (lotsData || []).map(async (lot) => {
           const { data: merchandiseData, error: merchandiseError } = await supabaseClient
             .from('guest_lot_merchandise')
             .select('*')
@@ -150,7 +144,7 @@ export function useGuestLots() {
             logger.error('Erro ao buscar arrematantes:', arrematantesError);
           }
 
-          const processed = {
+          return {
             id: lot.id,
             numero: lot.numero,
             descricao: lot.descricao,
@@ -172,47 +166,18 @@ export function useGuestLots() {
             created_at: lot.created_at || '',
             updated_at: lot.updated_at || '',
           } as GuestLot;
-          
-          if (index < 3) { // Log apenas dos primeiros 3 para não poluir
-            logger.debug(`✅ [useGuestLots] Lote processado ${index + 1}:`, {
-              id: processed.id,
-              numero: processed.numero,
-              mercadorias: processed.mercadorias.length
-            });
-          }
-          
-          return processed;
         })
       );
-
-      logger.info('📦 [useGuestLots] Lotes com mercadorias processados:', {
-        totalProcessado: lotsWithMerchandise.length,
-        idsProcessados: lotsWithMerchandise.map(l => ({ id: l.id, numero: l.numero }))
-      });
 
       // Remover duplicatas baseado no ID (segurança extra)
       const uniqueLots = lotsWithMerchandise.filter((lot, index, self) =>
         index === self.findIndex((l) => l.id === lot.id)
       );
 
-      const duplicatasEncontradas = lotsWithMerchandise.length - uniqueLots.length;
-      
-      if (duplicatasEncontradas > 0) {
-        logger.warn('⚠️ [useGuestLots] DUPLICATAS ENCONTRADAS E REMOVIDAS:', {
-          totalBruto: lotsWithMerchandise.length,
-          totalUnico: uniqueLots.length,
-          duplicatasRemovidas: duplicatasEncontradas,
-          idsRemovidos: lotsWithMerchandise
-            .filter((lot, index, self) => index !== self.findIndex((l) => l.id === lot.id))
-            .map(l => ({ id: l.id, numero: l.numero }))
-        });
-      } else {
-        logger.info('✅ [useGuestLots] Nenhuma duplicata encontrada');
-      }
-
-      logger.info('🎯 [useGuestLots] Retornando resultado final:', {
-        totalLotes: uniqueLots.length,
-        lotes: uniqueLots.map(l => ({ id: l.id, numero: l.numero, descricao: l.descricao }))
+      logger.debug('Guest lots processados:', {
+        totalBruto: lotsWithMerchandise.length,
+        totalUnico: uniqueLots.length,
+        duplicatasRemovidas: lotsWithMerchandise.length - uniqueLots.length
       });
 
       return uniqueLots;
