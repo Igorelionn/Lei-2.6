@@ -1083,7 +1083,14 @@ function Faturas() {
           }
         }
 
-        return Math.round((total + valorAReceber) * 100) / 100;
+        const valorTotalArrematante = Math.round((total + valorAReceber) * 100) / 100;
+        console.log('📊 [Faturas - calcularTotalAReceber FINAL]', {
+          arrematante: arrematante.nome,
+          valorAReceber,
+          totalAcumulado: total,
+          valorTotalArrematante
+        });
+        return valorTotalArrematante;
       }, 0);
   };
 
