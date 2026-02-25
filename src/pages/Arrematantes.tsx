@@ -1645,17 +1645,6 @@ function Arrematantes() {
             arrematante?.parcelasSimples || 0
           );
           
-          console.log('📊 [Arrematantes - calcFinanceiro - totalPago]', {
-            arrematante: arrematante.nome,
-            valorTotal,
-            valorEntrada,
-            valorParaParcelas,
-            estruturaParcelas,
-            parcelasTriplas: arrematante?.parcelasTriplas,
-            parcelasDuplas: arrematante?.parcelasDuplas,
-            parcelasSimples: arrematante?.parcelasSimples
-          });
-          
           let valorRecebido = 0;
           if (parcelasPagas >= 1) {
             // Entrada paga - calcular com juros se estava atrasada
@@ -1776,17 +1765,6 @@ function Arrematantes() {
             arrematante?.parcelasDuplas || 0,
             arrematante?.parcelasSimples || 0
           );
-          
-          console.log('📊 [Arrematantes - calcFinanceiro - totalPendente]', {
-            arrematante: arrematante.nome,
-            valorTotal,
-            valorEntrada,
-            valorParaParcelas,
-            estruturaParcelas,
-            parcelasTriplas: arrematante?.parcelasTriplas,
-            parcelasDuplas: arrematante?.parcelasDuplas,
-            parcelasSimples: arrematante?.parcelasSimples
-          });
           
           const parcelasPagas = arrematante.parcelasPagas || 0;
           
@@ -1999,11 +1977,6 @@ function Arrematantes() {
           if (entradaAtrasada) {
             const { valorComJuros } = calcularJurosAtraso(arrematante, auction, valorEntrada);
             valorAtrasado = Math.round((valorAtrasado + valorComJuros) * 100) / 100;
-            console.log('📊 [Arrematantes - totalAtrasado - entrada com juros]', {
-              valorEntrada,
-              valorComJuros,
-              valorAtrasadoAcumulado: valorAtrasado
-            });
           }
           
           // Aplicar juros nas parcelas mensais atrasadas há pelo menos 1 mês com estrutura real
@@ -2020,14 +1993,6 @@ function Arrematantes() {
                 if (mesesAtraso >= 1) {
                   const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso || 0, mesesAtraso);
                   valorAtrasado = Math.round((valorAtrasado + valorComJuros) * 100) / 100;
-                  console.log('📊 [Arrematantes - parcela com juros]', {
-                    parcela: i + 1,
-                    valorOriginal: valorDaParcela,
-                    mesesAtraso,
-                    percentualJuros: arrematante.percentualJurosAtraso,
-                    valorComJuros,
-                    valorAtrasadoAcumulado: valorAtrasado
-                  });
                 } else {
                   // Se não tem 1 mês de atraso, soma valor original
                   valorAtrasado = Math.round((valorAtrasado + valorDaParcela) * 100) / 100;
@@ -2035,18 +2000,6 @@ function Arrematantes() {
               }
             }
           }
-          
-          console.log('📊 [Arrematantes - calcFinanceiro - totalAtrasado]', {
-            arrematante: arrematante.nome,
-            valorTotal,
-            valorEntrada,
-            valorParaParcelas,
-            valorAtrasado,
-            estruturaParcelas,
-            parcelasTriplas: arrematante?.parcelasTriplas,
-            parcelasDuplas: arrematante?.parcelasDuplas,
-            parcelasSimples: arrematante?.parcelasSimples
-          });
           
           const novoSum = Math.round((sum + valorAtrasado) * 100) / 100;
           return novoSum;

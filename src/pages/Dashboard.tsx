@@ -564,14 +564,6 @@ export default function Dashboard() {
       // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
       const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
       
-      console.log('📊 [Dashboard - tipoPagamento detectado]', {
-        arrematante: arrematante.nome,
-        tipoPagamento,
-        arrematanteTipo: arrematante.tipoPagamento,
-        loteTipo: loteArrematado?.tipoPagamento,
-        auctionTipo: auction.tipoPagamento
-      });
-      
       // ✅ CORREÇÃO: Usar valorPagarNumerico diretamente (já inclui comissão)
       const valorTotal = arrematante.valorPagarNumerico || 0;
       
@@ -633,17 +625,10 @@ export default function Dashboard() {
             const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
             if (now > dataEntrada && arrematante?.percentualJurosAtraso) {
               const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-              if (mesesAtraso >= 1) {
-                const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
-                valorAReceber += valorEntradaComJuros;
-                console.log('📊 [Dashboard - Entrada com juros]', {
-                  arrematante: arrematante.nome,
-                  valorEntrada,
-                  mesesAtraso,
-                  percentualJuros: arrematante.percentualJurosAtraso,
-                  valorEntradaComJuros
-                });
-              } else {
+            if (mesesAtraso >= 1) {
+              const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+              valorAReceber += valorEntradaComJuros;
+            } else {
                 valorAReceber += valorEntrada;
               }
             } else {
@@ -657,7 +642,6 @@ export default function Dashboard() {
           if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
-            let totalParcelasComJuros = 0;
             for (let i = 0; i < quantidadeParcelas; i++) {
               const valorDaParcela = estruturaParcelas[i]?.valor || 0;
               const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
@@ -666,22 +650,13 @@ export default function Dashboard() {
                 if (mesesAtraso >= 1) {
                   const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
                   valorAReceber += valorComJuros;
-                  totalParcelasComJuros += valorComJuros;
                 } else {
                   valorAReceber += valorDaParcela;
-                  totalParcelasComJuros += valorDaParcela;
                 }
               } else {
                 valorAReceber += valorDaParcela;
-                totalParcelasComJuros += valorDaParcela;
               }
             }
-            console.log('📊 [Dashboard - Parcelas mensais]', {
-              arrematante: arrematante.nome,
-              quantidadeParcelas,
-              totalParcelasComJuros,
-              estruturaParcelas
-            });
           } else {
             // Sem data de vencimento mensal, somar todas as parcelas
             for (let i = 0; i < quantidadeParcelas; i++) {
@@ -719,13 +694,6 @@ export default function Dashboard() {
           }
         }
         
-        console.log('📊 [Dashboard - Total entrada_parcelamento]', {
-          arrematante: arrematante.nome,
-          valorAReceber,
-          valorEntrada,
-          valorParaParcelas,
-          parcelasPagas
-        });
         return total + valorAReceber;
       } else {
         // Para parcelamento simples, calcular parcelas restantes com estrutura real (juros)
@@ -774,11 +742,6 @@ export default function Dashboard() {
 
   // Usar cálculos locais para evitar duplicatas
   // ✅ Incluir patrocínios pendentes no total a receber
-  console.log('📊 [Dashboard - Total a Receber]', {
-    localTotalAReceber,
-    totalPatrociniosPendentes,
-    totalReceiverNumber: localTotalAReceber + totalPatrociniosPendentes
-  });
   const totalReceiverNumber = localTotalAReceber + totalPatrociniosPendentes;
   const auctionCostsNumber = stats?.total_custos || 0;
   const overdueCount = localOverdueCount;
