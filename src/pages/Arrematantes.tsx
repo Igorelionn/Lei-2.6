@@ -1632,13 +1632,25 @@ function Arrematantes() {
             valorTotal * 0.3;
           const _quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           
-          // Calcular estrutura real de parcelas
+          // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+          const valorParaParcelas = valorTotal - valorEntrada;
           const estruturaParcelas = calcularEstruturaParcelas(
-            valorTotal,
+            valorParaParcelas,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
             arrematante?.parcelasSimples || 0
           );
+          
+          console.log('📊 [Arrematantes - calcFinanceiro - totalPago]', {
+            arrematante: arrematante.nome,
+            valorTotal,
+            valorEntrada,
+            valorParaParcelas,
+            estruturaParcelas,
+            parcelasTriplas: arrematante?.parcelasTriplas,
+            parcelasDuplas: arrematante?.parcelasDuplas,
+            parcelasSimples: arrematante?.parcelasSimples
+          });
           
           let valorRecebido = 0;
           if (parcelasPagas >= 1) {
@@ -1752,13 +1764,25 @@ function Arrematantes() {
             valorTotal * 0.3;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           
-          // Calcular estrutura real de parcelas
+          // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+          const valorParaParcelas = valorTotal - valorEntrada;
           const estruturaParcelas = calcularEstruturaParcelas(
-            valorTotal,
+            valorParaParcelas,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
             arrematante?.parcelasSimples || 0
           );
+          
+          console.log('📊 [Arrematantes - calcFinanceiro - totalPendente]', {
+            arrematante: arrematante.nome,
+            valorTotal,
+            valorEntrada,
+            valorParaParcelas,
+            estruturaParcelas,
+            parcelasTriplas: arrematante?.parcelasTriplas,
+            parcelasDuplas: arrematante?.parcelasDuplas,
+            parcelasSimples: arrematante?.parcelasSimples
+          });
           
           const parcelasPagas = arrematante.parcelasPagas || 0;
           
@@ -1925,13 +1949,25 @@ function Arrematantes() {
             valorTotal * 0.3;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           
-          // Calcular estrutura real de parcelas
+          // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+          const valorParaParcelas = valorTotal - valorEntrada;
           const estruturaParcelas = calcularEstruturaParcelas(
-            valorTotal,
+            valorParaParcelas,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
             arrematante?.parcelasSimples || 0
           );
+          
+          console.log('📊 [Arrematantes - calcFinanceiro - totalAtrasado]', {
+            arrematante: arrematante.nome,
+            valorTotal,
+            valorEntrada,
+            valorParaParcelas,
+            estruturaParcelas,
+            parcelasTriplas: arrematante?.parcelasTriplas,
+            parcelasDuplas: arrematante?.parcelasDuplas,
+            parcelasSimples: arrematante?.parcelasSimples
+          });
           
           // Calcular quantas parcelas estão atrasadas
           const parcelasPagas = arrematante.parcelasPagas || 0;

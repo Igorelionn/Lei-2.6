@@ -303,6 +303,17 @@ function Faturas() {
                 arrematante?.parcelasDuplas || 0,
                 arrematante?.parcelasSimples || 0
               );
+              
+              console.log('📊 [Faturas - geração de fatura]', {
+                arrematante: arrematante.nome,
+                valorTotal,
+                valorEntrada,
+                valorParaParcelas,
+                estruturaParcelas,
+                parcelasTriplas: arrematante?.parcelasTriplas,
+                parcelasDuplas: arrematante?.parcelasDuplas,
+                parcelasSimples: arrematante?.parcelasSimples
+              });
             }
             
             const parcelasPagas = arrematante.parcelasPagas || 0;
