@@ -210,6 +210,17 @@ function Faturas() {
           percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
         }, auction.percentualComissaoLeiloeiro);
         
+        console.log('📊 [Faturas - valorTotal calculado]', {
+          arrematante: arrematante.nome,
+          usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
+          valorLance: arrematante?.valorLance,
+          fatorMultiplicador: arrematante?.fatorMultiplicador,
+          valorPagarNumerico: arrematante.valorPagarNumerico,
+          percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro,
+          percentualComissaoLeilao: auction.percentualComissaoLeiloeiro,
+          valorTotalCalculado: valorTotal
+        });
+        
         // Gerar faturas baseadas no tipo de pagamento (prioriza arrematante, depois lote)
         switch (tipoPagamento) {
           case 'a_vista': {
