@@ -2011,6 +2011,14 @@ function Arrematantes() {
                 if (mesesAtraso >= 1) {
                   const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso || 0, mesesAtraso);
                   valorAtrasado = Math.round((valorAtrasado + valorComJuros) * 100) / 100;
+                  console.log('📊 [Arrematantes - parcela com juros]', {
+                    parcela: i + 1,
+                    valorOriginal: valorDaParcela,
+                    mesesAtraso,
+                    percentualJuros: arrematante.percentualJurosAtraso,
+                    valorComJuros,
+                    valorAtrasadoAcumulado: valorAtrasado
+                  });
                 } else {
                   // Se não tem 1 mês de atraso, soma valor original
                   valorAtrasado = Math.round((valorAtrasado + valorDaParcela) * 100) / 100;
