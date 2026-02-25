@@ -572,14 +572,8 @@ export default function Dashboard() {
         auctionTipo: auction.tipoPagamento
       });
       
-      // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
-      const valorTotal = obterValorTotalArrematante({
-        usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
-        valorLance: arrematante?.valorLance,
-        fatorMultiplicador: arrematante?.fatorMultiplicador || loteArrematado?.fatorMultiplicador,
-        valorPagarNumerico: arrematante?.valorPagarNumerico || 0,
-        percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
-      }, auction.percentualComissaoLeiloeiro);
+      // ✅ CORREÇÃO: Usar valorPagarNumerico diretamente (já inclui comissão)
+      const valorTotal = arrematante.valorPagarNumerico || 0;
       
       const parcelasPagas = arrematante?.parcelasPagas || 0;
       const now = new Date();
