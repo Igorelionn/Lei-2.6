@@ -1255,7 +1255,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                     </SelectContent>
                   </Select>
                   
-                  {sponsorItems.length > 1 && (
+                  {sponsorItems.length > 0 && (
                     <button
                       type="button"
                       onClick={() => {
@@ -1263,7 +1263,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
                         setSponsorItems(newItems);
                         updateField("detalhePatrocinios", newItems);
                         updateField("patrociniosTotal", newItems.reduce((sum, i) => sum + i.valorNumerico, 0));
-                        setSelectedSponsorIndex(Math.max(0, selectedSponsorIndex - 1));
+                        setSelectedSponsorIndex(Math.max(0, Math.min(selectedSponsorIndex, newItems.length - 1)));
                       }}
                       className="w-10 h-10 flex items-center justify-center text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     >
