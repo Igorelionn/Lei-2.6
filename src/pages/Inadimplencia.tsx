@@ -1338,14 +1338,17 @@ Atenciosamente,
         
         const parcelasPagasAtual = arrematante.parcelasPagas || 0;
         
+        // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+        const tipoPagamentoCheck = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
+        
         // Calcular próxima parcela baseado no tipo de pagamento e qual está mais atrasado
         let proximaParcelaCalc = parcelasPagasAtual + 1;
         let isEntradaAtrasada = false;
         let isPrimeiraParcelaAtrasada = false;
         
-        if (loteArrematado && loteArrematado.tipoPagamento === 'a_vista') {
+        if (tipoPagamentoCheck === 'a_vista') {
           proximaParcelaCalc = 1; // Para pagamento à vista, sempre é a primeira e única parcela
-        } else if (loteArrematado && loteArrematado.tipoPagamento === 'entrada_parcelamento') {
+        } else if (tipoPagamentoCheck === 'entrada_parcelamento') {
           if (parcelasPagasAtual === 0) {
             // Verificar se entrada e primeira parcela estão ambas atrasadas
             const now = new Date();
@@ -1403,7 +1406,7 @@ Atenciosamente,
         let parcelaDetails = null;
         let ambosAtrasados = false;
         
-        if (loteArrematado && loteArrematado.tipoPagamento === 'entrada_parcelamento' && parcelasPagasAtual === 0) {
+        if (tipoPagamentoCheck === 'entrada_parcelamento' && parcelasPagasAtual === 0) {
           const now = new Date();
           
           let dataEntrada = null;
@@ -1471,7 +1474,7 @@ Atenciosamente,
         let parcelasAtrasadas = 0;
         let entradaAtrasada = false;
         
-        if (loteArrematado && loteArrematado.tipoPagamento === 'entrada_parcelamento') {
+        if (tipoPagamentoCheck === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           const mesInicio = arrematante.mesInicioPagamento;
@@ -1511,7 +1514,7 @@ Atenciosamente,
             }
           }
           
-        } else if (loteArrematado && (loteArrematado.tipoPagamento === 'parcelamento' || !loteArrematado.tipoPagamento)) {
+        } else if (tipoPagamentoCheck === 'parcelamento' || !tipoPagamentoCheck) {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           const mesInicio = arrematante.mesInicioPagamento;
@@ -1533,7 +1536,7 @@ Atenciosamente,
               }
             }
           }
-        } else if (loteArrematado && loteArrematado.tipoPagamento === 'a_vista') {
+        } else if (tipoPagamentoCheck === 'a_vista') {
           // Para à vista, se está inadimplente, é 1 pagamento atrasado
           parcelasAtrasadas = 1;
         }
@@ -1541,7 +1544,10 @@ Atenciosamente,
         // Calcular o valor total em atraso (entrada + todas as parcelas atrasadas)
         let valorTotalEmAtraso = 0;
         
-        if (loteArrematado && loteArrematado.tipoPagamento === 'entrada_parcelamento') {
+        // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+        const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
+        
+        if (tipoPagamento === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           const valorTotal = arrematante?.valorPagarNumerico !== undefined 
@@ -1611,7 +1617,7 @@ Atenciosamente,
             }
           }
           
-        } else if (loteArrematado && (loteArrematado.tipoPagamento === 'parcelamento' || !loteArrematado.tipoPagamento)) {
+        } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           const valorTotal = arrematante?.valorPagarNumerico !== undefined 
@@ -1654,7 +1660,7 @@ Atenciosamente,
             }
           }
           
-        } else if (loteArrematado && loteArrematado.tipoPagamento === 'a_vista') {
+        } else if (tipoPagamento === 'a_vista') {
           // Para à vista, aplicar juros se estiver atrasado há pelo menos 1 mês
           const valorTotal = arrematante?.valorPagarNumerico !== undefined 
             ? arrematante.valorPagarNumerico 
