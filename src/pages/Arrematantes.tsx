@@ -1292,14 +1292,18 @@ function Arrematantes() {
     const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction?.tipoPagamento || "parcelamento";
     
     // Para entrada_parcelamento, verificar se é entrada ou parcela mensal
-    if (tipoPagamento === "entrada_parcelamento" && loteArrematado?.dataEntrada) {
-      const dataEntrada = new Date(loteArrematado.dataEntrada + 'T23:59:59');
-      if (now > dataEntrada) {
-        // Calcular meses de atraso da entrada
-        const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-        if (mesesAtraso >= 1) {
-          const valorComJuros = calcularJurosProgressivos(valorParcela, arrematante.percentualJurosAtraso || 0, mesesAtraso);
-          return { valorComJuros, mesesAtraso };
+    // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+    if (tipoPagamento === "entrada_parcelamento") {
+      const dataEntradaConfig = arrematante.dataEntrada || loteArrematado?.dataEntrada;
+      if (dataEntradaConfig) {
+        const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
+        if (now > dataEntrada) {
+          // Calcular meses de atraso da entrada
+          const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+          if (mesesAtraso >= 1) {
+            const valorComJuros = calcularJurosProgressivos(valorParcela, arrematante.percentualJurosAtraso || 0, mesesAtraso);
+            return { valorComJuros, mesesAtraso };
+          }
         }
       }
     }
