@@ -707,12 +707,16 @@ function Faturas() {
     }
     
     const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
-    const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
+    // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+    const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
     
     console.log('📊 [Faturas - calcularValorDaParcela]', {
       arrematante: arrematante.nome,
       parcela: fatura.parcela,
       tipoPagamento,
+      tipoPagamentoArrematante: arrematante.tipoPagamento,
+      tipoPagamentoLote: loteArrematado?.tipoPagamento,
+      tipoPagamentoAuction: auction.tipoPagamento,
       valorLiquido: fatura.valorLiquido
     });
     
@@ -771,7 +775,8 @@ function Faturas() {
     }
     
     const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
-    const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
+    // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+    const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
     let valorTotalComJuros = 0;
 
     if (tipoPagamento === "a_vista") {
