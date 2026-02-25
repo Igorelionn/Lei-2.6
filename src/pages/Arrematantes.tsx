@@ -1994,7 +1994,12 @@ function Arrematantes() {
           // Aplicar juros na entrada se atrasada há pelo menos 1 mês
           if (entradaAtrasada) {
             const { valorComJuros } = calcularJurosAtraso(arrematante, auction, valorEntrada);
-            valorAtrasado += valorComJuros;
+            valorAtrasado = Math.round((valorAtrasado + valorComJuros) * 100) / 100;
+            console.log('📊 [Arrematantes - totalAtrasado - entrada com juros]', {
+              valorEntrada,
+              valorComJuros,
+              valorAtrasadoAcumulado: valorAtrasado
+            });
           }
           
           // Aplicar juros nas parcelas mensais atrasadas há pelo menos 1 mês com estrutura real
