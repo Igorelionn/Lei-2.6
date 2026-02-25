@@ -508,7 +508,7 @@ export function AuctionWizard({ initial, onSubmit, onCancel, initialStep, initia
       case 5: // Pagamento
         return true; // Opcional
       case 6: // Custos e Patrocínios
-        return costItems.length > 0 && sponsorItems.length > 0;
+        return costItems.length > 0; // Patrocínios são opcionais
       case 7: // Forma de Pagamento dos Patrocínios
         return true; // Opcional
       case 8: // Comissão de Compra
