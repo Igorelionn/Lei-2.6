@@ -937,16 +937,21 @@ Atenciosamente,
         
         if (parcelasPagas === 0) {
           // Entrada não foi paga - verificar se está atrasada
-          if (!loteArrematado.dataEntrada) {
+          // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+          const dataEntradaConfig = arrematante.dataEntrada || loteArrematado.dataEntrada;
+          
+          if (!dataEntradaConfig) {
             logger.debug(`❌ [isOverdue] ${arrematante.nome} - Sem data de entrada definida`);
             return false;
           }
-          const entradaDueDate = new Date(loteArrematado.dataEntrada);
+          const entradaDueDate = new Date(dataEntradaConfig);
           entradaDueDate.setHours(23, 59, 59, 999);
           const isEntradaOverdue = now > entradaDueDate;
           
           logger.debug(`🔍 [isOverdue] ${arrematante.nome} - Verificando entrada:`, {
-            dataEntrada: loteArrematado.dataEntrada,
+            dataEntradaArrematante: arrematante.dataEntrada,
+            dataEntradaLote: loteArrematado.dataEntrada,
+            dataEntradaUsada: dataEntradaConfig,
             entradaDueDate: entradaDueDate.toISOString(),
             now: now.toISOString(),
             isOverdue: isEntradaOverdue,
@@ -1254,8 +1259,10 @@ Atenciosamente,
                 valorTotal * 0.3; // fallback para 30%
               
               // Calcular estrutura real de parcelas
+              // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+              const valorParaParcelas = valorTotal - valorEntrada;
               const estruturaParcelas = calcularEstruturaParcelas(
-                valorTotal,
+                valorParaParcelas,
                 arrematante?.parcelasTriplas || 0,
                 arrematante?.parcelasDuplas || 0,
                 arrematante?.parcelasSimples || 0

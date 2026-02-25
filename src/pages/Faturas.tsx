@@ -214,19 +214,6 @@ function Faturas() {
               percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro
             }, auction.percentualComissaoLeiloeiro);
         
-        console.log('📊 [Faturas - valorTotal calculado]', {
-          arrematante: arrematante.nome,
-          tipoPagamento,
-          usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
-          valorLance: arrematante?.valorLance,
-          fatorMultiplicador: arrematante?.fatorMultiplicador,
-          valorPagarNumerico: arrematante.valorPagarNumerico,
-          valorEntrada: arrematante.valorEntrada,
-          percentualComissaoLeiloeiro: arrematante?.percentualComissaoLeiloeiro,
-          percentualComissaoLeilao: auction.percentualComissaoLeiloeiro,
-          valorTotalCalculado: valorTotal
-        });
-        
         // Gerar faturas baseadas no tipo de pagamento (prioriza arrematante, depois lote)
         switch (tipoPagamento) {
           case 'a_vista': {
@@ -320,17 +307,6 @@ function Faturas() {
                 arrematante?.parcelasDuplas || 0,
                 arrematante?.parcelasSimples || 0
               );
-              
-              console.log('📊 [Faturas - geração de fatura]', {
-                arrematante: arrematante.nome,
-                valorTotal,
-                valorEntrada,
-                valorParaParcelas,
-                estruturaParcelas,
-                parcelasTriplas: arrematante?.parcelasTriplas,
-                parcelasDuplas: arrematante?.parcelasDuplas,
-                parcelasSimples: arrematante?.parcelasSimples
-              });
             }
             
             const parcelasPagas = arrematante.parcelasPagas || 0;
@@ -710,16 +686,6 @@ function Faturas() {
     // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
     const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
     
-    console.log('📊 [Faturas - calcularValorDaParcela]', {
-      arrematante: arrematante.nome,
-      parcela: fatura.parcela,
-      tipoPagamento,
-      tipoPagamentoArrematante: arrematante.tipoPagamento,
-      tipoPagamentoLote: loteArrematado?.tipoPagamento,
-      tipoPagamentoAuction: auction.tipoPagamento,
-      valorLiquido: fatura.valorLiquido
-    });
-    
     // Para à vista, retornar valor total
     if (tipoPagamento === "a_vista") {
       return fatura.valorLiquido;
@@ -741,14 +707,7 @@ function Faturas() {
           if (now > dataEntrada && arrematante?.percentualJurosAtraso) {
             const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
             if (mesesAtraso >= 1) {
-              const valorComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
-              console.log('📊 [Faturas - entrada COM juros]', {
-                valorEntrada,
-                mesesAtraso,
-                percentualJuros: arrematante.percentualJurosAtraso,
-                valorComJuros
-              });
-              return valorComJuros;
+              return calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
             }
           }
         }
@@ -850,15 +809,6 @@ function Faturas() {
         arrematante?.parcelasSimples || 0
       );
       
-      console.log('📊 [Faturas - calcularValorTotalLeilaoComJuros - início]', {
-        arrematante: arrematante.nome,
-        valorPagarNumerico: arrematante.valorPagarNumerico,
-        valorEntrada,
-        valorParaParcelas,
-        estruturaParcelas,
-        quantidadeParcelas
-      });
-      
       const parcelasPagas = arrematante.parcelasPagas || 0;
 
       // Calcular valor da entrada (com juros se atrasada)
@@ -918,11 +868,6 @@ function Faturas() {
           valorTotalComJuros += estruturaParcelas[i]?.valor || 0;
         }
       }
-      
-      console.log('📊 [Faturas - calcularValorTotalLeilaoComJuros - resultado]', {
-        arrematante: arrematante.nome,
-        valorTotalComJuros
-      });
     } else {
       // Parcelamento simples - usar estrutura real de parcelas
       const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
