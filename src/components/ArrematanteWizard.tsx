@@ -1047,11 +1047,13 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
             
             const percentualComissao = initial.auction?.percentualComissaoLeiloeiro || 0;
             const valorComissao = percentualComissao > 0 ? valorTotalMercadoria * (percentualComissao / 100) : 0;
-            const valorTotalGeral = valorTotalMercadoria + valorComissao;
+            
+            // ✅ Para configuração de parcelas, usar apenas valor das parcelas + parte proporcional da comissão (SEM entrada)
+            const valorParaDividir = valorTotalParcelas + (valorComissao * (valorTotalParcelas / valorTotalMercadoria));
             
             // ✅ Calcular parcelas necessárias (permitindo parcela residual)
-            const parcelasCompletas = Math.floor(valorTotalGeral / valorLanceParsed);
-            const valorResidual = valorTotalGeral - (parcelasCompletas * valorLanceParsed);
+            const parcelasCompletas = Math.floor(valorParaDividir / valorLanceParsed);
+            const valorResidual = valorParaDividir - (parcelasCompletas * valorLanceParsed);
             const parcelasNecessarias = valorResidual > 0 ? parcelasCompletas + 1 : parcelasCompletas;
             
             logger.debug('🔍 [VALIDAÇÃO ENTRADA+PARCELAMENTO - RESIDUAL]', {
@@ -2225,9 +2227,14 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                   const valorComissao = percentualComissao > 0 ? valorTotalMercadoria * (percentualComissao / 100) : 0;
                   const valorTotalGeral = valorTotalMercadoria + valorComissao;
                   
+                  // ✅ Para entrada + parcelamento, calcular parcelas apenas sobre o valor das parcelas (sem entrada)
+                  const valorParaDividir = values.tipoPagamento === 'entrada_parcelamento' 
+                    ? valorTotalParcelas + (valorComissao * (valorTotalParcelas / valorTotalMercadoria)) // Proporcional à parcela da comissão
+                    : valorTotalGeral;
+                  
                   // ✅ Calcular parcelas necessárias (permitindo parcela residual)
-                  const parcelasCompletas = Math.floor(valorTotalGeral / valorLanceParsed);
-                  const valorResidual = valorTotalGeral - (parcelasCompletas * valorLanceParsed);
+                  const parcelasCompletas = Math.floor(valorParaDividir / valorLanceParsed);
+                  const valorResidual = valorParaDividir - (parcelasCompletas * valorLanceParsed);
                   const parcelasNecessarias = valorResidual > 0 ? parcelasCompletas + 1 : parcelasCompletas;
                   
                   const triplas = values.parcelasTriplas || 0;
@@ -2243,7 +2250,7 @@ export function ArrematanteWizard({ initial, onSubmit, onCancel, onDeleteArremat
                       <p className="text-sm text-red-600">
                         A configuração de parcelas não está compatível. O total calculado ({somaCalculada}) precisa ser igual a {parcelasNecessarias} parcelas
                         <span className="block text-xs mt-1 text-gray-600">
-                          Total Geral: {currency.format(valorTotalGeral)} ÷ Lance: {currency.format(valorLanceParsed)} = {parcelasCompletas} parcelas completas
+                          {values.tipoPagamento === 'entrada_parcelamento' ? 'Valor das Parcelas' : 'Total Geral'}: {currency.format(valorParaDividir)} ÷ Lance: {currency.format(valorLanceParsed)} = {parcelasCompletas} parcelas completas
                           {valorResidual > 0 && (
                             <span> + 1 parcela residual de {currency.format(valorResidual)}</span>
                           )}
