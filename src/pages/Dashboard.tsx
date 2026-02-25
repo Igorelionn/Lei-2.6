@@ -631,7 +631,15 @@ export default function Dashboard() {
             if (now > dataEntrada && arrematante?.percentualJurosAtraso) {
               const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
               if (mesesAtraso >= 1) {
-                valorAReceber += calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+                const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+                valorAReceber += valorEntradaComJuros;
+                console.log('📊 [Dashboard - Entrada com juros]', {
+                  arrematante: arrematante.nome,
+                  valorEntrada,
+                  mesesAtraso,
+                  percentualJuros: arrematante.percentualJurosAtraso,
+                  valorEntradaComJuros
+                });
               } else {
                 valorAReceber += valorEntrada;
               }
@@ -646,20 +654,31 @@ export default function Dashboard() {
           if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) {
             const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
             
+            let totalParcelasComJuros = 0;
             for (let i = 0; i < quantidadeParcelas; i++) {
               const valorDaParcela = estruturaParcelas[i]?.valor || 0;
               const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal, 23, 59, 59);
               if (now > parcelaDate && arrematante?.percentualJurosAtraso) {
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1) {
-                  valorAReceber += calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                  const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                  valorAReceber += valorComJuros;
+                  totalParcelasComJuros += valorComJuros;
                 } else {
                   valorAReceber += valorDaParcela;
+                  totalParcelasComJuros += valorDaParcela;
                 }
               } else {
                 valorAReceber += valorDaParcela;
+                totalParcelasComJuros += valorDaParcela;
               }
             }
+            console.log('📊 [Dashboard - Parcelas mensais]', {
+              arrematante: arrematante.nome,
+              quantidadeParcelas,
+              totalParcelasComJuros,
+              estruturaParcelas
+            });
           } else {
             // Sem data de vencimento mensal, somar todas as parcelas
             for (let i = 0; i < quantidadeParcelas; i++) {
@@ -697,6 +716,13 @@ export default function Dashboard() {
           }
         }
         
+        console.log('📊 [Dashboard - Total entrada_parcelamento]', {
+          arrematante: arrematante.nome,
+          valorAReceber,
+          valorEntrada,
+          valorParaParcelas,
+          parcelasPagas
+        });
         return total + valorAReceber;
       } else {
         // Para parcelamento simples, calcular parcelas restantes com estrutura real (juros)
@@ -745,6 +771,11 @@ export default function Dashboard() {
 
   // Usar cálculos locais para evitar duplicatas
   // ✅ Incluir patrocínios pendentes no total a receber
+  console.log('📊 [Dashboard - Total a Receber]', {
+    localTotalAReceber,
+    totalPatrociniosPendentes,
+    totalReceiverNumber: localTotalAReceber + totalPatrociniosPendentes
+  });
   const totalReceiverNumber = localTotalAReceber + totalPatrociniosPendentes;
   const auctionCostsNumber = stats?.total_custos || 0;
   const overdueCount = localOverdueCount;

@@ -1958,17 +1958,6 @@ function Arrematantes() {
             arrematante?.parcelasSimples || 0
           );
           
-          console.log('📊 [Arrematantes - calcFinanceiro - totalAtrasado]', {
-            arrematante: arrematante.nome,
-            valorTotal,
-            valorEntrada,
-            valorParaParcelas,
-            estruturaParcelas,
-            parcelasTriplas: arrematante?.parcelasTriplas,
-            parcelasDuplas: arrematante?.parcelasDuplas,
-            parcelasSimples: arrematante?.parcelasSimples
-          });
-          
           // Calcular quantas parcelas estão atrasadas
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const now = new Date();
@@ -2029,6 +2018,18 @@ function Arrematantes() {
               }
             }
           }
+          
+          console.log('📊 [Arrematantes - calcFinanceiro - totalAtrasado]', {
+            arrematante: arrematante.nome,
+            valorTotal,
+            valorEntrada,
+            valorParaParcelas,
+            valorAtrasado,
+            estruturaParcelas,
+            parcelasTriplas: arrematante?.parcelasTriplas,
+            parcelasDuplas: arrematante?.parcelasDuplas,
+            parcelasSimples: arrematante?.parcelasSimples
+          });
           
           const novoSum = Math.round((sum + valorAtrasado) * 100) / 100;
           return novoSum;
