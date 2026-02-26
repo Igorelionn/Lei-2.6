@@ -1569,6 +1569,21 @@ Atenciosamente,
             arrematante?.parcelasSimples || 0
           );
           
+          console.log('📊 [DIAGNÓSTICO - Estrutura Base]', {
+            arrematante: arrematante?.nome,
+            valorTotal,
+            valorEntrada,
+            valorParaParcelas,
+            parcelasTriplas: arrematante?.parcelasTriplas,
+            parcelasDuplas: arrematante?.parcelasDuplas,
+            parcelasSimples: arrematante?.parcelasSimples,
+            estruturaParcelas: estruturaParcelas.map((p, i) => ({
+              index: i + 1,
+              valor: p.valor,
+              tipo: p.tipo
+            }))
+          });
+          
           // Se entrada não foi paga, somar valor da entrada (com juros se aplicável)
           if (parcelasPagas === 0) {
             // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
@@ -1581,6 +1596,14 @@ Atenciosamente,
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1 && arrematante.percentualJurosAtraso) {
                   const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
+                  console.log('📊 [DIAGNÓSTICO - Entrada com juros]', {
+                    valorEntrada,
+                    mesesAtraso,
+                    percentualJuros: arrematante.percentualJurosAtraso,
+                    valorEntradaComJuros,
+                    acumuladoAntes: valorTotalEmAtraso,
+                    acumuladoDepois: Math.round((valorTotalEmAtraso + valorEntradaComJuros) * 100) / 100
+                  });
                   // ✅ CORREÇÃO: Arredondar ao acumular
                   valorTotalEmAtraso = Math.round((valorTotalEmAtraso + valorEntradaComJuros) * 100) / 100;
                 } else {
@@ -1611,6 +1634,15 @@ Atenciosamente,
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1 && arrematante.percentualJurosAtraso) {
                   const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
+                  console.log('📊 [DIAGNÓSTICO - Parcela com juros]', {
+                    parcela: i + 1,
+                    valorOriginal: valorDaParcela,
+                    mesesAtraso,
+                    percentualJuros: arrematante.percentualJurosAtraso,
+                    valorComJuros,
+                    acumuladoAntes: valorTotalEmAtraso,
+                    acumuladoDepois: Math.round((valorTotalEmAtraso + valorComJuros) * 100) / 100
+                  });
                   // ✅ CORREÇÃO: Arredondar ao acumular
                   valorTotalEmAtraso = Math.round((valorTotalEmAtraso + valorComJuros) * 100) / 100;
                 } else {
@@ -1620,6 +1652,12 @@ Atenciosamente,
               }
             }
           }
+          
+          console.log('📊 [DIAGNÓSTICO - TOTAL FINAL]', {
+            arrematante: arrematante?.nome,
+            valorTotalEmAtraso,
+            breakdown: 'Entrada + 6 parcelas mensais (todas com juros progressivos)'
+          });
           
         } else if (tipoPagamento === 'parcelamento' || !tipoPagamento) {
           const parcelasPagas = arrematante.parcelasPagas || 0;
