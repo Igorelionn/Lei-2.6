@@ -6012,8 +6012,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
               const now = new Date();
               
               // Verificar tipo de pagamento
-              const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
-              const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
+              const tipoPagamento = arrematante.tipoPagamento;
               
               // ✅ Para entrada_parcelamento, calcular estrutura apenas sobre valor das parcelas
               const valorEntrada = arrematante.valorEntrada ? 
@@ -6036,7 +6035,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
               
               // Se é entrada_parcelamento, adicionar entrada primeiro
               if (tipoPagamento === 'entrada_parcelamento') {
-                const dataEntradaConfig = arrematante.dataEntrada || loteArrematado?.dataEntrada;
+                const dataEntradaConfig = arrematante.dataEntrada;
                 const dataEntrada = dataEntradaConfig ? new Date(dataEntradaConfig + 'T23:59:59') : null;
                 const entradaPaga = (arrematante.parcelasPagas || 0) > 0;
                 
@@ -6145,8 +6144,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
               const valorTotal = arrematante.valorPagarNumerico || 0;
               
               // Verificar tipo de pagamento
-              const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
-              const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
+              const tipoPagamento = arrematante.tipoPagamento;
               
               // Para entrada_parcelamento, calcular estrutura apenas sobre valor das parcelas
               const valorEntrada = arrematante.valorEntrada ? 
