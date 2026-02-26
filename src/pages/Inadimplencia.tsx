@@ -2617,7 +2617,8 @@ Arthur Lira Leilões`;
                             })()}. {(() => {
                               const arrematante = selectedArrematante.arrematante;
                               const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
-                              const tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
+                              // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+                              const tipoPagamento = arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || 'parcelamento';
                               const parcelasPagas = arrematante?.parcelasPagas || 0;
                               const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
                               
@@ -2642,7 +2643,8 @@ Arthur Lira Leilões`;
                         <strong>Situação Atual:</strong> {(() => {
                           const arrematante = selectedArrematante.arrematante;
                           const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
-                          const tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
+                          // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+                          const tipoPagamento = arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || 'parcelamento';
                           const parcelasPagas = arrematante?.parcelasPagas || 0;
                           const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
                           const now = new Date();
@@ -2701,12 +2703,13 @@ Arthur Lira Leilões`;
                 </div>
 
                        {/* Detalhamento dos Pagamentos em Dia */}
-                            {(() => {
-                         // Usar dados reais do arrematante
-                              const arrematante = selectedArrematante.arrematante;
-                              const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
-                         const _tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
-                         const parcelasPagas = arrematante?.parcelasPagas || 0;
+                   {(() => {
+                   // Usar dados reais do arrematante
+                        const arrematante = selectedArrematante.arrematante;
+                        const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
+                   // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
+                   const _tipoPagamento = arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || 'parcelamento';
+                   const parcelasPagas = arrematante?.parcelasPagas || 0;
                          
                          // Baseado nos dados reais: todos os pagamentos foram COM ATRASO
                          // Então não há pagamentos "em dia" para mostrar
