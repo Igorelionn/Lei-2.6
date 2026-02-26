@@ -4746,6 +4746,11 @@ function Arrematantes() {
                                 } else {
                                   // ✅ Valor de cada parcela (entrada e parcelas são independentes)
                                   const valorTotal = selectedArrematanteForPayment.valorPagarNumerico;
+                                  const valorEntrada = selectedArrematanteForPayment.valorEntrada ? 
+                                    parseCurrencyToNumber(selectedArrematanteForPayment.valorEntrada) : 0;
+                                  
+                                  // ✅ CORREÇÃO: Calcular estrutura apenas sobre valor das parcelas (SEM entrada)
+                                  const valorParaParcelas = valorTotal - valorEntrada;
                                   
                                   // Verificar se usa estrutura de parcelas (triplas/duplas/simples)
                                   const temEstruturaParcelas = selectedArrematanteForPayment?.usaFatorMultiplicador && 
@@ -4757,17 +4762,17 @@ function Arrematantes() {
                                   if (temEstruturaParcelas) {
                                     // Calcular estrutura e pegar valor da parcela específica
                                     const estrutura = calcularEstruturaParcelas(
-                                      valorTotal,
+                                      valorParaParcelas,
                                       selectedArrematanteForPayment?.parcelasTriplas || 0,
                                       selectedArrematanteForPayment?.parcelasDuplas || 0,
                                       selectedArrematanteForPayment?.parcelasSimples || 0
                                     );
                                     // Index - 1 porque a primeira entrada não está na estrutura
                                     const parcelaIndex = index - 1;
-                                    valorPorParcela = estrutura[parcelaIndex]?.valor || (valorTotal / selectedArrematanteForPayment.quantidadeParcelas);
+                                    valorPorParcela = estrutura[parcelaIndex]?.valor || (valorParaParcelas / selectedArrematanteForPayment.quantidadeParcelas);
                                   } else {
                                     // Sistema antigo: divisão simples
-                                    valorPorParcela = valorTotal / selectedArrematanteForPayment.quantidadeParcelas;
+                                    valorPorParcela = valorParaParcelas / selectedArrematanteForPayment.quantidadeParcelas;
                                   }
                                   
                                   if (wasOverdue && selectedArrematanteForPayment.percentualJurosAtraso) {
@@ -4878,10 +4883,16 @@ function Arrematantes() {
                          selectedArrematanteForPayment?.parcelasDuplas != null || 
                          selectedArrematanteForPayment?.parcelasSimples != null);
                       
+                      // ✅ CORREÇÃO: Para entrada_parcelamento, calcular estrutura apenas sobre valor das parcelas
+                      const valorTotal = selectedArrematanteForPayment.valorPagarNumerico;
+                      const valorEntradaCalc = selectedArrematanteForPayment.valorEntrada ? 
+                        parseCurrencyToNumber(selectedArrematanteForPayment.valorEntrada) : 0;
+                      const valorParaParcelas = tipoPagamento === 'entrada_parcelamento' ? valorTotal - valorEntradaCalc : valorTotal;
+                      
                       let estruturaParcelas: Array<{ numero: number; tipo: string; valor: number; multiplicador: number }> = [];
                       if (temEstruturaParcelas) {
                         estruturaParcelas = calcularEstruturaParcelas(
-                          selectedArrematanteForPayment.valorPagarNumerico,
+                          valorParaParcelas,
                           selectedArrematanteForPayment?.parcelasTriplas || 0,
                           selectedArrematanteForPayment?.parcelasDuplas || 0,
                           selectedArrematanteForPayment?.parcelasSimples || 0
@@ -4914,15 +4925,13 @@ function Arrematantes() {
                             }
                             totalComJuros += valorEntrada;
                           } else {
-                            const valorTotal = selectedArrematanteForPayment.valorPagarNumerico;
-                            
-                            // Calcular valor da parcela baseado na estrutura
+                            // Calcular valor da parcela baseado na estrutura (sem entrada)
                             let valorPorParcela = 0;
                             if (temEstruturaParcelas) {
                               const parcelaIndex = monthIndex - 1; // -1 porque entrada é o primeiro item
-                              valorPorParcela = estruturaParcelas[parcelaIndex]?.valor || (valorTotal / selectedArrematanteForPayment.quantidadeParcelas);
+                              valorPorParcela = estruturaParcelas[parcelaIndex]?.valor || (valorParaParcelas / selectedArrematanteForPayment.quantidadeParcelas);
                             } else {
-                              valorPorParcela = valorTotal / selectedArrematanteForPayment.quantidadeParcelas;
+                              valorPorParcela = valorParaParcelas / selectedArrematanteForPayment.quantidadeParcelas;
                             }
                             
                             if (wasOverdue && selectedArrematanteForPayment.percentualJurosAtraso) {
