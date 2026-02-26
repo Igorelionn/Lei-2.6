@@ -512,16 +512,17 @@ Atenciosamente,
     allArrematanteAuctions.forEach(auction => {
       const arrematante = auction.arrematante;
       const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
-      // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
-      const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || "parcelamento";
       
-      // 🔍 LOG TEMPORÁRIO: Verificar tipoPagamento
-      console.log('🔍 [generateArrematanteAnalysis] tipoPagamento:', {
-        arrematante: arrematante.nome,
-        'arrematante.tipoPagamento': arrematante.tipoPagamento,
-        'loteArrematado?.tipoPagamento': loteArrematado?.tipoPagamento,
-        'tipoPagamento FINAL': tipoPagamento
-      });
+      // ✅ CORREÇÃO INTELIGENTE: Inferir tipoPagamento baseado nos dados
+      let tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || "parcelamento";
+      
+      // Se tem valorEntrada ou dataEntrada, é CLARAMENTE entrada_parcelamento
+      const temValorEntrada = arrematante.valorEntrada !== undefined && arrematante.valorEntrada !== null;
+      const temDataEntrada = arrematante.dataEntrada !== undefined && arrematante.dataEntrada !== null;
+      
+      if ((temValorEntrada || temDataEntrada) && tipoPagamento !== 'a_vista') {
+        tipoPagamento = 'entrada_parcelamento';
+      }
       
       // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
       const valorTotal = obterValorTotalArrematante({
@@ -1361,14 +1362,25 @@ Atenciosamente,
         // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
         const tipoPagamentoCheck = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
         
+        // ✅ CORREÇÃO INTELIGENTE: Inferir baseado nos dados
+        let tipoPagamento = tipoPagamentoCheck || 'parcelamento';
+        const temValorEntrada = arrematante.valorEntrada !== undefined && arrematante.valorEntrada !== null;
+        const temDataEntrada = arrematante.dataEntrada !== undefined && arrematante.dataEntrada !== null;
+        
+        if ((temValorEntrada || temDataEntrada) && tipoPagamento !== 'a_vista') {
+          tipoPagamento = 'entrada_parcelamento';
+        }
+        
+        const tipoPagamentoFinal = tipoPagamento;
+        
         // Calcular próxima parcela baseado no tipo de pagamento e qual está mais atrasado
         let proximaParcelaCalc = parcelasPagasAtual + 1;
         let isEntradaAtrasada = false;
         let isPrimeiraParcelaAtrasada = false;
         
-        if (tipoPagamentoCheck === 'a_vista') {
+        if (tipoPagamentoFinal === 'a_vista') {
           proximaParcelaCalc = 1; // Para pagamento à vista, sempre é a primeira e única parcela
-        } else if (tipoPagamentoCheck === 'entrada_parcelamento') {
+        } else if (tipoPagamentoFinal === 'entrada_parcelamento') {
           if (parcelasPagasAtual === 0) {
             // Verificar se entrada e primeira parcela estão ambas atrasadas
             const now = new Date();
@@ -1426,7 +1438,7 @@ Atenciosamente,
         let parcelaDetails = null;
         let ambosAtrasados = false;
         
-        if (tipoPagamentoCheck === 'entrada_parcelamento' && parcelasPagasAtual === 0) {
+        if (tipoPagamentoFinal === 'entrada_parcelamento' && parcelasPagasAtual === 0) {
           const now = new Date();
           
           let dataEntrada = null;
@@ -1494,7 +1506,7 @@ Atenciosamente,
         let parcelasAtrasadas = 0;
         let entradaAtrasada = false;
         
-        if (tipoPagamentoCheck === 'entrada_parcelamento') {
+        if (tipoPagamentoFinal === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           const mesInicio = arrematante.mesInicioPagamento;
@@ -1566,14 +1578,6 @@ Atenciosamente,
         
         // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
         const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
-        
-        // 🔍 LOG TEMPORÁRIO: Verificar tipoPagamento no cálculo de overdueAmount
-        console.log('🔍 [overdueAuctions] Calculando valorTotalEmAtraso:', {
-          arrematante: arrematante.nome,
-          'arrematante.tipoPagamento': arrematante.tipoPagamento,
-          'loteArrematado?.tipoPagamento': loteArrematado?.tipoPagamento,
-          'tipoPagamento FINAL': tipoPagamento
-        });
         
         if (tipoPagamento === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
@@ -3092,11 +3096,6 @@ function InadimplenciaReportPDF({
   const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
   const reportData = useMemo(() => {
-    console.log('🔍 [InadimplenciaReportPDF] Iniciando geração do relatório', {
-      arrematanteId,
-      totalArrematantes: filteredOverdueAuctions.length
-    });
-    
     if (arrematanteId === 'todos') {
       // Relatório geral de todos os inadimplentes
       const totalOverdue = filteredOverdueAuctions.length;
@@ -3115,15 +3114,6 @@ function InadimplenciaReportPDF({
     } else {
       // Relatório individual
       const arrematante = filteredOverdueAuctions.find(a => a.id === arrematanteId);
-      
-      // 🔍 LOG: Verificar dados do arrematante no relatório
-      console.log('🔍 [InadimplenciaReportPDF] Dados do arrematante individual:', {
-        nome: arrematante?.arrematante?.nome,
-        'arrematante.tipoPagamento': arrematante?.arrematante?.tipoPagamento,
-        'lote tipoPagamento': arrematante?.lotes?.find((l: LoteInfo) => l.id === arrematante?.arrematante?.loteId)?.tipoPagamento,
-        overdueAmount: arrematante?.overdueAmount
-      });
-      
       return {
         type: 'individual',
         arrematante
