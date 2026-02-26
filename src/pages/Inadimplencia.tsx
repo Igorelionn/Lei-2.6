@@ -535,8 +535,17 @@ Atenciosamente,
         quantidadeParcelas = 1;
         parcelasPagas = arrematante.pago ? 1 : 0;
         valorPorParcela = valorTotal;
+      } else if (tipoPagamento === "entrada_parcelamento") {
+        // ✅ CORREÇÃO: Para entrada_parcelamento, calcular valor por parcela SEM entrada
+        const valorEntrada = arrematante.valorEntrada ? 
+          (typeof arrematante.valorEntrada === 'string' ? 
+            parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
+            arrematante.valorEntrada) : 
+          valorTotal * 0.3;
+        const valorParaParcelas = valorTotal - valorEntrada;
+        valorPorParcela = valorParaParcelas / quantidadeParcelas;
       } else {
-        // Para parcelamento: usar a lógica existente
+        // Para parcelamento simples: usar a lógica existente
         valorPorParcela = valorTotal / quantidadeParcelas;
       }
       
@@ -576,11 +585,13 @@ Atenciosamente,
               parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
-          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
-          const valorPorParcelaBase = valorTotal / quantidadeParcelas;
+          
+          // ✅ CORREÇÃO: Calcular parcelas apenas sobre o valor SEM entrada
+          const valorParaParcelas = valorTotal - valorEntradaBase;
+          const valorPorParcelaBase = valorParaParcelas / quantidadeParcelas;
           
           // Calcular juros da entrada
-          const dataEntrada = loteArrematado?.dataEntrada || auction.dataEntrada;
+          const dataEntrada = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada;
           if (dataEntrada) {
             const hoje = new Date();
             const vencimentoEntrada = new Date(dataEntrada);
