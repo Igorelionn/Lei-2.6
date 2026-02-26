@@ -25,19 +25,29 @@ export function calcularValorTotal(lance: number, fator: number, percentualComis
 
 /**
  * Calcular estrutura de parcelas baseado em quantidades de cada tipo
+ * ✅ VERSÃO MELHORADA: Se não houver configuração (triplas/duplas/simples = 0),
+ * usa quantidadeParcelas como fallback para criar parcelas simples
  */
 export function calcularEstruturaParcelas(
   valorTotal: number,
   parcelasTriplas: number = 0,
   parcelasDuplas: number = 0,
-  parcelasSimples: number = 0
+  parcelasSimples: number = 0,
+  quantidadeParcelasFallback?: number
 ): ParcelaInfo[] {
   const estrutura: ParcelaInfo[] = [];
   
   // Calcular unidades totais
   const totalUnidades = (parcelasTriplas * 3) + (parcelasDuplas * 2) + (parcelasSimples * 1);
   
-  if (totalUnidades === 0) return [];
+  // ✅ CORREÇÃO: Se não há configuração mas há quantidadeParcelasFallback, usar parcelas simples
+  if (totalUnidades === 0) {
+    if (quantidadeParcelasFallback && quantidadeParcelasFallback > 0) {
+      // Criar estrutura com parcelas simples iguais
+      return calcularEstruturaParcelas(valorTotal, 0, 0, quantidadeParcelasFallback);
+    }
+    return [];
+  }
   
   const valorBase = valorTotal / totalUnidades;
   let numeroParcela = 1;

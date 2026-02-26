@@ -175,7 +175,8 @@ const calcularValorTotalComJuros = (arrematante: ArrematanteInfo, auction: Aucti
         valorBase,
         arrematante.parcelasTriplas || 0,
         arrematante.parcelasDuplas || 0,
-        arrematante.parcelasSimples || 0
+        arrematante.parcelasSimples || 0,
+        quantidadeParcelas // ✅ Fallback para parcelas simples
       );
       
       // Calcular juros da entrada
@@ -208,7 +209,8 @@ const calcularValorTotalComJuros = (arrematante: ArrematanteInfo, auction: Aucti
         valorBase,
         arrematante.parcelasTriplas || 0,
         arrematante.parcelasDuplas || 0,
-        arrematante.parcelasSimples || 0
+        arrematante.parcelasSimples || 0,
+        quantidadeParcelas // ✅ Fallback para parcelas simples
       );
       
       const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
@@ -3198,7 +3200,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           valorParaParcelas,
           auction.arrematante?.parcelasTriplas || 0,
           auction.arrematante?.parcelasDuplas || 0,
-          auction.arrematante?.parcelasSimples || 0
+          auction.arrematante?.parcelasSimples || 0,
+          quantidadeParcelas // ✅ Fallback para parcelas simples
         );
         
         // Valor da primeira parcela como referência (para exibição)
@@ -3340,7 +3343,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               valorTotal,
               auction.arrematante?.parcelasTriplas || 0,
               auction.arrematante?.parcelasDuplas || 0,
-              auction.arrematante?.parcelasSimples || 0
+              auction.arrematante?.parcelasSimples || 0,
+              quantidadeParcelas // ✅ Fallback para parcelas simples
             );
             
             // Valor da primeira parcela como referência (para exibição)
@@ -3474,9 +3478,9 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               const loteComprado = auction.arrematante?.loteId ? auction.lotes?.find(lote => lote.id === auction.arrematante.loteId) : null;
               // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante e inferir baseado nos dados
               let tipoPagamento = auction.arrematante?.tipoPagamento || loteComprado?.tipoPagamento || auction.tipoPagamento || 'parcelamento';
-              const _temValorEntrada = auction.arrematante?.valorEntrada !== undefined && auction.arrematante?.valorEntrada !== null;
-              const _temDataEntrada = auction.arrematante?.dataEntrada !== undefined && auction.arrematante?.dataEntrada !== null;
-              if ((_temValorEntrada || _temDataEntrada) && tipoPagamento !== 'a_vista') {
+              const _temVE2 = auction.arrematante?.valorEntrada !== undefined && auction.arrematante?.valorEntrada !== null;
+              const _temDE2 = auction.arrematante?.dataEntrada !== undefined && auction.arrematante?.dataEntrada !== null;
+              if ((_temVE2 || _temDE2) && tipoPagamento !== 'a_vista') {
                 tipoPagamento = 'entrada_parcelamento';
               }
               const gravidade = auction.detalhesInadimplencia?.diasAtraso > 60 ? 'Crítica' : auction.detalhesInadimplencia?.diasAtraso > 30 ? 'Alta' : 'Moderada';
@@ -3492,8 +3496,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                 }
                 const detalhes = auction.detalhesInadimplencia;
                 if (detalhes && detalhes.valorEmAtraso > 0) {
-                  const estruturaParcelas = calcularEstruturaParcelas(valorBase, arrematante.parcelasTriplas || 0, arrematante.parcelasDuplas || 0, arrematante.parcelasSimples || 0);
-                  const quantidadeParcelas = arrematante.quantidadeParcelas || 0;
+                  const estruturaParcelas = calcularEstruturaParcelas(valorBase, arrematante.parcelasTriplas || 0, arrematante.parcelasDuplas || 0, arrematante.parcelasSimples || 0, quantidadeParcelas);
                   const parcelasPagas = arrematante.parcelasPagas || 0;
                   let primeiraParcelaPendente = 0;
                   if (tipoPagamento === 'entrada_parcelamento') {
@@ -3935,7 +3938,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                   const st = isCurrentlyOverdue ? 'em atraso' : 'pendente de quitação';
                   if (tipoPagamento === 'entrada_parcelamento') {
                     const ve = arrematante?.valorEntrada ? (typeof arrematante.valorEntrada === 'string' ? parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : arrematante.valorEntrada) : valorTotal * 0.3;
-                    const ep = calcularEstruturaParcelas(valorTotal, arrematante?.parcelasTriplas || 0, arrematante?.parcelasDuplas || 0, arrematante?.parcelasSimples || 0);
+                    const ep = calcularEstruturaParcelas(valorTotal, arrematante?.parcelasTriplas || 0, arrematante?.parcelasDuplas || 0, arrematante?.parcelasSimples || 0, quantidadeParcelas);
                     let pea = 0; let eea = false; let vtpa = 0;
                     try { const h = new Date(); const de = loteArrematado?.dataEntrada || auction.dataEntrada; if (de && parcelasPagas === 0) { const v = new Date(de); v.setHours(23,59,59,999); eea = h > v; }
                       if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) { const [y, m] = arrematante.mesInicioPagamento.split('-').map(Number); const pi = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
@@ -3947,7 +3950,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                     if (pea > 0) return `${pea} parcela${pea > 1 ? 's' : ''} (${formatCurrency(vtpa)}) ${st}.`;
                     return `Próximo vencimento${vt} de ${formatCurrency(parcelasPagas === 0 ? ve : vpp)} ${st}.`;
                   }
-                  const ep = calcularEstruturaParcelas(valorTotal, arrematante?.parcelasTriplas || 0, arrematante?.parcelasDuplas || 0, arrematante?.parcelasSimples || 0);
+                  const ep = calcularEstruturaParcelas(valorTotal, arrematante?.parcelasTriplas || 0, arrematante?.parcelasDuplas || 0, arrematante?.parcelasSimples || 0, quantidadeParcelas);
                   let pea = 0; let vtpa = 0;
                   try { const h = new Date(); if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) { const [y, m] = arrematante.mesInicioPagamento.split('-').map(Number);
                     for (let i = parcelasPagas; i < quantidadeParcelas; i++) { const d = new Date(y, m - 1 + i, arrematante.diaVencimentoMensal); d.setHours(23,59,59,999); if (h > d) { pea++; vtpa += ep[i]?.valor || 0; } else break; } }
@@ -4278,7 +4281,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                 if (!mi) return [];
                 const result: { numero: string; vencimento: string; valorBase: number; valorComJuros: number; isPaga: boolean; isAtrasada: boolean; temJuros: boolean }[] = [];
                 try {
-                  const ep = calcularEstruturaParcelas(vt, arrematante.parcelasTriplas || 0, arrematante.parcelasDuplas || 0, arrematante.parcelasSimples || 0);
+                  const ep = calcularEstruturaParcelas(vt, arrematante.parcelasTriplas || 0, arrematante.parcelasDuplas || 0, arrematante.parcelasSimples || 0, qp);
                   if (tipoPagamento === 'entrada_parcelamento') {
                     const veb = arrematante.valorEntrada ? (typeof arrematante.valorEntrada === 'string' ? parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : arrematante.valorEntrada) : vt * 0.3;
                     const de = loteArrematado?.dataEntrada || auction.dataEntrada;

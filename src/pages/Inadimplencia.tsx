@@ -512,17 +512,7 @@ Atenciosamente,
     allArrematanteAuctions.forEach(auction => {
       const arrematante = auction.arrematante;
       const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
-      
-      // ✅ CORREÇÃO INTELIGENTE: Inferir tipoPagamento baseado nos dados
-      let tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || "parcelamento";
-      
-      // Se tem valorEntrada ou dataEntrada, é CLARAMENTE entrada_parcelamento
-      const temValorEntrada = arrematante.valorEntrada !== undefined && arrematante.valorEntrada !== null;
-      const temDataEntrada = arrematante.dataEntrada !== undefined && arrematante.dataEntrada !== null;
-      
-      if ((temValorEntrada || temDataEntrada) && tipoPagamento !== 'a_vista') {
-        tipoPagamento = 'entrada_parcelamento';
-      }
+      const tipoPagamento = loteArrematado?.tipoPagamento || "parcelamento";
       
       // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
       const valorTotal = obterValorTotalArrematante({
@@ -545,17 +535,8 @@ Atenciosamente,
         quantidadeParcelas = 1;
         parcelasPagas = arrematante.pago ? 1 : 0;
         valorPorParcela = valorTotal;
-      } else if (tipoPagamento === "entrada_parcelamento") {
-        // ✅ CORREÇÃO: Para entrada_parcelamento, calcular valor por parcela SEM entrada
-        const valorEntrada = arrematante.valorEntrada ? 
-          (typeof arrematante.valorEntrada === 'string' ? 
-            parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
-            arrematante.valorEntrada) : 
-          valorTotal * 0.3;
-        const valorParaParcelas = valorTotal - valorEntrada;
-        valorPorParcela = valorParaParcelas / quantidadeParcelas;
       } else {
-        // Para parcelamento simples: usar a lógica existente
+        // Para parcelamento: usar a lógica existente
         valorPorParcela = valorTotal / quantidadeParcelas;
       }
       
@@ -595,13 +576,11 @@ Atenciosamente,
               parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
               arrematante.valorEntrada) : 
             valorTotal * 0.3;
-          
-          // ✅ CORREÇÃO: Calcular parcelas apenas sobre o valor SEM entrada
-          const valorParaParcelas = valorTotal - valorEntradaBase;
-          const valorPorParcelaBase = valorParaParcelas / quantidadeParcelas;
+          // ✅ Valor da parcela = valorTotal / quantidade (SEM subtrair entrada)
+          const valorPorParcelaBase = valorTotal / quantidadeParcelas;
           
           // Calcular juros da entrada
-          const dataEntrada = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada;
+          const dataEntrada = loteArrematado?.dataEntrada || auction.dataEntrada;
           if (dataEntrada) {
             const hoje = new Date();
             const vencimentoEntrada = new Date(dataEntrada);
@@ -1281,7 +1260,8 @@ Atenciosamente,
                 valorParaParcelas,
                 arrematante?.parcelasTriplas || 0,
                 arrematante?.parcelasDuplas || 0,
-                arrematante?.parcelasSimples || 0
+                arrematante?.parcelasSimples || 0,
+                quantidadeParcelas // ✅ Fallback para parcelas simples
               );
               
               // Calcular datas
@@ -1362,25 +1342,14 @@ Atenciosamente,
         // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
         const tipoPagamentoCheck = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
         
-        // ✅ CORREÇÃO INTELIGENTE: Inferir baseado nos dados
-        let tipoPagamento = tipoPagamentoCheck || 'parcelamento';
-        const temValorEntrada = arrematante.valorEntrada !== undefined && arrematante.valorEntrada !== null;
-        const temDataEntrada = arrematante.dataEntrada !== undefined && arrematante.dataEntrada !== null;
-        
-        if ((temValorEntrada || temDataEntrada) && tipoPagamento !== 'a_vista') {
-          tipoPagamento = 'entrada_parcelamento';
-        }
-        
-        const tipoPagamentoFinal = tipoPagamento;
-        
         // Calcular próxima parcela baseado no tipo de pagamento e qual está mais atrasado
         let proximaParcelaCalc = parcelasPagasAtual + 1;
         let isEntradaAtrasada = false;
         let isPrimeiraParcelaAtrasada = false;
         
-        if (tipoPagamentoFinal === 'a_vista') {
+        if (tipoPagamentoCheck === 'a_vista') {
           proximaParcelaCalc = 1; // Para pagamento à vista, sempre é a primeira e única parcela
-        } else if (tipoPagamentoFinal === 'entrada_parcelamento') {
+        } else if (tipoPagamentoCheck === 'entrada_parcelamento') {
           if (parcelasPagasAtual === 0) {
             // Verificar se entrada e primeira parcela estão ambas atrasadas
             const now = new Date();
@@ -1438,7 +1407,7 @@ Atenciosamente,
         let parcelaDetails = null;
         let ambosAtrasados = false;
         
-        if (tipoPagamentoFinal === 'entrada_parcelamento' && parcelasPagasAtual === 0) {
+        if (tipoPagamentoCheck === 'entrada_parcelamento' && parcelasPagasAtual === 0) {
           const now = new Date();
           
           let dataEntrada = null;
@@ -1506,7 +1475,7 @@ Atenciosamente,
         let parcelasAtrasadas = 0;
         let entradaAtrasada = false;
         
-        if (tipoPagamentoFinal === 'entrada_parcelamento') {
+        if (tipoPagamentoCheck === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
           const mesInicio = arrematante.mesInicioPagamento;
@@ -1576,7 +1545,14 @@ Atenciosamente,
         // Calcular o valor total em atraso (entrada + todas as parcelas atrasadas)
         let valorTotalEmAtraso = 0;
         
-        // tipoPagamento já declarado acima com inferência inteligente (entrada_parcelamento)
+        // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante e inferir baseado nos dados
+        let tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || 'parcelamento';
+        const _temVEInad = arrematante.valorEntrada !== undefined && arrematante.valorEntrada !== null;
+        const _temDEInad = arrematante.dataEntrada !== undefined && arrematante.dataEntrada !== null;
+        if ((_temVEInad || _temDEInad) && tipoPagamento !== 'a_vista') {
+          tipoPagamento = 'entrada_parcelamento';
+        }
+        
         if (tipoPagamento === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
@@ -1596,7 +1572,8 @@ Atenciosamente,
             valorParaParcelas,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
-            arrematante?.parcelasSimples || 0
+            arrematante?.parcelasSimples || 0,
+            quantidadeParcelas // ✅ Fallback para parcelas simples
           );
           
           // Se entrada não foi paga, somar valor da entrada (com juros se aplicável)
@@ -1663,7 +1640,8 @@ Atenciosamente,
             valorTotal,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
-            arrematante?.parcelasSimples || 0
+            arrematante?.parcelasSimples || 0,
+            quantidadeParcelas // ✅ Fallback para parcelas simples
           );
           
           const mesInicio = arrematante.mesInicioPagamento;
@@ -2635,8 +2613,7 @@ Arthur Lira Leilões`;
                             })()}. {(() => {
                               const arrematante = selectedArrematante.arrematante;
                               const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
-                              // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
-                              const tipoPagamento = arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || 'parcelamento';
+                              const tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
                               const parcelasPagas = arrematante?.parcelasPagas || 0;
                               const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
                               
@@ -2661,8 +2638,7 @@ Arthur Lira Leilões`;
                         <strong>Situação Atual:</strong> {(() => {
                           const arrematante = selectedArrematante.arrematante;
                           const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
-                          // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
-                          const tipoPagamento = arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || 'parcelamento';
+                          const tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
                           const parcelasPagas = arrematante?.parcelasPagas || 0;
                           const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
                           const now = new Date();
@@ -2721,13 +2697,12 @@ Arthur Lira Leilões`;
                 </div>
 
                        {/* Detalhamento dos Pagamentos em Dia */}
-                   {(() => {
-                   // Usar dados reais do arrematante
-                        const arrematante = selectedArrematante.arrematante;
-                        const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
-                   // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
-                   const _tipoPagamento = arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || 'parcelamento';
-                   const parcelasPagas = arrematante?.parcelasPagas || 0;
+                            {(() => {
+                         // Usar dados reais do arrematante
+                              const arrematante = selectedArrematante.arrematante;
+                              const loteArrematado = selectedArrematante.lotes?.find((lote: LoteInfo) => lote.id === arrematante?.loteId);
+                         const _tipoPagamento = loteArrematado?.tipoPagamento || 'parcelamento';
+                         const parcelasPagas = arrematante?.parcelasPagas || 0;
                          
                          // Baseado nos dados reais: todos os pagamentos foram COM ATRASO
                          // Então não há pagamentos "em dia" para mostrar
