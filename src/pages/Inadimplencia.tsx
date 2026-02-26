@@ -3071,7 +3071,8 @@ function InadimplenciaReportPDF({
 }) {
   const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
-  const reportData = useMemo(() => {
+      const reportData = useMemo(() => {
+    // ✅ Versão atualizada - 2026-02-25 21:25
     if (arrematanteId === 'todos') {
       // Relatório geral de todos os inadimplentes
       const totalOverdue = filteredOverdueAuctions.length;
