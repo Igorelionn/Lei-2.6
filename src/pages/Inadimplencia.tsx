@@ -1576,7 +1576,9 @@ Atenciosamente,
         // Calcular o valor total em atraso (entrada + todas as parcelas atrasadas)
         let valorTotalEmAtraso = 0;
         
-        // Usar tipoPagamento já definido acima (linha 1366-1371)
+        // ✅ CORREÇÃO: Usar tipoPagamentoFinal (já com inferência inteligente de entrada_parcelamento)
+        const tipoPagamento = tipoPagamentoFinal;
+        
         if (tipoPagamento === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
