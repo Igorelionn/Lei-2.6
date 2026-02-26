@@ -3140,7 +3140,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         ? auction.lotes?.find(lote => lote.id === auction.arrematante.loteId)
         : null;
       
-      const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+      // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante e inferir baseado nos dados
+      let tipoPagamento = auction.arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || 'parcelamento';
+      const _temVE = auction.arrematante?.valorEntrada !== undefined && auction.arrematante?.valorEntrada !== null;
+      const _temDE = auction.arrematante?.dataEntrada !== undefined && auction.arrematante?.dataEntrada !== null;
+      if ((_temVE || _temDE) && tipoPagamento !== 'a_vista') {
+        tipoPagamento = 'entrada_parcelamento';
+      }
       const valorTotal = auction.arrematante?.valorPagarNumerico || 
         (auction.arrematante?.valorPagar ? parseCurrencyToNumber(auction.arrematante.valorPagar) : 0);
       
@@ -3176,7 +3182,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           };
         }
       } else if (tipoPagamento === 'entrada_parcelamento') {
-        const dataEntrada = loteArrematado?.dataEntrada || auction.dataEntrada;
+        // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+        const dataEntrada = auction.arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada;
         const valorEntrada = auction.arrematante?.valorEntrada ? 
           (typeof auction.arrematante.valorEntrada === 'string' ? 
             parseCurrencyToNumber(auction.arrematante.valorEntrada) : 
@@ -3185,16 +3192,17 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
         
         const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || 12;
         
-        // Calcular estrutura de parcelas usando configuração real (triplas, duplas, simples)
+        // ✅ CORREÇÃO: Calcular estrutura SEM entrada (valorTotal - valorEntrada)
+        const valorParaParcelas = valorTotal - valorEntrada;
         const estruturaParcelas = calcularEstruturaParcelas(
-          valorTotal,
+          valorParaParcelas,
           auction.arrematante?.parcelasTriplas || 0,
           auction.arrematante?.parcelasDuplas || 0,
           auction.arrematante?.parcelasSimples || 0
         );
         
         // Valor da primeira parcela como referência (para exibição)
-        const valorPorParcela = estruturaParcelas[0]?.valor || (valorTotal / quantidadeParcelas);
+        const valorPorParcela = estruturaParcelas[0]?.valor || (valorParaParcelas / quantidadeParcelas);
         const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
         
         const hoje = new Date();
@@ -3464,7 +3472,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           <div>
             {inadimplentes.slice(0, 3).map((auction, index) => {
               const loteComprado = auction.arrematante?.loteId ? auction.lotes?.find(lote => lote.id === auction.arrematante.loteId) : null;
-              const tipoPagamento = loteComprado?.tipoPagamento || auction.tipoPagamento;
+              // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante e inferir baseado nos dados
+              let tipoPagamento = auction.arrematante?.tipoPagamento || loteComprado?.tipoPagamento || auction.tipoPagamento || 'parcelamento';
+              const _temValorEntrada = auction.arrematante?.valorEntrada !== undefined && auction.arrematante?.valorEntrada !== null;
+              const _temDataEntrada = auction.arrematante?.dataEntrada !== undefined && auction.arrematante?.dataEntrada !== null;
+              if ((_temValorEntrada || _temDataEntrada) && tipoPagamento !== 'a_vista') {
+                tipoPagamento = 'entrada_parcelamento';
+              }
               const gravidade = auction.detalhesInadimplencia?.diasAtraso > 60 ? 'Crítica' : auction.detalhesInadimplencia?.diasAtraso > 30 ? 'Alta' : 'Moderada';
 
               // Cálculo do valor total (mantido intacto)
