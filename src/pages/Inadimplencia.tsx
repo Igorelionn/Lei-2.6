@@ -515,6 +515,14 @@ Atenciosamente,
       // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
       const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || "parcelamento";
       
+      // 🔍 LOG TEMPORÁRIO: Verificar tipoPagamento
+      console.log('🔍 [generateArrematanteAnalysis] tipoPagamento:', {
+        arrematante: arrematante.nome,
+        'arrematante.tipoPagamento': arrematante.tipoPagamento,
+        'loteArrematado?.tipoPagamento': loteArrematado?.tipoPagamento,
+        'tipoPagamento FINAL': tipoPagamento
+      });
+      
       // NOVO: Usar função que considera fator multiplicador e comissão do leiloeiro
       const valorTotal = obterValorTotalArrematante({
         usaFatorMultiplicador: arrematante?.usaFatorMultiplicador,
