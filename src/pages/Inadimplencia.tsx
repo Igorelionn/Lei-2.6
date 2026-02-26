@@ -1567,6 +1567,14 @@ Atenciosamente,
         // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
         const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
         
+        // 🔍 LOG TEMPORÁRIO: Verificar tipoPagamento no cálculo de overdueAmount
+        console.log('🔍 [overdueAuctions] Calculando valorTotalEmAtraso:', {
+          arrematante: arrematante.nome,
+          'arrematante.tipoPagamento': arrematante.tipoPagamento,
+          'loteArrematado?.tipoPagamento': loteArrematado?.tipoPagamento,
+          'tipoPagamento FINAL': tipoPagamento
+        });
+        
         if (tipoPagamento === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
@@ -3084,6 +3092,11 @@ function InadimplenciaReportPDF({
   const currency = new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" });
 
   const reportData = useMemo(() => {
+    console.log('🔍 [InadimplenciaReportPDF] Iniciando geração do relatório', {
+      arrematanteId,
+      totalArrematantes: filteredOverdueAuctions.length
+    });
+    
     if (arrematanteId === 'todos') {
       // Relatório geral de todos os inadimplentes
       const totalOverdue = filteredOverdueAuctions.length;
@@ -3102,6 +3115,15 @@ function InadimplenciaReportPDF({
     } else {
       // Relatório individual
       const arrematante = filteredOverdueAuctions.find(a => a.id === arrematanteId);
+      
+      // 🔍 LOG: Verificar dados do arrematante no relatório
+      console.log('🔍 [InadimplenciaReportPDF] Dados do arrematante individual:', {
+        nome: arrematante?.arrematante?.nome,
+        'arrematante.tipoPagamento': arrematante?.arrematante?.tipoPagamento,
+        'lote tipoPagamento': arrematante?.lotes?.find((l: LoteInfo) => l.id === arrematante?.arrematante?.loteId)?.tipoPagamento,
+        overdueAmount: arrematante?.overdueAmount
+      });
+      
       return {
         type: 'individual',
         arrematante
