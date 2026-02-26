@@ -6009,23 +6009,93 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
               const valorTotal = arrematante.valorPagarNumerico || 0;
               const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
               const percentualJuros = arrematante.percentualJurosAtraso || 0;
+              const now = new Date();
+              
+              // Verificar tipo de pagamento
+              const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
+              const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
+              
+              // ✅ Para entrada_parcelamento, calcular estrutura apenas sobre valor das parcelas
+              const valorEntrada = arrematante.valorEntrada ? 
+                (typeof arrematante.valorEntrada === 'string' ? 
+                  parseFloat(arrematante.valorEntrada.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.')) : 
+                  arrematante.valorEntrada) : 
+                valorTotal * 0.3;
+              
+              const valorParaParcelas = tipoPagamento === 'entrada_parcelamento' ? valorTotal - valorEntrada : valorTotal;
               
               // Calcular estrutura de parcelas
               const estrutura = calcularEstruturaParcelas(
-                valorTotal,
+                valorParaParcelas,
                 arrematante.parcelasTriplas || 0,
                 arrematante.parcelasDuplas || 0,
                 arrematante.parcelasSimples || 0
               );
               
-              return estrutura.map((parcela, index) => {
-                const isPaga = index < (arrematante.parcelasPagas || 0);
+              const parcelas = [];
+              
+              // Se é entrada_parcelamento, adicionar entrada primeiro
+              if (tipoPagamento === 'entrada_parcelamento') {
+                const dataEntradaConfig = arrematante.dataEntrada || loteArrematado?.dataEntrada;
+                const dataEntrada = dataEntradaConfig ? new Date(dataEntradaConfig + 'T23:59:59') : null;
+                const entradaPaga = (arrematante.parcelasPagas || 0) > 0;
+                
+                let valorEntradaExibir = valorEntrada;
+                let entradaTemJuros = false;
+                
+                if (!entradaPaga && dataEntrada && now > dataEntrada && percentualJuros) {
+                  const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+                  if (mesesAtraso >= 1) {
+                    valorEntradaExibir = calcularJurosProgressivos(valorEntrada, dataEntrada.toISOString().split('T')[0], percentualJuros);
+                    entradaTemJuros = true;
+                  }
+                }
+                
+                parcelas.push(
+                  <div key="entrada" className="bg-white rounded-lg p-3 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex break-inside-avoid" style={{ border: `1px solid ${entradaPaga ? '#d1fae5' : entradaTemJuros ? '#fecaca' : '#e5e7eb'}`, pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '8px' }}>
+                    <div className="flex items-center gap-3 flex-1">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${entradaPaga ? 'bg-green-50' : entradaTemJuros ? 'bg-red-50' : 'bg-gray-50'}`}>
+                        <span className={`text-xs font-medium ${entradaPaga ? 'text-green-700' : entradaTemJuros ? 'text-red-700' : 'text-gray-700'}`}>
+                          E
+                        </span>
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-light text-gray-900">Entrada</span>
+                        </div>
+                        <div className="text-xs text-gray-500">
+                          {dataEntrada ? dataEntrada.toLocaleDateString('pt-BR') : 'Data não definida'}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-base font-light text-gray-900" style={{ fontWeight: '300' }}>
+                        {formatCurrency(valorEntradaExibir)}
+                      </div>
+                      <div className="flex items-center justify-end gap-1">
+                        <div className={`w-1.5 h-1.5 rounded-full ${entradaPaga ? 'bg-green-500' : entradaTemJuros ? 'bg-red-500' : 'bg-gray-400'}`}></div>
+                        <span className={`text-xs font-light ${entradaPaga ? 'text-green-600' : entradaTemJuros ? 'text-red-600' : 'text-gray-600'}`}>
+                          {entradaPaga ? 'Paga' : entradaTemJuros ? 'Atrasada' : 'Pendente'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              
+              // Adicionar parcelas mensais
+              estrutura.forEach((parcela, index) => {
+                const parcelasPagas = arrematante.parcelasPagas || 0;
+                const isPaga = tipoPagamento === 'entrada_parcelamento' 
+                  ? index < (parcelasPagas - 1) // -1 porque entrada conta como 1
+                  : index < parcelasPagas;
+                
                 const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + index, arrematante.diaVencimentoMensal || 15);
                 const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
                 const valorComJuros = calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
                 const temJuros = valorComJuros > parcela.valor;
                 
-                return (
+                parcelas.push(
                   <div key={index} className="bg-white rounded-lg p-3 flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex break-inside-avoid" style={{ border: `1px solid ${isPaga ? '#d1fae5' : temJuros ? '#fecaca' : '#e5e7eb'}`, pageBreakInside: 'avoid', breakInside: 'avoid', marginBottom: '8px' }}>
                     <div className="flex items-center gap-3 flex-1">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center ${isPaga ? 'bg-green-50' : temJuros ? 'bg-red-50' : 'bg-gray-50'}`}>
@@ -6040,8 +6110,8 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
                         </div>
                         <div className="text-xs text-gray-500">
                           {dataVencimento.toLocaleDateString('pt-BR')}
+                        </div>
                       </div>
-                    </div>
                     </div>
                     <div className="text-right">
                       <div className="text-base font-light text-gray-900" style={{ fontWeight: '300' }}>
@@ -6051,12 +6121,14 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
                         <div className={`w-1.5 h-1.5 rounded-full ${isPaga ? 'bg-green-500' : temJuros ? 'bg-red-500' : 'bg-gray-400'}`}></div>
                         <span className={`text-xs font-light ${isPaga ? 'text-green-600' : temJuros ? 'text-red-600' : 'text-gray-600'}`}>
                           {isPaga ? 'Paga' : temJuros ? 'Atrasada' : 'Pendente'}
-                      </span>
+                        </span>
                       </div>
                     </div>
                   </div>
                 );
               });
+              
+              return parcelas;
             })()}
           </div>
         </div>
@@ -6071,26 +6143,71 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
           <div className="bg-gray-50 rounded-lg p-5" style={{ border: '1px solid #e5e7eb' }}>
                 {(() => {
               const valorTotal = arrematante.valorPagarNumerico || 0;
+              
+              // Verificar tipo de pagamento
+              const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
+              const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
+              
+              // Para entrada_parcelamento, calcular estrutura apenas sobre valor das parcelas
+              const valorEntrada = arrematante.valorEntrada ? 
+                (typeof arrematante.valorEntrada === 'string' ? 
+                  parseFloat(arrematante.valorEntrada.replace(/[^\d.,]/g, '').replace(/\./g, '').replace(',', '.')) : 
+                  arrematante.valorEntrada) : 
+                valorTotal * 0.3;
+              
+              const valorParaParcelas = tipoPagamento === 'entrada_parcelamento' ? valorTotal - valorEntrada : valorTotal;
+              
               const estrutura = calcularEstruturaParcelas(
-                valorTotal,
+                valorParaParcelas,
                 arrematante.parcelasTriplas || 0,
                 arrematante.parcelasDuplas || 0,
                 arrematante.parcelasSimples || 0
               );
               
               const parcelasPagas = arrematante.parcelasPagas || 0;
-              const parcelasPagasData = estrutura.slice(0, parcelasPagas);
-              const totalPago = parcelasPagasData.reduce((sum, p) => sum + p.valor, 0);
               
-              // Agrupar parcelas pagas por tipo
-              const tiposContagem = parcelasPagasData.reduce((acc, p) => {
-                acc[p.tipo] = (acc[p.tipo] || 0) + 1;
-                return acc;
-              }, {} as Record<string, number>);
+              // Para entrada_parcelamento, se parcelasPagas > 0, incluir entrada no total
+              let totalPago = 0;
+              let descricaoTipos = '';
               
-              const descricaoTipos = Object.entries(tiposContagem)
-                .map(([tipo, count]) => `${count}x ${tipo}`)
-                .join(' + ');
+              if (tipoPagamento === 'entrada_parcelamento' && parcelasPagas > 0) {
+                // Entrada foi paga
+                totalPago += valorEntrada;
+                
+                if (parcelasPagas > 1) {
+                  // Parcelas mensais também foram pagas
+                  const parcelasPagasData = estrutura.slice(0, parcelasPagas - 1);
+                  totalPago += parcelasPagasData.reduce((sum, p) => sum + p.valor, 0);
+                  
+                  // Agrupar por tipo
+                  const tiposContagem = parcelasPagasData.reduce((acc, p) => {
+                    acc[p.tipo] = (acc[p.tipo] || 0) + 1;
+                    return acc;
+                  }, {} as Record<string, number>);
+                  
+                  const tiposDesc = Object.entries(tiposContagem)
+                    .map(([tipo, count]) => `${count}x ${tipo}`)
+                    .join(' + ');
+                  
+                  descricaoTipos = `Entrada + ${tiposDesc}`;
+                } else {
+                  descricaoTipos = 'Entrada';
+                }
+              } else {
+                // Parcelamento simples
+                const parcelasPagasData = estrutura.slice(0, parcelasPagas);
+                totalPago = parcelasPagasData.reduce((sum, p) => sum + p.valor, 0);
+                
+                // Agrupar parcelas pagas por tipo
+                const tiposContagem = parcelasPagasData.reduce((acc, p) => {
+                  acc[p.tipo] = (acc[p.tipo] || 0) + 1;
+                  return acc;
+                }, {} as Record<string, number>);
+                
+                descricaoTipos = Object.entries(tiposContagem)
+                  .map(([tipo, count]) => `${count}x ${tipo}`)
+                  .join(' + ');
+              }
               
               return (
                 <div className="flex-col gap-2 sm:flex-row sm:items-center sm:justify-between flex">
