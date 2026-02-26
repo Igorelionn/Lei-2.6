@@ -3282,15 +3282,6 @@ function Arrematantes() {
                                 // Para entrada + parcelamento, se parcelasPagas > 0, a entrada já foi paga
                                 const parcelaIndex = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
                                 valorParcelaBase = estrutura[parcelaIndex]?.valor || ((arrematante.valorPagarNumerico || 0) / quantidadeParcelas);
-                                
-                                console.log('📊 [Arrematantes - valorParcelaBase calculado]', {
-                                  arrematante: arrematante.nome,
-                                  valorPagarNumerico: arrematante.valorPagarNumerico,
-                                  valorEntrada,
-                                  valorParaParcelas,
-                                  parcelaIndex,
-                                  valorParcelaBase
-                                });
                               } else {
                                 // Sistema antigo: divisão simples
                                 valorParcelaBase = (arrematante.valorPagarNumerico || 0) / quantidadeParcelas;
@@ -3301,26 +3292,12 @@ function Arrematantes() {
                                 // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
                                 const dataEntradaConfig = arrematante?.dataEntrada || loteArrematado?.dataEntrada;
                                 
-                                console.log('📊 [Arrematantes - valorParcelaExibir - entrada]', {
-                                  arrematante: arrematante.nome,
-                                  valorEntrada,
-                                  dataEntradaConfig,
-                                  dataEntradaArrematante: arrematante?.dataEntrada,
-                                  dataEntradaLote: loteArrematado?.dataEntrada,
-                                  percentualJurosAtraso: arrematante.percentualJurosAtraso
-                                });
-                                
                                 if (!arrematante.pago && dataEntradaConfig) {
                                   const dataEntrada = new Date(dataEntradaConfig + 'T23:59:59');
                                   if (now > dataEntrada && arrematante.percentualJurosAtraso) {
                                     const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                                     if (mesesAtraso >= 1) {
                                       valorParcelaExibir = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
-                                      console.log('📊 [Arrematantes - entrada COM juros]', {
-                                        valorEntrada,
-                                        mesesAtraso,
-                                        valorComJuros: valorParcelaExibir
-                                      });
                                     } else {
                                       valorParcelaExibir = valorEntrada;
                                     }
@@ -3406,14 +3383,6 @@ function Arrematantes() {
                                       arrematante?.parcelasSimples || 0
                                     );
                                     
-                                    console.log('📊 [Arrematantes - display valorTotal - entrada não paga]', {
-                                      arrematante: arrematante.nome,
-                                      valorPagarNumerico: arrematante.valorPagarNumerico,
-                                      valorEntrada,
-                                      valorParaParcelas,
-                                      estrutura
-                                    });
-                                    
                                     // ✅ Aplicar juros em cada parcela atrasada
                                     if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
                                       const [startYear, startMonth] = arrematante.mesInicioPagamento.split('-').map(Number);
@@ -3482,10 +3451,6 @@ function Arrematantes() {
                                   }
                                 }
                                 
-                                console.log('📊 [Arrematantes - display valorTotal - resultado]', {
-                                  arrematante: arrematante.nome,
-                                  valorTotalPendente
-                                });
                               } else if (tipoPagamento === 'parcelamento') {
                                 // Parcelamento simples: somar parcelas pendentes
                                 if (temEstruturaParcelas) {
