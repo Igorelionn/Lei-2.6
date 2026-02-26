@@ -809,18 +809,6 @@ function Faturas() {
         arrematante?.parcelasSimples || 0
       );
       
-      console.log('📊 [Faturas - calcularValorTotalLeilaoComJuros]', {
-        arrematante: arrematante.nome,
-        valorPagarNumerico: arrematante.valorPagarNumerico,
-        valorEntrada,
-        valorParaParcelas,
-        quantidadeParcelas,
-        estruturaParcelas: estruturaParcelas.map((p, i) => ({ index: i, valor: p.valor, tipo: p.tipo })),
-        parcelasTriplas: arrematante?.parcelasTriplas,
-        parcelasDuplas: arrematante?.parcelasDuplas,
-        parcelasSimples: arrematante?.parcelasSimples
-      });
-      
       const parcelasPagas = arrematante.parcelasPagas || 0;
 
       // Calcular valor da entrada (com juros se atrasada)
@@ -835,13 +823,6 @@ function Faturas() {
             if (mesesAtraso >= 1) {
               const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
               valorTotalComJuros += valorEntradaComJuros;
-              console.log('📊 [Faturas - entrada com juros]', {
-                valorEntrada,
-                mesesAtraso,
-                percentualJuros: arrematante.percentualJurosAtraso,
-                valorEntradaComJuros,
-                valorTotalComJurosAcumulado: valorTotalComJuros
-              });
             } else {
               valorTotalComJuros += valorEntrada;
             }
@@ -868,13 +849,6 @@ function Faturas() {
             if (mesesAtraso >= 1) {
               const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
               valorTotalComJuros += valorComJuros;
-              console.log('📊 [Faturas - parcela com juros]', {
-                parcela: i + 1,
-                valorOriginal: valorDaParcela,
-                mesesAtraso,
-                percentualJuros: arrematante.percentualJurosAtraso,
-                valorComJuros
-              });
             } else {
               valorTotalComJuros += valorDaParcela;
             }
@@ -944,14 +918,6 @@ function Faturas() {
       // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
       const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
       let valorAReceber = 0;
-      
-      console.log('📊 [Faturas - calcularTotalAReceber - tipoPagamento]', {
-        arrematante: arrematante.nome,
-        tipoPagamento,
-        arrematanteTipo: arrematante.tipoPagamento,
-        loteTipo: loteArrematado?.tipoPagamento,
-        auctionTipo: auction.tipoPagamento
-      });
 
         if (tipoPagamento === "a_vista") {
           // À vista: valor total com juros se atrasado
@@ -1001,13 +967,6 @@ function Faturas() {
                 if (mesesAtraso >= 1) {
                   const valorEntradaComJuros = calcularJurosProgressivos(valorEntrada, arrematante.percentualJurosAtraso, mesesAtraso);
                   valorAReceber += valorEntradaComJuros;
-                  console.log('📊 [Faturas - calcularTotalAReceber - entrada com juros]', {
-                    valorEntrada,
-                    mesesAtraso,
-                    percentualJuros: arrematante.percentualJurosAtraso,
-                    valorEntradaComJuros,
-                    valorAReceberAcumulado: valorAReceber
-                  });
                 } else {
                   valorAReceber += valorEntrada;
                 }
@@ -1041,11 +1000,6 @@ function Faturas() {
                   totalParcelasCalculado += valorDaParcela;
                 }
               }
-              console.log('📊 [Faturas - calcularTotalAReceber - parcelas]', {
-                quantidadeParcelas,
-                totalParcelasCalculado,
-                valorAReceberFinal: valorAReceber
-              });
             } else {
               // Se não tem dados de vencimento, somar valor total das parcelas sem juros
               for (let i = 0; i < quantidadeParcelas; i++) {
@@ -1119,12 +1073,6 @@ function Faturas() {
         }
 
         const valorTotalArrematante = Math.round((total + valorAReceber) * 100) / 100;
-        console.log('📊 [Faturas - calcularTotalAReceber FINAL]', {
-          arrematante: arrematante.nome,
-          valorAReceber,
-          totalAcumulado: total,
-          valorTotalArrematante
-        });
         return valorTotalArrematante;
       }, 0);
   };
