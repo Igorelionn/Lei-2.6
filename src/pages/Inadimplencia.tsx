@@ -1576,9 +1576,7 @@ Atenciosamente,
         // Calcular o valor total em atraso (entrada + todas as parcelas atrasadas)
         let valorTotalEmAtraso = 0;
         
-        // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
-        const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento;
-        
+        // Usar tipoPagamento já definido acima (linha 1366-1371)
         if (tipoPagamento === 'entrada_parcelamento') {
           const parcelasPagas = arrematante.parcelasPagas || 0;
           const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
