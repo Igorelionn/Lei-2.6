@@ -1603,9 +1603,11 @@ Atenciosamente,
                     percentualJuros: arrematante.percentualJurosAtraso,
                     valorEntradaComJuros
                   });
-                  valorTotalEmAtraso += valorEntradaComJuros;
+                  // ✅ CORREÇÃO: Arredondar ao acumular
+                  valorTotalEmAtraso = Math.round((valorTotalEmAtraso + valorEntradaComJuros) * 100) / 100;
                 } else {
-                  valorTotalEmAtraso += valorEntrada;
+                  // ✅ CORREÇÃO: Arredondar ao acumular
+                  valorTotalEmAtraso = Math.round((valorTotalEmAtraso + valorEntrada) * 100) / 100;
                 }
               }
             }
@@ -1638,9 +1640,11 @@ Atenciosamente,
                     percentualJuros: arrematante.percentualJurosAtraso,
                     valorComJuros
                   });
-                  valorTotalEmAtraso += valorComJuros;
+                  // ✅ CORREÇÃO: Arredondar ao acumular
+                  valorTotalEmAtraso = Math.round((valorTotalEmAtraso + valorComJuros) * 100) / 100;
                 } else {
-                  valorTotalEmAtraso += valorDaParcela;
+                  // ✅ CORREÇÃO: Arredondar ao acumular
+                  valorTotalEmAtraso = Math.round((valorTotalEmAtraso + valorDaParcela) * 100) / 100;
                 }
               }
             }
@@ -1684,9 +1688,11 @@ Atenciosamente,
                 const mesesAtraso = Math.max(0, Math.floor((now.getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                 if (mesesAtraso >= 1 && arrematante.percentualJurosAtraso) {
                   const valorComJuros = calcularJurosProgressivos(valorDaParcela, arrematante.percentualJurosAtraso, mesesAtraso);
-                  valorTotalEmAtraso += valorComJuros;
+                  // ✅ CORREÇÃO: Arredondar ao acumular
+                  valorTotalEmAtraso = Math.round((valorTotalEmAtraso + valorComJuros) * 100) / 100;
                 } else {
-                  valorTotalEmAtraso += valorDaParcela;
+                  // ✅ CORREÇÃO: Arredondar ao acumular
+                  valorTotalEmAtraso = Math.round((valorTotalEmAtraso + valorDaParcela) * 100) / 100;
                 }
               } else {
                 break; // Se chegou em uma que não está atrasada, para
@@ -1709,6 +1715,7 @@ Atenciosamente,
             if (now > vencimento) {
               const mesesAtraso = Math.max(0, Math.floor((now.getTime() - vencimento.getTime()) / (1000 * 60 * 60 * 24 * 30)));
               if (mesesAtraso >= 1) {
+                // ✅ CORREÇÃO: Já retorna arredondado de calcularJurosProgressivos
                 valorTotalEmAtraso = calcularJurosProgressivos(valorTotal, arrematante.percentualJurosAtraso, mesesAtraso);
               } else {
                 valorTotalEmAtraso = valorTotal;
