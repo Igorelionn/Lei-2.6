@@ -1896,6 +1896,10 @@ function Faturas() {
                                 const valorPorParcela = (valorTotal - valorEntrada) / (arrematante?.quantidadeParcelas || 12);
                                 return formatCurrency(valorPorParcela);
                               })()}
+                              <span className="text-xs text-slate-500 ml-2">(base)</span>
+                            </p>
+                            <p className="text-xs text-amber-600 mt-1 italic">
+                              * Parcelas podem ter valores diferentes
                             </p>
                           </div>
                           <div>
@@ -1907,32 +1911,48 @@ function Faturas() {
                           <div>
                             <Label className="text-xs font-medium text-gray-500">Pagas</Label>
                             <p className="text-sm font-medium text-gray-900">
-                              {(arrematante?.parcelasPagas || 0) - 1 < 0 ? 0 : (arrematante?.parcelasPagas || 0) - 1} de {arrematante?.quantidadeParcelas || 12}
+                              {(arrematante?.parcelasPagas || 0) - 1 < 0 ? 0 : (arrematante?.parcelasPagas || 0) - 1} de {(arrematante?.quantidadeParcelas || 12) + 1}
+                              <span className="text-xs text-slate-500 ml-2">(inclui entrada)</span>
                             </p>
                           </div>
                           <div>
                             <Label className="text-xs font-medium text-gray-500">Status</Label>
                             <div>
                               {(() => {
-                                const parcelasPagas = (arrematante?.parcelasPagas || 0) - 1; // Subtrai 1 porque entrada não conta
+                                const parcelasPagas = arrematante?.parcelasPagas || 0;
                                 const quantidadeParcelas = arrematante?.quantidadeParcelas || 12;
                                 const dataAtual = new Date();
                                 const mesInicio = arrematante?.mesInicioPagamento;
                                 const diaVencimento = arrematante?.diaVencimentoMensal || 15;
+                                const dataEntrada = arrematante?.dataEntrada;
                                 
-                                // Calcular parcelas atrasadas
+                                // Calcular parcelas atrasadas (incluindo entrada)
                                 const parcelasAtrasadas = [];
                                 let hasParcelasAtrasadas = false;
                                 
+                                // ✅ Verificar se entrada está atrasada
+                                if (dataEntrada && parcelasPagas === 0) {
+                                  const dataVencimentoEntrada = new Date(dataEntrada + 'T23:59:59');
+                                  if (dataAtual > dataVencimentoEntrada) {
+                                    hasParcelasAtrasadas = true;
+                                    parcelasAtrasadas.push({
+                                      numero: 'Entrada',
+                                      data: dataVencimentoEntrada.toLocaleDateString('pt-BR'),
+                                      diasAtraso: Math.floor((dataAtual.getTime() - dataVencimentoEntrada.getTime()) / (1000 * 60 * 60 * 24))
+                                    });
+                                  }
+                                }
+                                
+                                // Verificar parcelas mensais atrasadas
                                 if (mesInicio && diaVencimento) {
                                   const [ano, mes] = mesInicio.split('-').map(Number);
+                                  const parcelasPagasMensais = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
                                   
-                                  // Verificar todas as parcelas que deveriam ter sido pagas
                                   for (let i = 0; i < quantidadeParcelas; i++) {
                                     const dataVencimentoParcela = new Date(ano, mes - 1 + i, diaVencimento);
                                     dataVencimentoParcela.setHours(23, 59, 59, 999);
                                     
-                                    if (dataAtual > dataVencimentoParcela && i >= parcelasPagas) {
+                                    if (dataAtual > dataVencimentoParcela && i >= parcelasPagasMensais) {
                                       hasParcelasAtrasadas = true;
                                       parcelasAtrasadas.push({
                                         numero: i + 1,
@@ -1946,7 +1966,7 @@ function Faturas() {
                                 let statusText = '';
                                 let statusColor = 'text-slate-800';
                                 
-                                if (parcelasPagas === quantidadeParcelas) {
+                                if (parcelasPagas === quantidadeParcelas + 1) {
                                   statusText = 'Todas Pagas';
                                   statusColor = 'text-green-700';
                                 } else if (hasParcelasAtrasadas) {
@@ -1968,12 +1988,12 @@ function Faturas() {
                                     {hasParcelasAtrasadas && (
                                       <div className="mt-2 text-xs text-red-600">
                                         <p className="font-medium">
-                                          {parcelasAtrasadas.length} parcela{parcelasAtrasadas.length > 1 ? 's' : ''} atrasada{parcelasAtrasadas.length > 1 ? 's' : ''}:
+                                          {parcelasAtrasadas.length} {parcelasAtrasadas.length === 1 ? 'pagamento atrasado' : 'pagamentos atrasados'}:
                                         </p>
                                         <ul className="mt-1 space-y-1">
                                           {parcelasAtrasadas.map((parcela, index) => (
                                             <li key={index} className="text-xs">
-                                              {parcela.numero}ª Parcela - Venceu em {parcela.data} ({parcela.diasAtraso} dias de atraso)
+                                              {typeof parcela.numero === 'string' ? parcela.numero : `${parcela.numero}ª Parcela`} - Venceu em {parcela.data} ({parcela.diasAtraso} dias de atraso)
                                             </li>
                                           ))}
                                         </ul>
