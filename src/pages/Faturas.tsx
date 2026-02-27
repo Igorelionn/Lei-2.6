@@ -305,7 +305,8 @@ function Faturas() {
                 valorParaParcelas,
                 arrematante?.parcelasTriplas || 0,
                 arrematante?.parcelasDuplas || 0,
-                arrematante?.parcelasSimples || 0
+                arrematante?.parcelasSimples || 0,
+                quantidadeParcelasTotal // Fallback para parcelas simples
               );
             }
             
@@ -492,7 +493,8 @@ function Faturas() {
                 valorTotal,
                 arrematante?.parcelasTriplas || 0,
                 arrematante?.parcelasDuplas || 0,
-                arrematante?.parcelasSimples || 0
+                arrematante?.parcelasSimples || 0,
+                quantidadeParcelas || 12 // Fallback para parcelas simples
               );
             }
             
@@ -677,15 +679,16 @@ function Faturas() {
   const calcularValorDaParcela = (fatura: FaturaExtendida): number => {
     const auction = auctions.find(a => a.id === fatura.auctionId);
     const arrematante = auction?.arrematante;
-    
+
     if (!arrematante || !fatura.parcela) {
       return fatura.valorLiquido;
     }
-    
+
     const loteArrematado = auction.lotes?.find((lote: LoteInfo) => lote.id === arrematante.loteId);
     // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante
     const tipoPagamento = arrematante.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || "parcelamento";
-    
+    const quantidadeParcelas = arrematante.quantidadeParcelas || loteArrematado?.parcelasPadrao || 12;
+
     // Para à vista, retornar valor total
     if (tipoPagamento === "a_vista") {
       return fatura.valorLiquido;
@@ -720,7 +723,8 @@ function Faturas() {
           valorParaParcelas,
           arrematante?.parcelasTriplas || 0,
           arrematante?.parcelasDuplas || 0,
-          arrematante?.parcelasSimples || 0
+          arrematante?.parcelasSimples || 0,
+          quantidadeParcelas // Fallback para parcelas simples
         );
         
         // Parcelas mensais (parcela 2 = índice 0, parcela 3 = índice 1, etc.)
@@ -751,7 +755,8 @@ function Faturas() {
       arrematante.valorPagarNumerico,
       arrematante?.parcelasTriplas || 0,
       arrematante?.parcelasDuplas || 0,
-      arrematante?.parcelasSimples || 0
+      arrematante?.parcelasSimples || 0,
+      quantidadeParcelas // Fallback para parcelas simples
     );
     
     const indice = fatura.parcela - 1;
@@ -806,7 +811,8 @@ function Faturas() {
         valorParaParcelas,
         arrematante?.parcelasTriplas || 0,
         arrematante?.parcelasDuplas || 0,
-        arrematante?.parcelasSimples || 0
+        arrematante?.parcelasSimples || 0,
+        quantidadeParcelas // Fallback para parcelas simples
       );
       
       const parcelasPagas = arrematante.parcelasPagas || 0;
@@ -872,7 +878,8 @@ function Faturas() {
         arrematante.valorPagarNumerico,
         arrematante?.parcelasTriplas || 0,
         arrematante?.parcelasDuplas || 0,
-        arrematante?.parcelasSimples || 0
+        arrematante?.parcelasSimples || 0,
+        quantidadeParcelas // Fallback para parcelas simples
       );
       
       if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
@@ -950,7 +957,8 @@ function Faturas() {
             valorParaParcelas,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
-            arrematante?.parcelasSimples || 0
+            arrematante?.parcelasSimples || 0,
+            quantidadeParcelas // Fallback para parcelas simples
           );
           
           const parcelasPagas = arrematante.parcelasPagas || 0;
@@ -1044,7 +1052,8 @@ function Faturas() {
             arrematante.valorPagarNumerico,
             arrematante?.parcelasTriplas || 0,
             arrematante?.parcelasDuplas || 0,
-            arrematante?.parcelasSimples || 0
+            arrematante?.parcelasSimples || 0,
+            quantidadeParcelas // Fallback para parcelas simples
           );
           
           if (arrematante.mesInicioPagamento && arrematante.diaVencimentoMensal) {
