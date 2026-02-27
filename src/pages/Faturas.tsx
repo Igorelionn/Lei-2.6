@@ -2382,7 +2382,15 @@ function Faturas() {
                       }
                       
                       // Para parcelamento
+                      console.log('DEBUG - Verificação inicial:', {
+                        temArrematante: !!arrematante,
+                        mesInicioPagamento: arrematante?.mesInicioPagamento,
+                        tipoPagamento,
+                        quantidadeParcelas: arrematante?.quantidadeParcelas
+                      });
+                      
                       if (!arrematante || !arrematante.mesInicioPagamento) {
+                        console.log('DEBUG - Saindo porque não tem arrematante ou mesInicioPagamento');
                         return (
                           <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                             {formatCurrency(valorBase)}
@@ -2394,9 +2402,17 @@ function Faturas() {
                       const mesNormalizado = normalizarMesInicioPagamento(arrematante.mesInicioPagamento);
                       const [startYear, startMonth] = mesNormalizado.split('-').map(Number);
                       
+                      console.log('DEBUG - Após normalização:', {
+                        quantidadeParcelas,
+                        mesNormalizado,
+                        startYear,
+                        startMonth
+                      });
+                      
                       let valorTotalComJuros = 0;
                       
                       if (tipoPagamento === 'entrada_parcelamento') {
+                        console.log('DEBUG - Entrando no bloco entrada_parcelamento');
                         // ✅ Usar mesmos valores calculados para "Condições de Pagamento"
                         const valorEntradaBase = arrematante.valorEntrada ? 
                           parseCurrencyToNumber(arrematante.valorEntrada) : 
