@@ -4357,7 +4357,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           <div>
             {todasFaturas.slice(0, 10).map(({ auction, arrematante }, index) => {
               const loteArrematado = arrematante?.loteId ? auction.lotes?.find(lote => lote.id === arrematante.loteId) : null;
-              const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+              // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante e inferir
+              let tipoPagamento = arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || 'parcelamento';
+              const _temVE = arrematante?.valorEntrada !== undefined && arrematante?.valorEntrada !== null;
+              const _temDE = arrematante?.dataEntrada !== undefined && arrematante?.dataEntrada !== null;
+              if ((_temVE || _temDE) && tipoPagamento !== 'a_vista') {
+                tipoPagamento = 'entrada_parcelamento';
+              }
               const mercadoriaComprada = loteArrematado && arrematante?.mercadoriaId ? loteArrematado.mercadorias?.find(m => m.id === arrematante.mercadoriaId) : null;
               const valorComJuros = calcularValorTotalComJuros(arrematante, auction);
               const valorBase = arrematante?.valorPagarNumerico || parseFloat(arrematante?.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0');
@@ -4383,14 +4389,18 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                 if (!mi) return [];
                 const result: { numero: string; vencimento: string; valorBase: number; valorComJuros: number; isPaga: boolean; isAtrasada: boolean; temJuros: boolean }[] = [];
                 try {
-                  const ep = calcularEstruturaParcelas(vt, arrematante.parcelasTriplas || 0, arrematante.parcelasDuplas || 0, arrematante.parcelasSimples || 0, qp);
                   if (tipoPagamento === 'entrada_parcelamento') {
                     const veb = arrematante.valorEntrada ? (typeof arrematante.valorEntrada === 'string' ? parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : arrematante.valorEntrada) : vt * 0.3;
-                    const de = loteArrematado?.dataEntrada || auction.dataEntrada;
+                    // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+                    const valorParaParcelas = vt - veb;
+                    const ep = calcularEstruturaParcelas(valorParaParcelas, arrematante.parcelasTriplas || 0, arrematante.parcelasDuplas || 0, arrematante.parcelasSimples || 0, qp);
+                    // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+                    const de = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada;
                     if (de) { const vcj = calcularJurosProgressivos(veb, de, pj); const ip = pp > 0; const ia = !ip && new Date() > new Date(de + 'T23:59:59'); result.push({ numero: 'Entrada', vencimento: new Date(de).toLocaleDateString('pt-BR'), valorBase: veb, valorComJuros: vcj, isPaga: ip, isAtrasada: ia, temJuros: vcj > veb }); }
                     const [sy, sm] = mi.split('-').map(Number);
                     for (let i = 0; i < qp; i++) { const vpd = ep[i]?.valor || 0; const d = new Date(sy, sm - 1 + i, dv); const ds = d.toISOString().split('T')[0]; const vcj = calcularJurosProgressivos(vpd, ds, pj); const ip = (i + 1) < pp; const ia = !ip && new Date() > d; result.push({ numero: `${i + 1}ª Parcela`, vencimento: d.toLocaleDateString('pt-BR'), valorBase: vpd, valorComJuros: vcj, isPaga: ip, isAtrasada: ia, temJuros: vcj > vpd }); }
                   } else {
+                    const ep = calcularEstruturaParcelas(vt, arrematante.parcelasTriplas || 0, arrematante.parcelasDuplas || 0, arrematante.parcelasSimples || 0, qp);
                     const [sy, sm] = mi.split('-').map(Number);
                     for (let i = 0; i < qp; i++) { const vpd = ep[i]?.valor || 0; const d = new Date(sy, sm - 1 + i, dv); const ds = d.toISOString().split('T')[0]; const vcj = calcularJurosProgressivos(vpd, ds, pj); const ip = i < pp; const ia = !ip && new Date() > d; result.push({ numero: `${i + 1}ª Parcela`, vencimento: d.toLocaleDateString('pt-BR'), valorBase: vpd, valorComJuros: vcj, isPaga: ip, isAtrasada: ia, temJuros: vcj > vpd }); }
                   }
@@ -4443,7 +4453,11 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                       {tipoPagamento !== 'a_vista' && (
                         <div style={{ flex: '1 1 180px' }}>
                           <p style={sLabel}>Parcelas</p>
-                          <p style={sValue}>{parcelasPagas} / {quantidadeParcelas}{tipoPagamento === 'entrada_parcelamento' ? ' + entrada' : ''}</p>
+                          <p style={sValue}>
+                            {tipoPagamento === 'entrada_parcelamento' 
+                              ? `${parcelasPagas} / ${quantidadeParcelas + 1}` 
+                              : `${parcelasPagas} / ${quantidadeParcelas}`}
+                          </p>
                         </div>
                       )}
                     </div>
