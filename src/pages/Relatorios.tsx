@@ -135,19 +135,26 @@ const calcularJurosProgressivos = (valorOriginal: number, dataVencimento: string
 // Função auxiliar para calcular valor total com juros
 const calcularValorTotalComJuros = (arrematante: ArrematanteInfo, auction: Auction): number => {
   if (!arrematante) return 0;
-  
+
   const valorBase = arrematante.valorPagarNumerico || parseFloat(arrematante.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0');
   const percentualJuros = arrematante.percentualJurosAtraso || 0;
-  
+
   if (percentualJuros === 0) {
     return valorBase;
   }
-  
-  const loteArrematado = arrematante?.loteId 
+
+  const loteArrematado = arrematante?.loteId
     ? auction.lotes?.find(lote => lote.id === arrematante.loteId)
     : null;
-  const tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
   
+  // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante e inferir
+  let tipoPagamento = arrematante?.tipoPagamento || loteArrematado?.tipoPagamento || auction.tipoPagamento || 'parcelamento';
+  const _temVE = arrematante?.valorEntrada !== undefined && arrematante?.valorEntrada !== null;
+  const _temDE = arrematante?.dataEntrada !== undefined && arrematante?.dataEntrada !== null;
+  if ((_temVE || _temDE) && tipoPagamento !== 'a_vista') {
+    tipoPagamento = 'entrada_parcelamento';
+  }
+
   let valorTotalComJuros = 0;
   
   if (tipoPagamento === 'a_vista') {
@@ -162,31 +169,33 @@ const calcularValorTotalComJuros = (arrematante: ArrematanteInfo, auction: Aucti
     // Para entrada + parcelamento
     const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
     const mesInicioPagamento = arrematante.mesInicioPagamento;
-    
+
     if (mesInicioPagamento) {
-      const valorEntradaBase = arrematante.valorEntrada ? 
-        (typeof arrematante.valorEntrada === 'string' ? 
-          parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : 
-          arrematante.valorEntrada) : 
+      const valorEntradaBase = arrematante.valorEntrada ?
+        (typeof arrematante.valorEntrada === 'string' ?
+          parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) :
+          arrematante.valorEntrada) :
         valorBase * 0.3;
-      
-      // Calcular estrutura de parcelas usando configuração real (triplas, duplas, simples)
+
+      // ✅ CORREÇÃO: Calcular estrutura apenas sobre o valor das parcelas (SEM entrada)
+      const valorParaParcelas = valorBase - valorEntradaBase;
       const estruturaParcelas = calcularEstruturaParcelas(
-        valorBase,
+        valorParaParcelas,
         arrematante.parcelasTriplas || 0,
         arrematante.parcelasDuplas || 0,
         arrematante.parcelasSimples || 0,
         quantidadeParcelas // ✅ Fallback para parcelas simples
       );
-      
+
       // Calcular juros da entrada
-      const dataEntrada = loteArrematado?.dataEntrada || auction.dataEntrada;
+      // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+      const dataEntrada = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada;
       if (dataEntrada) {
         valorTotalComJuros += calcularJurosProgressivos(valorEntradaBase, dataEntrada, percentualJuros);
       } else {
         valorTotalComJuros += valorEntradaBase;
       }
-      
+
       // Calcular juros de cada parcela usando valor real da estrutura
       const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
       for (let i = 0; i < quantidadeParcelas; i++) {
