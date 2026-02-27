@@ -3693,6 +3693,59 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                   {/* Detalhamento por tipo de pagamento */}
                   {tipoPagamento === 'entrada_parcelamento' && (() => {
                     const ep = calcEntradaParcelamento();
+                    
+                    // Calcular parcelas atrasadas com valores reais
+                    const calcularParcelasAtrasadas = () => {
+                      const parcelas: Array<{numero: number; vencimento: string; valorBase: number; valorComJuros: number; mesesAtraso: number}> = [];
+                      const mesInicio = auction.arrematante?.mesInicioPagamento;
+                      const diaVenc = auction.arrematante?.diaVencimentoMensal;
+                      const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
+                      const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || 0;
+                      const valorPorParcela = auction.detalhesInadimplencia?.valorParcela || 0;
+                      const percentualJuros = auction.arrematante?.percentualJurosAtraso || 0;
+                      
+                      if (!mesInicio || !diaVenc) return parcelas;
+                      
+                      try {
+                        const [ano, mes] = mesInicio.split('-').map(Number);
+                        const hoje = new Date();
+                        const parcelaInicioIndex = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
+                        
+                        for (let i = parcelaInicioIndex; i < quantidadeParcelas; i++) {
+                          const parcelaDate = new Date(ano, mes - 1 + i, diaVenc);
+                          parcelaDate.setHours(23, 59, 59, 999);
+                          
+                          if (hoje > parcelaDate) {
+                            const dataVencimentoStr = parcelaDate.toISOString().split('T')[0];
+                            const diffTime = hoje.getTime() - parcelaDate.getTime();
+                            const mesesAtraso = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
+                            
+                            let valorComJuros = valorPorParcela;
+                            if (mesesAtraso > 0 && percentualJuros > 0) {
+                              for (let j = 0; j < mesesAtraso; j++) {
+                                valorComJuros = valorComJuros * (1 + percentualJuros / 100);
+                              }
+                            }
+                            
+                            parcelas.push({
+                              numero: i + 1,
+                              vencimento: dataVencimentoStr,
+                              valorBase: valorPorParcela,
+                              valorComJuros: valorComJuros,
+                              mesesAtraso: mesesAtraso
+                            });
+                          } else {
+                            break;
+                          }
+                        }
+                      } catch (e) { /* ignore */ }
+                      
+                      return parcelas;
+                    };
+                    
+                    const parcelasAtrasadas = calcularParcelasAtrasadas();
+                    const temParcelasAtrasadas = parcelasAtrasadas.length > 0;
+                    
                     return (
                       <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
                         <p style={sSection}>Entrada + Parcelamento</p>
@@ -3712,10 +3765,11 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             <p style={{ fontSize: '12px', color: '#dc2626' }}>Data de vencimento da entrada não definida</p>
                           </div>
                         )}
+                        
                         <p style={{ ...sLabel, marginBottom: '6px' }}>Parcelas</p>
                         <div style={{ display: 'flex', gap: '32px', flexWrap: 'wrap' }}>
                           <div style={{ flex: '1 1 220px' }}>
-                            <div style={sRow}><span style={sRowLabel}>Valor/Parcela</span><span style={sRowValue}>{formatCurrency(auction.detalhesInadimplencia?.valorParcela)}{ep.statusProx === 'ATRASADO' ? ' (base)' : ''}</span></div>
+                            <div style={sRow}><span style={sRowLabel}>Valor Base/Parcela</span><span style={sRowValue}>{formatCurrency(auction.detalhesInadimplencia?.valorParcela)}</span></div>
                             <div style={sRow}><span style={sRowLabel}>Total Parcelas</span><span style={sRowValue}>{ep.quantidadeParcelas}</span></div>
                             {auction.arrematante?.diaVencimentoMensal ? (
                               <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={sRowValue}>Dia {auction.arrematante.diaVencimentoMensal}</span></div>
@@ -3728,15 +3782,43 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             <div style={sRow}><span style={sRowLabel}>Restantes</span><span style={sRowValue}>{ep.quantidadeParcelas - (ep.parcelasPagas > 0 ? ep.parcelasPagas - 1 : 0)}</span></div>
                             <div style={sRow}><span style={sRowLabel}>Próxima</span><span style={sRowValue}>{ep.proxData}</span></div>
                             <div style={sRow}><span style={sRowLabel}>Status</span><span style={{ ...sRowValue, color: statusColor(ep.statusProx) }}>{ep.statusProx}</span></div>
-                            {ep.statusProx === 'ATRASADO' && auction.detalhesInadimplencia?.parcelasAtrasadas > 1 && (
-                              <div style={sRow}><span style={sRowLabel}>Atrasadas</span><span style={{ ...sRowValue, color: '#dc2626' }}>{auction.detalhesInadimplencia.parcelasAtrasadas - (ep.statusEntrada === 'ATRASADO' ? 1 : 0)} parcela(s)</span></div>
-                            )}
                           </div>
                         </div>
-                        {ep.statusProx === 'ATRASADO' && auction.arrematante?.percentualJurosAtraso && auction.arrematante.percentualJurosAtraso > 0 && (
-                          <p style={{ fontSize: '11px', color: '#dc2626', margin: '10px 0 0 0' }}>
-                            Valor base da parcela. Juros de {auction.arrematante.percentualJurosAtraso}%/mês aplicados progressivamente. Valor total em atraso já inclui juros acumulados.
-                          </p>
+                        
+                        {/* Tabela de parcelas atrasadas */}
+                        {temParcelasAtrasadas && (
+                          <div style={{ marginTop: '16px' }}>
+                            <p style={{ fontSize: '11px', fontWeight: 600, color: '#dc2626', textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '8px' }}>
+                              Parcelas em Atraso ({parcelasAtrasadas.length})
+                            </p>
+                            <div style={{ border: '1px solid #fee2e2', borderRadius: '6px', overflow: 'hidden' }}>
+                              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '11px' }}>
+                                <thead>
+                                  <tr style={{ background: '#fef2f2' }}>
+                                    <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: '#991b1b', borderBottom: '1px solid #fee2e2' }}>Parcela</th>
+                                    <th style={{ padding: '8px', textAlign: 'left', fontWeight: 600, color: '#991b1b', borderBottom: '1px solid #fee2e2' }}>Vencimento</th>
+                                    <th style={{ padding: '8px', textAlign: 'right', fontWeight: 600, color: '#991b1b', borderBottom: '1px solid #fee2e2' }}>Valor Base</th>
+                                    <th style={{ padding: '8px', textAlign: 'right', fontWeight: 600, color: '#991b1b', borderBottom: '1px solid #fee2e2' }}>Com Juros</th>
+                                    <th style={{ padding: '8px', textAlign: 'center', fontWeight: 600, color: '#991b1b', borderBottom: '1px solid #fee2e2' }}>Atraso</th>
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {parcelasAtrasadas.map((p, idx) => (
+                                    <tr key={idx} style={{ background: idx % 2 === 0 ? '#ffffff' : '#fef2f2' }}>
+                                      <td style={{ padding: '8px', color: '#1a1a1a', borderBottom: idx < parcelasAtrasadas.length - 1 ? '1px solid #fee2e2' : 'none' }}>{p.numero}ª Parcela</td>
+                                      <td style={{ padding: '8px', color: '#666', borderBottom: idx < parcelasAtrasadas.length - 1 ? '1px solid #fee2e2' : 'none' }}>{formatDate(p.vencimento)}</td>
+                                      <td style={{ padding: '8px', textAlign: 'right', color: '#666', borderBottom: idx < parcelasAtrasadas.length - 1 ? '1px solid #fee2e2' : 'none' }}>{formatCurrency(p.valorBase)}</td>
+                                      <td style={{ padding: '8px', textAlign: 'right', fontWeight: 600, color: '#dc2626', borderBottom: idx < parcelasAtrasadas.length - 1 ? '1px solid #fee2e2' : 'none' }}>{formatCurrency(p.valorComJuros)}</td>
+                                      <td style={{ padding: '8px', textAlign: 'center', color: '#dc2626', borderBottom: idx < parcelasAtrasadas.length - 1 ? '1px solid #fee2e2' : 'none' }}>{p.mesesAtraso}m</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                            <p style={{ fontSize: '10px', color: '#999', margin: '8px 0 0 0', fontStyle: 'italic' }}>
+                              Juros de {auction.arrematante?.percentualJurosAtraso || 0}%/mês aplicados progressivamente desde o vencimento de cada parcela.
+                            </p>
+                          </div>
                         )}
                       </div>
                     );
