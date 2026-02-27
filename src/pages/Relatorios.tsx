@@ -3561,9 +3561,10 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               const calcEntradaParcelamento = () => {
                 const parcelasPagas = auction.arrematante?.parcelasPagas || 0;
                 const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || 12;
-                const dataEntrada = loteComprado?.dataEntrada || auction.dataEntrada;
+                // ✅ CORREÇÃO: Priorizar dataEntrada do arrematante
+                const dataEntrada = auction.arrematante?.dataEntrada || loteComprado?.dataEntrada || auction.dataEntrada;
                 const hoje = new Date();
-                let statusEntrada = 'N/A'; let corEntrada = '#1a1a1a';
+                let statusEntrada = 'Não definida'; let corEntrada = '#999';
                 if (dataEntrada) {
                   const v = new Date(dataEntrada); v.setHours(23, 59, 59, 999);
                   if (parcelasPagas > 0) { statusEntrada = 'Pago'; corEntrada = '#16a34a'; }
@@ -3572,8 +3573,8 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                 }
                 const mesInicio = auction.arrematante?.mesInicioPagamento;
                 const diaVenc = auction.arrematante?.diaVencimentoMensal || 15;
-                let proxData = 'N/A'; let statusProx = 'Aguardando';
-                if (mesInicio) {
+                let proxData = 'Aguardando definição'; let statusProx = 'Aguardando';
+                if (mesInicio && dataEntrada) {
                   try {
                     const [ano, mes] = mesInicio.split('-').map(Number);
                     if (parcelasPagas === 0) {
@@ -3695,14 +3696,20 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                     return (
                       <div style={{ marginTop: '20px', pageBreakInside: 'avoid' }}>
                         <p style={sSection}>Entrada + Parcelamento</p>
-                        {ep.statusEntrada !== 'Pago' && (
+                        {ep.statusEntrada !== 'Pago' && ep.dataEntrada && (
                           <div style={{ marginBottom: '12px' }}>
                             <p style={{ ...sLabel, marginBottom: '6px' }}>Entrada</p>
                             <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', fontSize: '12px' }}>
                               <div style={sRow}><span style={sRowLabel}>Valor</span><span style={sRowValue}>{formatCurrency(auction.detalhesInadimplencia?.valorEntrada)}{ep.statusEntrada === 'ATRASADO' && auction.arrematante?.percentualJurosAtraso ? ` (c/ juros ${auction.arrematante.percentualJurosAtraso}%/mês)` : ''}</span></div>
-                              <div style={sRow}><span style={sRowLabel}>Vencimento</span><span style={sRowValue}>{ep.dataEntrada ? formatDate(ep.dataEntrada) : 'N/A'}</span></div>
+                              <div style={sRow}><span style={sRowLabel}>Vencimento</span><span style={sRowValue}>{formatDate(ep.dataEntrada)}</span></div>
                               <div style={sRow}><span style={sRowLabel}>Status</span><span style={{ ...sRowValue, color: ep.corEntrada }}>{ep.statusEntrada}{ep.statusEntrada === 'ATRASADO' && ep.dataEntrada ? ` (${calcularDiasAtraso(ep.dataEntrada)}d)` : ''}</span></div>
                             </div>
+                          </div>
+                        )}
+                        {!ep.dataEntrada && ep.statusEntrada !== 'Pago' && (
+                          <div style={{ marginBottom: '12px' }}>
+                            <p style={{ ...sLabel, marginBottom: '6px', color: '#dc2626' }}>⚠️ Entrada</p>
+                            <p style={{ fontSize: '12px', color: '#dc2626' }}>Data de vencimento da entrada não definida</p>
                           </div>
                         )}
                         <p style={{ ...sLabel, marginBottom: '6px' }}>Parcelas</p>
@@ -3710,7 +3717,11 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                           <div style={{ flex: '1 1 220px' }}>
                             <div style={sRow}><span style={sRowLabel}>Valor/Parcela</span><span style={sRowValue}>{formatCurrency(auction.detalhesInadimplencia?.valorParcela)}{ep.statusProx === 'ATRASADO' ? ' (base)' : ''}</span></div>
                             <div style={sRow}><span style={sRowLabel}>Total Parcelas</span><span style={sRowValue}>{ep.quantidadeParcelas}</span></div>
-                            <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={sRowValue}>Dia {auction.arrematante?.diaVencimentoMensal || 'N/A'}</span></div>
+                            {auction.arrematante?.diaVencimentoMensal ? (
+                              <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={sRowValue}>Dia {auction.arrematante.diaVencimentoMensal}</span></div>
+                            ) : (
+                              <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={{ ...sRowValue, color: '#dc2626' }}>Não definido</span></div>
+                            )}
                           </div>
                           <div style={{ flex: '1 1 220px' }}>
                             <div style={sRow}><span style={sRowLabel}>Pagas</span><span style={sRowValue}>{ep.parcelasPagas > 0 ? ep.parcelasPagas - 1 : 0} de {ep.quantidadeParcelas}</span></div>
@@ -3743,8 +3754,16 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                             <div style={sRow}><span style={sRowLabel}>Próxima</span><span style={sRowValue}>{p.proxData}</span></div>
                           </div>
                           <div style={{ flex: '1 1 220px' }}>
-                            <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={sRowValue}>Dia {auction.arrematante?.diaVencimentoMensal || 'N/A'}</span></div>
-                            <div style={sRow}><span style={sRowLabel}>Mês Início</span><span style={sRowValue}>{auction.arrematante?.mesInicioPagamento || 'N/A'}</span></div>
+                            {auction.arrematante?.diaVencimentoMensal ? (
+                              <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={sRowValue}>Dia {auction.arrematante.diaVencimentoMensal}</span></div>
+                            ) : (
+                              <div style={sRow}><span style={sRowLabel}>Dia Vencimento</span><span style={{ ...sRowValue, color: '#dc2626' }}>Não definido</span></div>
+                            )}
+                            {auction.arrematante?.mesInicioPagamento ? (
+                              <div style={sRow}><span style={sRowLabel}>Mês Início</span><span style={sRowValue}>{auction.arrematante.mesInicioPagamento}</span></div>
+                            ) : (
+                              <div style={sRow}><span style={sRowLabel}>Mês Início</span><span style={{ ...sRowValue, color: '#dc2626' }}>Não definido</span></div>
+                            )}
                             <div style={sRow}><span style={sRowLabel}>Status</span><span style={{ ...sRowValue, color: statusColor(p.statusProx) }}>{p.statusProx}</span></div>
                           </div>
                         </div>
