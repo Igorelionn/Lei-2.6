@@ -2327,7 +2327,23 @@ function Faturas() {
                       const auction = auctions.find(a => a.id === selectedFaturaForPreview.auctionId);
                       const arrematante = auction?.arrematante;
                       const loteArrematado = auction?.lotes?.find(lote => lote.id === selectedFaturaForPreview.lotId);
-                      const tipoPagamento = loteArrematado?.tipoPagamento || auction?.tipoPagamento;
+                      let tipoPagamento = loteArrematado?.tipoPagamento || auction?.tipoPagamento;
+                      
+                      // ✅ Inferir entrada_parcelamento se tem entrada definida
+                      const _temVE = arrematante?.valorEntrada && parseCurrencyToNumber(arrematante.valorEntrada) > 0;
+                      const _temDE = !!arrematante?.dataEntrada;
+                      if ((_temVE || _temDE) && tipoPagamento === 'parcelamento') {
+                        tipoPagamento = 'entrada_parcelamento';
+                      }
+                      
+                      console.log('DEBUG - Inferência de tipoPagamento:', {
+                        tipoPagamentoOriginal: loteArrematado?.tipoPagamento || auction?.tipoPagamento,
+                        tipoPagamentoFinal: tipoPagamento,
+                        temValorEntrada: _temVE,
+                        temDataEntrada: _temDE,
+                        valorEntrada: arrematante?.valorEntrada,
+                        dataEntrada: arrematante?.dataEntrada
+                      });
                       
                       // ✅ CORREÇÃO: Usar valor total do arrematante, não valorLiquido da fatura
                       const valorBase = arrematante?.valorPagarNumerico || 
@@ -2458,6 +2474,7 @@ function Faturas() {
                         }
                         console.log('DEBUG - Valor Total Final:', valorTotalComJuros);
                       } else {
+                        console.log('DEBUG - Entrando no bloco parcelamento simples');
                         // Para parcelamento simples
                         const estruturaParcelas = calcularEstruturaParcelas(
                           valorBase,
@@ -2467,16 +2484,26 @@ function Faturas() {
                           quantidadeParcelas
                         );
                         
+                        console.log('DEBUG - Estrutura de Parcelas (parcelamento simples):', estruturaParcelas);
+                        
                         for (let i = 0; i < quantidadeParcelas; i++) {
                           const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15, 23, 59, 59);
                           const mesesAtraso = Math.max(0, Math.floor((new Date().getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                           const valorRealParcela = estruturaParcelas[i]?.valor || 0;
-                          if (mesesAtraso >= 1 && percentualJuros) {
-                            valorTotalComJuros += calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso);
-                          } else {
-                            valorTotalComJuros += valorRealParcela;
-                          }
+                          const valorComJuros = mesesAtraso >= 1 && percentualJuros 
+                            ? calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso)
+                            : valorRealParcela;
+                          
+                          console.log(`Parcela ${i + 1}:`, {
+                            dataVencimento: parcelaDate.toLocaleDateString('pt-BR'),
+                            mesesAtraso,
+                            valorBase: valorRealParcela,
+                            valorComJuros
+                          });
+                          
+                          valorTotalComJuros += valorComJuros;
                         }
+                        console.log('DEBUG - Valor Total Final:', valorTotalComJuros);
                       }
                       
                       const valorJuros = valorTotalComJuros - valorBase;
