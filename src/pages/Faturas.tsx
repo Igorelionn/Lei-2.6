@@ -2562,7 +2562,13 @@ function Faturas() {
                             </div>
                           <div className="flex justify-between py-2" style={{ borderBottom: '1px solid #f1f5f9' }}>
                             <span className="text-slate-500">Valor por Parcela</span>
-                            <span className="font-medium text-slate-900">{formatCurrency(valorPorParcela)}</span>
+                            <span className="font-medium text-slate-900">
+                              {formatCurrency(valorPorParcela)}
+                              <span className="text-xs text-slate-500 ml-2">(base)</span>
+                            </span>
+                          </div>
+                          <div className="text-xs text-amber-600 py-2 italic" style={{ borderBottom: '1px solid #f1f5f9' }}>
+                            * Parcelas podem ter valores diferentes. Juros de {arrematante.percentualJurosAtraso || 0}%/mês aplicados progressivamente sobre valores em atraso.
                           </div>
                           <div className="flex justify-between py-2" style={{ borderBottom: '1px solid #f1f5f9' }}>
                             <span className="text-slate-500">Início</span>
@@ -2576,6 +2582,7 @@ function Faturas() {
                             <span className="text-slate-500">Situação</span>
                             <span className="font-medium text-slate-900">
                               {parcelasPagasCorretas} de {quantidadeParcelasTotal + 1} pagas
+                              <span className="text-xs text-slate-500 ml-2">(inclui entrada)</span>
                             </span>
                           </div>
                         </>
@@ -2610,9 +2617,6 @@ function Faturas() {
                   <div className="text-xs text-slate-400 mt-1" style={{ fontSize: '10px' }}>
                     Sistema de Gestão de Leilões • Página 1 de 1
                   </div>
-                </div>
-                <div className="text-center text-xs text-slate-400 mb-4 sm:mb-6 lg:mb-8" style={{ fontSize: '10px' }}>
-                  Este documento é válido sem assinatura conforme artigo 10º da MP 2.200-2/2001
                 </div>
               </div>
 
@@ -3008,7 +3012,13 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
             </div>
             <div className="flex justify-between py-2" style={{ borderBottom: '1px solid #f1f5f9' }}>
               <span className="text-slate-500">Valor por Parcela</span>
-              <span className="font-medium text-slate-900">{formatCurrency(valorPorParcela)}</span>
+              <span className="font-medium text-slate-900">
+                {formatCurrency(valorPorParcela)}
+                <span className="text-xs text-slate-500 ml-2">(base)</span>
+              </span>
+            </div>
+            <div className="text-xs text-amber-600 py-2 italic" style={{ borderBottom: '1px solid #f1f5f9' }}>
+              * Parcelas podem ter valores diferentes. Juros de {percentualJuros}%/mês aplicados progressivamente sobre valores em atraso.
             </div>
             <div className="flex justify-between py-2" style={{ borderBottom: '1px solid #f1f5f9' }}>
               <span className="text-slate-500">Início</span>
@@ -3022,6 +3032,7 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
               <span className="text-slate-500">Situação</span>
               <span className="font-medium text-slate-900">
                 {parcelasPagasCorretas} de {quantidadeParcelasTotal + 1} pagas
+                <span className="text-xs text-slate-500 ml-2">(inclui entrada)</span>
               </span>
             </div>
           </div>
@@ -3128,14 +3139,11 @@ const FaturaPreview = ({ fatura, auctions }: { fatura: FaturaExtendida, auctions
               day: '2-digit', 
               month: '2-digit', 
               year: 'numeric' 
-            })} às {new Date().toLocaleTimeString('pt-BR')}
+              })} às {new Date().toLocaleTimeString('pt-BR')}
           </div>
           <div className="text-xs text-slate-400 mt-1" style={{ fontSize: '10px' }}>
             Sistema de Gestão de Leilões • Página 1 de 1
           </div>
-        </div>
-        <div className="text-center text-xs text-slate-400 mb-8" style={{ fontSize: '10px' }}>
-          Este documento é válido sem assinatura conforme artigo 10º da MP 2.200-2/2001
         </div>
       </div>
 
