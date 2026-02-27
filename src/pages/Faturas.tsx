@@ -2328,7 +2328,12 @@ function Faturas() {
                       const arrematante = auction?.arrematante;
                       const loteArrematado = auction?.lotes?.find(lote => lote.id === selectedFaturaForPreview.lotId);
                       const tipoPagamento = loteArrematado?.tipoPagamento || auction?.tipoPagamento;
-                      const valorBase = selectedFaturaForPreview.valorLiquido;
+                      
+                      // ✅ CORREÇÃO: Usar valor total do arrematante, não valorLiquido da fatura
+                      const valorBase = arrematante?.valorPagarNumerico || 
+                        (typeof arrematante?.valorPagar === 'number' ? arrematante.valorPagar : 
+                         parseFloat(arrematante?.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0'));
+                      
                       const percentualJuros = arrematante?.percentualJurosAtraso || 0;
                       
                       // Para pagamento à vista
@@ -2467,11 +2472,16 @@ function Faturas() {
                       }
 
                       // Calcular entrada com juros se atrasada
+                      // ✅ CORREÇÃO: Usar valor total do arrematante, não valorLiquido da fatura
+                      const valorTotalArrematacao = arrematante.valorPagarNumerico || 
+                        (typeof arrematante.valorPagar === 'number' ? arrematante.valorPagar : 
+                         parseFloat(arrematante.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0'));
+                      
                       const valorEntradaBase = arrematante.valorEntrada ? 
                         parseCurrencyToNumber(arrematante.valorEntrada) : 
-                        selectedFaturaForPreview.valorLiquido * 0.3;
+                        valorTotalArrematacao * 0.3;
                       
-                      const valorRestante = selectedFaturaForPreview.valorLiquido - valorEntradaBase;
+                      const valorRestante = valorTotalArrematacao - valorEntradaBase;
                       const valorPorParcela = valorRestante / quantidadeParcelasTotal;
                       
                       // PRIORIZAR dataEntrada do arrematante sobre o do lote e auction
