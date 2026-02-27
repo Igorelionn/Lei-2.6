@@ -8,6 +8,36 @@ interface PdfReportProps {
   auction: Auction;
 }
 
+// ✅ Função para calcular juros progressivos
+const calcularJurosProgressivos = (valorOriginal: number, dataVencimento: string, percentualJuros: number): number => {
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+
+  const vencimento = new Date(dataVencimento + 'T00:00:00.000');
+  vencimento.setHours(0, 0, 0, 0);
+
+  if (hoje <= vencimento || !percentualJuros) {
+    return valorOriginal;
+  }
+
+  const diffTime = hoje.getTime() - vencimento.getTime();
+  const mesesAtraso = Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
+
+  if (mesesAtraso <= 0) {
+    return valorOriginal;
+  }
+
+  let valorAtual = valorOriginal;
+  const taxaMensal = percentualJuros / 100;
+
+  for (let mes = 1; mes <= mesesAtraso; mes++) {
+    const jurosMes = valorAtual * taxaMensal;
+    valorAtual = valorAtual + jurosMes;
+  }
+
+  return Math.round(valorAtual * 100) / 100;
+};
+
 interface LoteImage {
   id: string;
   nome: string;
@@ -136,11 +166,98 @@ export const PdfReport: React.FC<PdfReportProps> = ({ auction }) => {
 
   // Cálculo do resumo financeiro
   const calcFinanceiro = () => {
+    // ✅ Calcular total arrecadado COM JUROS progressivos
     const totalArrecadado = todosArrematantes.reduce((sum, arr) => {
-      const valor = typeof arr.valorPagar === 'string'
+      const valorBase = typeof arr.valorPagar === 'string'
         ? parseFloat(arr.valorPagar.replace(/[^\d,.-]/g, '').replace(',', '.')) || 0
         : arr.valorPagar || 0;
-      return sum + valor;
+      
+      const loteArrematado = arr.loteId ? auction.lotes?.find(lote => lote.id === arr.loteId) : null;
+      let tipoPagamento = loteArrematado?.tipoPagamento || auction.tipoPagamento;
+      
+      // Inferir entrada_parcelamento se tem entrada definida
+      const _temVE = arr.valorEntrada && parseFloat(String(arr.valorEntrada).replace(/[^\d,.-]/g, '').replace(',', '.')) > 0;
+      const _temDE = !!arr.dataEntrada;
+      if ((_temVE || _temDE) && tipoPagamento === 'parcelamento') {
+        tipoPagamento = 'entrada_parcelamento';
+      }
+      
+      const percentualJuros = arr.percentualJurosAtraso || 0;
+      
+      if (tipoPagamento === 'a_vista') {
+        const dataVencimento = loteArrematado?.dataVencimentoVista || auction.dataVencimentoVista;
+        if (dataVencimento && percentualJuros) {
+          return sum + calcularJurosProgressivos(valorBase, dataVencimento, percentualJuros);
+        }
+        return sum + valorBase;
+      } else if (tipoPagamento === 'entrada_parcelamento') {
+        const quantidadeParcelas = arr.quantidadeParcelas || 12;
+        const mesInicioPagamento = arr.mesInicioPagamento;
+
+        if (mesInicioPagamento) {
+          const valorEntradaBase = arr.valorEntrada
+            ? (typeof arr.valorEntrada === 'string' ?
+                parseFloat(arr.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) :
+                arr.valorEntrada) :
+            valorBase * 0.3;
+
+          const valorParaParcelas = valorBase - valorEntradaBase;
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorParaParcelas,
+            arr.parcelasTriplas || 0,
+            arr.parcelasDuplas || 0,
+            arr.parcelasSimples || 0,
+            quantidadeParcelas
+          );
+
+          let totalComJuros = 0;
+
+          const dataEntrada = arr.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada;
+          if (dataEntrada && percentualJuros) {
+            totalComJuros += calcularJurosProgressivos(valorEntradaBase, dataEntrada, percentualJuros);
+          } else {
+            totalComJuros += valorEntradaBase;
+          }
+
+          const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
+          for (let i = 0; i < quantidadeParcelas; i++) {
+            const dataVencimento = new Date(startYear, startMonth - 1 + i, arr.diaVencimentoMensal || 15);
+            const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+            const valorRealParcela = estruturaParcelas[i]?.valor || 0;
+            totalComJuros += calcularJurosProgressivos(valorRealParcela, dataVencimentoStr, percentualJuros);
+          }
+
+          return sum + totalComJuros;
+        }
+        return sum + valorBase;
+      } else {
+        // Parcelamento simples
+        const quantidadeParcelas = arr.quantidadeParcelas || 1;
+        const mesInicioPagamento = arr.mesInicioPagamento;
+
+        if (mesInicioPagamento && quantidadeParcelas > 0) {
+          const estruturaParcelas = calcularEstruturaParcelas(
+            valorBase,
+            arr.parcelasTriplas || 0,
+            arr.parcelasDuplas || 0,
+            arr.parcelasSimples || 0,
+            quantidadeParcelas
+          );
+
+          let totalComJuros = 0;
+          const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
+
+          for (let i = 0; i < quantidadeParcelas; i++) {
+            const dataVencimento = new Date(startYear, startMonth - 1 + i, arr.diaVencimentoMensal || 15);
+            const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+            const valorRealParcela = estruturaParcelas[i]?.valor || 0;
+            totalComJuros += calcularJurosProgressivos(valorRealParcela, dataVencimentoStr, percentualJuros);
+          }
+
+          return sum + totalComJuros;
+        }
+        return sum + valorBase;
+      }
     }, 0);
 
     const totalPago = todosArrematantes.reduce((sum, arr) => {
