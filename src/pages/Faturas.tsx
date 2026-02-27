@@ -2336,27 +2336,10 @@ function Faturas() {
                         tipoPagamento = 'entrada_parcelamento';
                       }
                       
-                      console.log('DEBUG - Inferência de tipoPagamento:', {
-                        tipoPagamentoOriginal: loteArrematado?.tipoPagamento || auction?.tipoPagamento,
-                        tipoPagamentoFinal: tipoPagamento,
-                        temValorEntrada: _temVE,
-                        temDataEntrada: _temDE,
-                        valorEntrada: arrematante?.valorEntrada,
-                        dataEntrada: arrematante?.dataEntrada
-                      });
-                      
                       // ✅ CORREÇÃO: Usar valor total do arrematante, não valorLiquido da fatura
                       const valorBase = arrematante?.valorPagarNumerico || 
                         (typeof arrematante?.valorPagar === 'number' ? arrematante.valorPagar : 
                          parseFloat(arrematante?.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0'));
-                      
-                      // DEBUG: Log temporário
-                      console.log('DEBUG Fatura Preview - Valor Total:', {
-                        valorPagarOriginal: arrematante?.valorPagar,
-                        valorPagarNumerico: arrematante?.valorPagarNumerico,
-                        valorBase,
-                        valorLiquidoFatura: selectedFaturaForPreview.valorLiquido
-                      });
                       
                       const percentualJuros = arrematante?.percentualJurosAtraso || 0;
                       
@@ -2398,15 +2381,7 @@ function Faturas() {
                       }
                       
                       // Para parcelamento
-                      console.log('DEBUG - Verificação inicial:', {
-                        temArrematante: !!arrematante,
-                        mesInicioPagamento: arrematante?.mesInicioPagamento,
-                        tipoPagamento,
-                        quantidadeParcelas: arrematante?.quantidadeParcelas
-                      });
-                      
                       if (!arrematante || !arrematante.mesInicioPagamento) {
-                        console.log('DEBUG - Saindo porque não tem arrematante ou mesInicioPagamento');
                         return (
                           <div className="text-2xl sm:text-3xl lg:text-4xl font-light text-gray-900" style={{ letterSpacing: '-0.02em' }}>
                             {formatCurrency(valorBase)}
@@ -2418,17 +2393,9 @@ function Faturas() {
                       const mesNormalizado = normalizarMesInicioPagamento(arrematante.mesInicioPagamento);
                       const [startYear, startMonth] = mesNormalizado.split('-').map(Number);
                       
-                      console.log('DEBUG - Após normalização:', {
-                        quantidadeParcelas,
-                        mesNormalizado,
-                        startYear,
-                        startMonth
-                      });
-                      
                       let valorTotalComJuros = 0;
                       
                       if (tipoPagamento === 'entrada_parcelamento') {
-                        console.log('DEBUG - Entrando no bloco entrada_parcelamento');
                         // ✅ Usar mesmos valores calculados para "Condições de Pagamento"
                         const valorEntradaBase = arrematante.valorEntrada ? 
                           parseCurrencyToNumber(arrematante.valorEntrada) : 
@@ -2454,27 +2421,17 @@ function Faturas() {
                         }
                         
                         // ✅ Calcular juros de cada parcela usando valor REAL da estrutura
-                        console.log('DEBUG - Estrutura de Parcelas:', estruturaParcelas);
                         for (let i = 0; i < quantidadeParcelas; i++) {
                           const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15, 23, 59, 59);
                           const mesesAtraso = Math.max(0, Math.floor((new Date().getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                           const valorRealParcela = estruturaParcelas[i]?.valor || 0;
-                          const valorComJuros = mesesAtraso >= 1 && percentualJuros 
-                            ? calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso)
-                            : valorRealParcela;
-                          
-                          console.log(`Parcela ${i + 1}:`, {
-                            dataVencimento: parcelaDate.toLocaleDateString('pt-BR'),
-                            mesesAtraso,
-                            valorBase: valorRealParcela,
-                            valorComJuros
-                          });
-                          
-                          valorTotalComJuros += valorComJuros;
+                          if (mesesAtraso >= 1 && percentualJuros) {
+                            valorTotalComJuros += calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso);
+                          } else {
+                            valorTotalComJuros += valorRealParcela;
+                          }
                         }
-                        console.log('DEBUG - Valor Total Final:', valorTotalComJuros);
                       } else {
-                        console.log('DEBUG - Entrando no bloco parcelamento simples');
                         // Para parcelamento simples
                         const estruturaParcelas = calcularEstruturaParcelas(
                           valorBase,
@@ -2484,26 +2441,16 @@ function Faturas() {
                           quantidadeParcelas
                         );
                         
-                        console.log('DEBUG - Estrutura de Parcelas (parcelamento simples):', estruturaParcelas);
-                        
                         for (let i = 0; i < quantidadeParcelas; i++) {
                           const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15, 23, 59, 59);
                           const mesesAtraso = Math.max(0, Math.floor((new Date().getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
                           const valorRealParcela = estruturaParcelas[i]?.valor || 0;
-                          const valorComJuros = mesesAtraso >= 1 && percentualJuros 
-                            ? calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso)
-                            : valorRealParcela;
-                          
-                          console.log(`Parcela ${i + 1}:`, {
-                            dataVencimento: parcelaDate.toLocaleDateString('pt-BR'),
-                            mesesAtraso,
-                            valorBase: valorRealParcela,
-                            valorComJuros
-                          });
-                          
-                          valorTotalComJuros += valorComJuros;
+                          if (mesesAtraso >= 1 && percentualJuros) {
+                            valorTotalComJuros += calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso);
+                          } else {
+                            valorTotalComJuros += valorRealParcela;
+                          }
                         }
-                        console.log('DEBUG - Valor Total Final:', valorTotalComJuros);
                       }
                       
                       const valorJuros = valorTotalComJuros - valorBase;
@@ -2556,13 +2503,6 @@ function Faturas() {
                       const valorTotalArrematacao = arrematante.valorPagarNumerico || 
                         (typeof arrematante.valorPagar === 'number' ? arrematante.valorPagar : 
                          parseFloat(arrematante.valorPagar?.replace(/[^\d,]/g, '').replace(',', '.') || '0'));
-                      
-                      // DEBUG: Log temporário
-                      console.log('DEBUG Fatura Preview - Condições Pagamento:', {
-                        valorPagarOriginal: arrematante.valorPagar,
-                        valorPagarNumerico: arrematante.valorPagarNumerico,
-                        valorTotalArrematacao
-                      });
                       
                       const valorEntradaBase = arrematante.valorEntrada ? 
                         parseCurrencyToNumber(arrematante.valorEntrada) : 
