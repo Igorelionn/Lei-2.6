@@ -3476,6 +3476,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
           <div>
             {inadimplentes.slice(0, 3).map((auction, index) => {
               const loteComprado = auction.arrematante?.loteId ? auction.lotes?.find(lote => lote.id === auction.arrematante.loteId) : null;
+              const quantidadeParcelas = auction.arrematante?.quantidadeParcelas || 12;
               // ✅ CORREÇÃO: Priorizar tipoPagamento do arrematante e inferir baseado nos dados
               let tipoPagamento = auction.arrematante?.tipoPagamento || loteComprado?.tipoPagamento || auction.tipoPagamento || 'parcelamento';
               const _temVE2 = auction.arrematante?.valorEntrada !== undefined && auction.arrematante?.valorEntrada !== null;
