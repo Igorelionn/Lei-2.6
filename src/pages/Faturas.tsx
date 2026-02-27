@@ -2389,13 +2389,22 @@ function Faturas() {
                       let valorTotalComJuros = 0;
                       
                       if (tipoPagamento === 'entrada_parcelamento') {
+                        // ✅ Usar mesmos valores calculados para "Condições de Pagamento"
                         const valorEntradaBase = arrematante.valorEntrada ? 
                           parseCurrencyToNumber(arrematante.valorEntrada) : 
                           valorBase * 0.3;
-                        const valorRestante = valorBase - valorEntradaBase;
-                        const valorPorParcela = valorRestante / quantidadeParcelas;
                         
-                        // PRIORIZAR dataEntrada do arrematante sobre o do lote e auction
+                        // ✅ Calcular estrutura de parcelas usando o valor RESTANTE (sem entrada)
+                        const valorParaParcelas = valorBase - valorEntradaBase;
+                        const estruturaParcelas = calcularEstruturaParcelas(
+                          valorParaParcelas,
+                          arrematante.parcelasTriplas || 0,
+                          arrematante.parcelasDuplas || 0,
+                          arrematante.parcelasSimples || 0,
+                          quantidadeParcelas
+                        );
+                        
+                        // Calcular juros da entrada
                         const dataEntrada = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction?.dataEntrada;
                         if (dataEntrada && percentualJuros) {
                           const mesesAtrasoEntrada = Math.max(0, Math.floor((new Date().getTime() - new Date(dataEntrada + 'T23:59:59').getTime()) / (1000 * 60 * 60 * 24 * 30)));
@@ -2404,24 +2413,35 @@ function Faturas() {
                           valorTotalComJuros += valorEntradaBase;
                         }
                         
+                        // ✅ Calcular juros de cada parcela usando valor REAL da estrutura
                         for (let i = 0; i < quantidadeParcelas; i++) {
                           const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15, 23, 59, 59);
                           const mesesAtraso = Math.max(0, Math.floor((new Date().getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+                          const valorRealParcela = estruturaParcelas[i]?.valor || 0;
                           if (mesesAtraso >= 1 && percentualJuros) {
-                            valorTotalComJuros += calcularJurosProgressivos(valorPorParcela, percentualJuros, mesesAtraso);
+                            valorTotalComJuros += calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso);
                           } else {
-                            valorTotalComJuros += valorPorParcela;
+                            valorTotalComJuros += valorRealParcela;
                           }
                         }
                       } else {
-                        const valorPorParcela = valorBase / quantidadeParcelas;
+                        // Para parcelamento simples
+                        const estruturaParcelas = calcularEstruturaParcelas(
+                          valorBase,
+                          arrematante.parcelasTriplas || 0,
+                          arrematante.parcelasDuplas || 0,
+                          arrematante.parcelasSimples || 0,
+                          quantidadeParcelas
+                        );
+                        
                         for (let i = 0; i < quantidadeParcelas; i++) {
                           const parcelaDate = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15, 23, 59, 59);
                           const mesesAtraso = Math.max(0, Math.floor((new Date().getTime() - parcelaDate.getTime()) / (1000 * 60 * 60 * 24 * 30)));
+                          const valorRealParcela = estruturaParcelas[i]?.valor || 0;
                           if (mesesAtraso >= 1 && percentualJuros) {
-                            valorTotalComJuros += calcularJurosProgressivos(valorPorParcela, percentualJuros, mesesAtraso);
+                            valorTotalComJuros += calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso);
                           } else {
-                            valorTotalComJuros += valorPorParcela;
+                            valorTotalComJuros += valorRealParcela;
                           }
                         }
                       }
@@ -2482,6 +2502,17 @@ function Faturas() {
                         valorTotalArrematacao * 0.3;
                       
                       const valorRestante = valorTotalArrematacao - valorEntradaBase;
+                      
+                      // ✅ Calcular estrutura de parcelas para obter valores reais
+                      const estruturaParcelas = calcularEstruturaParcelas(
+                        valorRestante,
+                        arrematante.parcelasTriplas || 0,
+                        arrematante.parcelasDuplas || 0,
+                        arrematante.parcelasSimples || 0,
+                        quantidadeParcelasTotal
+                      );
+                      
+                      // Valor médio das parcelas (para exibição)
                       const valorPorParcela = valorRestante / quantidadeParcelasTotal;
                       
                       // PRIORIZAR dataEntrada do arrematante sobre o do lote e auction
