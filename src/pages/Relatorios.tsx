@@ -4086,12 +4086,13 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                     const valorParaParcelas = valorTotal - ve;
                     const ep = calcularEstruturaParcelas(valorParaParcelas, arrematante?.parcelasTriplas || 0, arrematante?.parcelasDuplas || 0, arrematante?.parcelasSimples || 0, quantidadeParcelas);
                     let pea = 0; let eea = false; let vtpa = 0;
-                    try { const h = new Date(); const de = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada; if (de && parcelasPagas === 0) { const v = new Date(de); v.setHours(23,59,59,999); eea = h > v; }
+                    const de = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada;
+                    try { const h = new Date(); if (de && parcelasPagas === 0) { const v = new Date(de); v.setHours(23,59,59,999); eea = h > v; }
                       if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) { const [y, m] = arrematante.mesInicioPagamento.split('-').map(Number); const pi = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
                         for (let i = pi; i < quantidadeParcelas; i++) { const d = new Date(y, m - 1 + i, arrematante.diaVencimentoMensal); d.setHours(23,59,59,999); if (h > d) { pea++; const valorParcelaComJuros = calcularJurosProgressivos(ep[i]?.valor || 0, d.toISOString().split('T')[0], percentualJuros); vtpa += valorParcelaComJuros; } else break; } }
                     } catch { /* ignore */ }
                     const ppi = parcelasPagas > 0 ? parcelasPagas - 1 : 0; const vpp = ep[ppi]?.valor || 0;
-                    const veComJuros = eea ? calcularJurosProgressivos(ve, de, percentualJuros) : ve;
+                    const veComJuros = eea && de ? calcularJurosProgressivos(ve, de, percentualJuros) : ve;
                     if (eea && pea > 0) return `Entrada (${formatCurrency(veComJuros)}) e ${pea} parcela${pea > 1 ? 's' : ''} (${formatCurrency(vtpa)}) ${st}, total ${formatCurrency(veComJuros + vtpa)}.`;
                     if (eea) return `Entrada de ${formatCurrency(veComJuros)} ${st}.`;
                     if (pea > 0) return `${pea} parcela${pea > 1 ? 's' : ''} (${formatCurrency(vtpa)}) ${st}.`;
