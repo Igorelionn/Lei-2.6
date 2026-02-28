@@ -6415,20 +6415,10 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
       {/* Informações Adicionais */}
             {arrematante.statusPagamento === 'atrasado' && (
         <div className="mb-10 break-inside-avoid" style={{ pageBreakInside: 'avoid' }}>
-          <div className="bg-red-50 rounded-lg p-6" style={{ border: '1px solid #fecaca' }}>
-            <div className="flex gap-3">
-              <div className="flex-shrink-0">
-                <div className="w-6 h-6 rounded-full bg-red-100 flex items-center justify-center">
-                  <span className="text-red-600 text-sm font-bold">!</span>
-                </div>
-              </div>
-              <div>
-                <h3 className="text-sm font-medium text-red-900 mb-1">Atenção: Pagamento em Atraso</h3>
-                <p className="text-sm text-red-700 font-light">
-                  Este arrematante possui pagamentos em atraso. Recomenda-se contato imediato para regularização da situação financeira.
-                </p>
-              </div>
-            </div>
+          <div className="py-4" style={{ borderTop: '1px solid #e5e7eb', borderBottom: '1px solid #e5e7eb' }}>
+            <p className="text-xs text-gray-500 italic text-center">
+              Atenção: Este arrematante possui pagamentos em atraso. Recomenda-se contato imediato para regularização da situação financeira.
+            </p>
           </div>
         </div>
       )}
