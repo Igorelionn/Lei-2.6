@@ -55,18 +55,6 @@ export default function Historico() {
     }
     return () => clearTimeout(timeout);
   }, [searchText]);
-  
-  // Hook para buscar automaticamente quando CPF vem na URL
-  useEffect(() => {
-    if (processedCpfRef.current) return;
-    
-    const cpfFromUrl = searchParams.get('cpf');
-    if (cpfFromUrl && todosArrematantes.length > 0) {
-      setSearchMode('cpf');
-      setSearchText(formatCpfCnpj(cpfFromUrl));
-      processedCpfRef.current = true;
-    }
-  }, [todosArrematantes.length]);
 
   // Formatador CPF/CNPJ
   const formatCpfCnpj = (value: string) => {
@@ -123,6 +111,18 @@ export default function Historico() {
     
     return Array.from(arrematantesMap.values());
   }, [auctions]);
+
+  // Hook para buscar automaticamente quando CPF vem na URL
+  useEffect(() => {
+    if (processedCpfRef.current) return;
+    
+    const cpfFromUrl = searchParams.get('cpf');
+    if (cpfFromUrl && todosArrematantes.length > 0) {
+      setSearchMode('cpf');
+      setSearchText(formatCpfCnpj(cpfFromUrl));
+      processedCpfRef.current = true;
+    }
+  }, [todosArrematantes.length, searchParams]);
 
   // Filtrar arrematantes
   const arrematantesFiltrados = useMemo(() => {
