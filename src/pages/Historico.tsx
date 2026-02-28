@@ -201,6 +201,36 @@ export default function Historico() {
     }
   };
 
+  // Função para calcular juros progressivos
+  const calcularJurosProgressivos = (valorOriginal: number, dataVencimento: string, percentualJuros: number) => {
+    if (!dataVencimento || !percentualJuros) {
+      return valorOriginal;
+    }
+    
+    const hoje = new Date();
+    const vencimento = new Date(dataVencimento + 'T00:00:00');
+    
+    if (hoje <= vencimento) {
+      return valorOriginal;
+    }
+    
+    const diffTime = Math.abs(hoje.getTime() - vencimento.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const mesesAtraso = Math.floor(diffDays / 30);
+    
+    if (mesesAtraso < 1) {
+      return valorOriginal;
+    }
+    
+    let valorAtual = valorOriginal;
+    const taxaMensal = percentualJuros / 100;
+    for (let mes = 1; mes <= mesesAtraso; mes++) {
+      const jurosMes = valorAtual * taxaMensal;
+      valorAtual = valorAtual + jurosMes;
+    }
+    return Math.round(valorAtual * 100) / 100;
+  };
+
   // Calcular estatísticas do arrematante
   const calcularEstatisticas = (arrematante: ArrematanteComHistorico) => {
     const totalLeiloes = arrematante.leiloes.length;
@@ -210,28 +240,101 @@ export default function Historico() {
     let leiloesQuitados = 0;
 
     arrematante.leiloes.forEach(leilao => {
-      const valor = leilao.valorPagarNumerico || 0;
-      totalArrematado += valor;
+      const valorBase = leilao.valorPagarNumerico || 0;
+      const percentualJuros = leilao.percentualJuros || 0;
+      
+      // Inferir tipo de pagamento
+      const temEntrada = leilao.valorEntrada || leilao.dataEntrada;
+      const tipoPagamento = leilao.tipoPagamento || (temEntrada ? 'entrada_parcelamento' : 'parcelamento');
+      
+      let valorTotalComJuros = 0;
+      
+      if (tipoPagamento === 'a_vista') {
+        const dataVencimento = leilao.dataVencimentoVista;
+        if (dataVencimento && !leilao.pago) {
+          valorTotalComJuros = calcularJurosProgressivos(valorBase, dataVencimento, percentualJuros);
+        } else {
+          valorTotalComJuros = valorBase;
+        }
+      } else if (tipoPagamento === 'entrada_parcelamento') {
+        const valorEntradaBase = leilao.valorEntrada || 0;
+        const valorParaParcelas = valorBase - valorEntradaBase;
+        
+        // Calcular juros da entrada
+        const dataEntrada = leilao.dataEntrada;
+        const valorEntradaComJuros = dataEntrada && !leilao.pago
+          ? calcularJurosProgressivos(valorEntradaBase, dataEntrada, percentualJuros)
+          : valorEntradaBase;
+        
+        // Calcular estrutura de parcelas
+        const estruturaParcelas = calcularEstruturaParcelas(
+          valorParaParcelas,
+          leilao.parcelasTriplas || 0,
+          leilao.parcelasDuplas || 0,
+          leilao.parcelasSimples || 0,
+          leilao.quantidadeParcelas
+        );
+        
+        // Calcular juros de cada parcela
+        let totalParcelasComJuros = 0;
+        if (leilao.mesInicioPagamento && leilao.diaVencimentoMensal) {
+          const [ano, mes] = leilao.mesInicioPagamento.split('-').map(Number);
+          estruturaParcelas.forEach((parcela, idx) => {
+            const dataVencimento = new Date(ano, mes - 1 + idx, leilao.diaVencimentoMensal!);
+            const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+            const valorParcelaComJuros = leilao.pago ? parcela.valor : calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
+            totalParcelasComJuros += valorParcelaComJuros;
+          });
+        } else {
+          totalParcelasComJuros = valorParaParcelas;
+        }
+        
+        valorTotalComJuros = valorEntradaComJuros + totalParcelasComJuros;
+      } else {
+        // Parcelamento simples
+        const estruturaParcelas = calcularEstruturaParcelas(
+          valorBase,
+          leilao.parcelasTriplas || 0,
+          leilao.parcelasDuplas || 0,
+          leilao.parcelasSimples || 0,
+          leilao.quantidadeParcelas
+        );
+        
+        if (leilao.mesInicioPagamento && leilao.diaVencimentoMensal) {
+          const [ano, mes] = leilao.mesInicioPagamento.split('-').map(Number);
+          estruturaParcelas.forEach((parcela, idx) => {
+            const dataVencimento = new Date(ano, mes - 1 + idx, leilao.diaVencimentoMensal!);
+            const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+            const valorParcelaComJuros = leilao.pago ? parcela.valor : calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
+            valorTotalComJuros += valorParcelaComJuros;
+          });
+        } else {
+          valorTotalComJuros = valorBase;
+        }
+      }
+      
+      totalArrematado += valorTotalComJuros;
 
       if (leilao.pago) {
-        totalPago += valor;
+        totalPago += valorTotalComJuros;
         leiloesQuitados++;
       } else {
-        // Calcular valor pago parcialmente
+        // Calcular valor pago parcialmente (sem juros progressivos)
         if ((leilao.parcelasPagas || 0) > 0) {
           const estrutura = calcularEstruturaParcelas(
-            valor,
+            valorBase,
             leilao.parcelasTriplas || 0,
             leilao.parcelasDuplas || 0,
-            leilao.parcelasSimples || 0
+            leilao.parcelasSimples || 0,
+            leilao.quantidadeParcelas
           );
           const pagoAteAgora = estrutura
             .slice(0, leilao.parcelasPagas)
             .reduce((sum, p) => sum + p.valor, 0);
           totalPago += pagoAteAgora;
-          totalPendente += valor - pagoAteAgora;
+          totalPendente += valorTotalComJuros - pagoAteAgora;
         } else {
-          totalPendente += valor;
+          totalPendente += valorTotalComJuros;
         }
       }
     });
@@ -262,7 +365,9 @@ export default function Historico() {
     const hoje = new Date();
 
     arrematante.leiloes.forEach(leilao => {
-      const tipoPagamento = leilao.tipoPagamento;
+      // Inferir tipo de pagamento
+      const temEntrada = leilao.valorEntrada || leilao.dataEntrada;
+      const tipoPagamento = leilao.tipoPagamento || (temEntrada ? 'entrada_parcelamento' : 'parcelamento');
       
       // Se o leilão está quitado, verificar se foi pago com atraso
       if (leilao.pago) {
@@ -306,29 +411,28 @@ export default function Historico() {
           }
         }
       } else {
-        // Se não está quitado, verificar parcelas atrasadas atuais
+        // Se não está quitado, verificar parcelas/entrada atrasadas atuais
+        if (tipoPagamento === 'entrada_parcelamento' && leilao.dataEntrada) {
+          // Verificar se entrada está atrasada
+          const dataEntrada = new Date(leilao.dataEntrada + 'T23:59:59');
+          if (hoje > dataEntrada) {
+            const diasAtraso = Math.floor((hoje.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24));
+            atrasos.push({
+              leilaoNome: leilao.leilaoNome,
+              leilaoData: leilao.leilaoData,
+              diasAtraso,
+              dataVencimento: dataEntrada.toLocaleDateString('pt-BR'),
+              tipo: 'atrasado'
+            });
+            return; // Não precisa verificar parcelas se entrada está atrasada
+          }
+        }
+        
+        // Verificar parcelas atrasadas
         if (leilao.mesInicioPagamento && leilao.diaVencimentoMensal) {
           const [ano, mes] = leilao.mesInicioPagamento.split('-').map(Number);
           const parcelasPagas = leilao.parcelasPagas || 0;
           const quantidadeParcelas = leilao.quantidadeParcelas || 1;
-
-          // Verificar cada parcela paga se foi paga com atraso
-          for (let i = 0; i < parcelasPagas; i++) {
-            const dataVencimento = new Date(ano, mes - 1 + i, leilao.diaVencimentoMensal, 23, 59, 59);
-            
-            // Se hoje é posterior ao vencimento, esta parcela foi paga com atraso
-            if (hoje > dataVencimento) {
-              const diasAtraso = Math.floor((hoje.getTime() - dataVencimento.getTime()) / (1000 * 60 * 60 * 24));
-              atrasos.push({
-                leilaoNome: leilao.leilaoNome,
-                leilaoData: leilao.leilaoData,
-                diasAtraso,
-                dataVencimento: dataVencimento.toLocaleDateString('pt-BR'),
-                tipo: 'pago_com_atraso'
-              });
-              break; // Considerar apenas a primeira parcela paga com atraso
-            }
-          }
 
           // Verificar se há parcelas atrasadas (não pagas e vencidas)
           for (let i = parcelasPagas; i < quantidadeParcelas; i++) {
@@ -604,8 +708,76 @@ export default function Historico() {
 
             <div className="space-y-4 sm:space-y-6">
               {selectedArrematante.leiloes.map((leilao, index) => {
-                const valorTotal = leilao.valorPagarNumerico || 0;
+                const valorBase = leilao.valorPagarNumerico || 0;
+                const percentualJuros = leilao.percentualJuros || 0;
                 const isPago = leilao.pago;
+                
+                // Inferir tipo de pagamento
+                const temEntrada = leilao.valorEntrada || leilao.dataEntrada;
+                const tipoPagamento = leilao.tipoPagamento || (temEntrada ? 'entrada_parcelamento' : 'parcelamento');
+                
+                // Calcular valor total com juros
+                let valorTotal = 0;
+                
+                if (tipoPagamento === 'a_vista') {
+                  const dataVencimento = leilao.dataVencimentoVista;
+                  if (dataVencimento && !isPago) {
+                    valorTotal = calcularJurosProgressivos(valorBase, dataVencimento, percentualJuros);
+                  } else {
+                    valorTotal = valorBase;
+                  }
+                } else if (tipoPagamento === 'entrada_parcelamento') {
+                  const valorEntradaBase = leilao.valorEntrada || 0;
+                  const valorParaParcelas = valorBase - valorEntradaBase;
+                  
+                  const dataEntrada = leilao.dataEntrada;
+                  const valorEntradaComJuros = dataEntrada && !isPago
+                    ? calcularJurosProgressivos(valorEntradaBase, dataEntrada, percentualJuros)
+                    : valorEntradaBase;
+                  
+                  const estruturaParcelas = calcularEstruturaParcelas(
+                    valorParaParcelas,
+                    leilao.parcelasTriplas || 0,
+                    leilao.parcelasDuplas || 0,
+                    leilao.parcelasSimples || 0,
+                    leilao.quantidadeParcelas
+                  );
+                  
+                  let totalParcelasComJuros = 0;
+                  if (leilao.mesInicioPagamento && leilao.diaVencimentoMensal) {
+                    const [ano, mes] = leilao.mesInicioPagamento.split('-').map(Number);
+                    estruturaParcelas.forEach((parcela, idx) => {
+                      const dataVencimento = new Date(ano, mes - 1 + idx, leilao.diaVencimentoMensal!);
+                      const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+                      const valorParcelaComJuros = isPago ? parcela.valor : calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
+                      totalParcelasComJuros += valorParcelaComJuros;
+                    });
+                  } else {
+                    totalParcelasComJuros = valorParaParcelas;
+                  }
+                  
+                  valorTotal = valorEntradaComJuros + totalParcelasComJuros;
+                } else {
+                  const estruturaParcelas = calcularEstruturaParcelas(
+                    valorBase,
+                    leilao.parcelasTriplas || 0,
+                    leilao.parcelasDuplas || 0,
+                    leilao.parcelasSimples || 0,
+                    leilao.quantidadeParcelas
+                  );
+                  
+                  if (leilao.mesInicioPagamento && leilao.diaVencimentoMensal) {
+                    const [ano, mes] = leilao.mesInicioPagamento.split('-').map(Number);
+                    estruturaParcelas.forEach((parcela, idx) => {
+                      const dataVencimento = new Date(ano, mes - 1 + idx, leilao.diaVencimentoMensal!);
+                      const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+                      const valorParcelaComJuros = isPago ? parcela.valor : calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
+                      valorTotal += valorParcelaComJuros;
+                    });
+                  } else {
+                    valorTotal = valorBase;
+                  }
+                }
                 
                 let statusLabel;
                 if (isPago) {
@@ -616,12 +788,23 @@ export default function Historico() {
                   statusLabel = 'Pendente';
                 }
 
-                const descricaoParcelas = descreverEstruturaParcelas(
-                  leilao.parcelasTriplas || 0,
-                  leilao.parcelasDuplas || 0,
-                  leilao.parcelasSimples || 0,
-                  valorTotal
-                );
+                // Descrição da forma de pagamento
+                let descricaoPagamento = '';
+                if (tipoPagamento === 'a_vista') {
+                  descricaoPagamento = 'À vista';
+                } else if (tipoPagamento === 'entrada_parcelamento') {
+                  const valorEntradaBase = leilao.valorEntrada || 0;
+                  const quantidadeParcelas = leilao.quantidadeParcelas || 0;
+                  descricaoPagamento = `Entrada de ${formatCurrency(valorEntradaBase)} + ${quantidadeParcelas} parcelas`;
+                } else {
+                  const descricaoParcelas = descreverEstruturaParcelas(
+                    leilao.parcelasTriplas || 0,
+                    leilao.parcelasDuplas || 0,
+                    leilao.parcelasSimples || 0,
+                    valorBase
+                  );
+                  descricaoPagamento = descricaoParcelas;
+                }
 
                 return (
                   <div 
@@ -664,9 +847,7 @@ export default function Historico() {
                       <div>
                         <p className="text-xs text-gray-500 mb-1">Forma de Pagamento</p>
                         <p className="text-sm text-gray-900">
-                          {leilao.quantidadeParcelas > 1 
-                            ? descricaoParcelas
-                            : 'À vista'}
+                          {descricaoPagamento}
                         </p>
                       </div>
 
