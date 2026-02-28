@@ -5943,28 +5943,71 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
             <div className="text-xs text-gray-500 mb-2">Valor Total a Pagar</div>
             <span className="text-2xl font-light text-gray-900" style={{ fontWeight: '300' }}>
               {(() => {
-                const valorTotal = arrematante.valorPagarNumerico || 0;
-                const [startYear, startMonth] = (arrematante.mesInicioPagamento || '').split('-').map(Number);
+                // ✅ Calcular valor com juros (sem precisar de auction completo)
+                const valorBase = arrematante.valorPagarNumerico || 0;
+                let tipoPagamento = arrematante.tipoPagamento;
+                
+                // Inferir entrada_parcelamento se tem entrada definida
+                const _temVE = arrematante.valorEntrada && parseFloat(String(arrematante.valorEntrada).replace(/[^\d,.-]/g, '').replace(',', '.')) > 0;
+                const _temDE = !!arrematante.dataEntrada;
+                if ((_temVE || _temDE) && !tipoPagamento) {
+                  tipoPagamento = 'entrada_parcelamento';
+                }
+                
                 const percentualJuros = arrematante.percentualJurosAtraso || 0;
+                const hoje = new Date();
                 
-                if (!startYear || !startMonth) return formatCurrency(valorTotal);
+                const calcularMesesAtraso = (dataVencimento: string): number => {
+                  const vencimento = new Date(dataVencimento + 'T23:59:59');
+                  const diffTime = Math.max(0, hoje.getTime() - vencimento.getTime());
+                  return Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
+                };
                 
-                // Calcular estrutura de parcelas
-                const estrutura = calcularEstruturaParcelas(
-                  valorTotal,
-                  arrematante.parcelasTriplas || 0,
-                  arrematante.parcelasDuplas || 0,
-                  arrematante.parcelasSimples || 0
-                );
+                let totalComJuros = 0;
                 
-                let valorTotalComJuros = 0;
-                estrutura.forEach((parcela, index) => {
-                  const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + index, arrematante.diaVencimentoMensal || 15);
-                  const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-                  valorTotalComJuros += calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
-                });
+                if (tipoPagamento === 'entrada_parcelamento') {
+                  const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
+                  const mesInicioPagamento = arrematante.mesInicioPagamento;
+                  
+                  if (mesInicioPagamento) {
+                    const valorEntradaBase = arrematante.valorEntrada
+                      ? (typeof arrematante.valorEntrada === 'string' ?
+                          parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) :
+                          arrematante.valorEntrada) :
+                      valorBase * 0.3;
+                    
+                    const valorParaParcelas = valorBase - valorEntradaBase;
+                    const estruturaParcelas = calcularEstruturaParcelas(
+                      valorParaParcelas,
+                      arrematante.parcelasTriplas || 0,
+                      arrematante.parcelasDuplas || 0,
+                      arrematante.parcelasSimples || 0,
+                      quantidadeParcelas
+                    );
+                    
+                    // Calcular juros da entrada
+                    const dataEntrada = arrematante.dataEntrada;
+                    if (dataEntrada && percentualJuros) {
+                      totalComJuros += calcularJurosProgressivos(valorEntradaBase, dataEntrada, percentualJuros);
+                    } else {
+                      totalComJuros += valorEntradaBase;
+                    }
+                    
+                    // Calcular juros das parcelas
+                    const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
+                    for (let i = 0; i < quantidadeParcelas; i++) {
+                      const dataVencimento = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15, 23, 59, 59);
+                      const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+                      const valorRealParcela = estruturaParcelas[i]?.valor || 0;
+                      totalComJuros += calcularJurosProgressivos(valorRealParcela, dataVencimentoStr, percentualJuros);
+                    }
+                    
+                    return formatCurrency(totalComJuros);
+                  }
+                }
                 
-                return formatCurrency(valorTotalComJuros);
+                // Fallback: se não conseguiu calcular, usar valor base
+                return formatCurrency(valorBase);
               })()}
             </span>
           </div>
@@ -6005,34 +6048,67 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
             {arrematante.pago ? 
               'R$ 0,00' : 
               (() => {
-                const valorTotal = arrematante.valorPagarNumerico || 0;
-                const [startYear, startMonth] = (arrematante.mesInicioPagamento || '').split('-').map(Number);
-                const percentualJuros = arrematante.percentualJurosAtraso || 0;
-                const parcelasPagas = arrematante.parcelasPagas || 0;
+                // ✅ Mesma lógica do Valor Total (já que parcelasPagas = 0)
+                const valorBase = arrematante.valorPagarNumerico || 0;
+                let tipoPagamento = arrematante.tipoPagamento;
                 
-                // Calcular estrutura de parcelas
-                const estrutura = calcularEstruturaParcelas(
-                  valorTotal,
-                  arrematante.parcelasTriplas || 0,
-                  arrematante.parcelasDuplas || 0,
-                  arrematante.parcelasSimples || 0
-                );
-                
-                if (!startYear || !startMonth) {
-                  const valorRestante = estrutura
-                    .slice(parcelasPagas)
-                    .reduce((sum, p) => sum + p.valor, 0);
-                  return formatCurrency(valorRestante);
+                const _temVE = arrematante.valorEntrada && parseFloat(String(arrematante.valorEntrada).replace(/[^\d,.-]/g, '').replace(',', '.')) > 0;
+                const _temDE = !!arrematante.dataEntrada;
+                if ((_temVE || _temDE) && !tipoPagamento) {
+                  tipoPagamento = 'entrada_parcelamento';
                 }
                 
-                let valorRestante = 0;
-                estrutura.slice(parcelasPagas).forEach((parcela, index) => {
-                  const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + parcelasPagas + index, arrematante.diaVencimentoMensal || 15);
-                  const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-                  valorRestante += calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
-                });
+                const percentualJuros = arrematante.percentualJurosAtraso || 0;
+                const hoje = new Date();
                 
-                return formatCurrency(valorRestante);
+                const calcularMesesAtraso = (dataVencimento: string): number => {
+                  const vencimento = new Date(dataVencimento + 'T23:59:59');
+                  const diffTime = Math.max(0, hoje.getTime() - vencimento.getTime());
+                  return Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
+                };
+                
+                let totalComJuros = 0;
+                
+                if (tipoPagamento === 'entrada_parcelamento') {
+                  const quantidadeParcelas = arrematante.quantidadeParcelas || 12;
+                  const mesInicioPagamento = arrematante.mesInicioPagamento;
+                  
+                  if (mesInicioPagamento) {
+                    const valorEntradaBase = arrematante.valorEntrada
+                      ? (typeof arrematante.valorEntrada === 'string' ?
+                          parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) :
+                          arrematante.valorEntrada) :
+                      valorBase * 0.3;
+                    
+                    const valorParaParcelas = valorBase - valorEntradaBase;
+                    const estruturaParcelas = calcularEstruturaParcelas(
+                      valorParaParcelas,
+                      arrematante.parcelasTriplas || 0,
+                      arrematante.parcelasDuplas || 0,
+                      arrematante.parcelasSimples || 0,
+                      quantidadeParcelas
+                    );
+                    
+                    const dataEntrada = arrematante.dataEntrada;
+                    if (dataEntrada && percentualJuros) {
+                      totalComJuros += calcularJurosProgressivos(valorEntradaBase, dataEntrada, percentualJuros);
+                    } else {
+                      totalComJuros += valorEntradaBase;
+                    }
+                    
+                    const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
+                    for (let i = 0; i < quantidadeParcelas; i++) {
+                      const dataVencimento = new Date(startYear, startMonth - 1 + i, arrematante.diaVencimentoMensal || 15, 23, 59, 59);
+                      const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+                      const valorRealParcela = estruturaParcelas[i]?.valor || 0;
+                      totalComJuros += calcularJurosProgressivos(valorRealParcela, dataVencimentoStr, percentualJuros);
+                    }
+                    
+                    return formatCurrency(totalComJuros);
+                  }
+                }
+                
+                return formatCurrency(valorBase);
               })()
             }
             </span>
@@ -6158,11 +6234,9 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
                 let entradaTemJuros = false;
                 
                 if (!entradaPaga && dataEntrada && now > dataEntrada && percentualJuros) {
-                  const mesesAtraso = Math.max(0, Math.floor((now.getTime() - dataEntrada.getTime()) / (1000 * 60 * 60 * 24 * 30)));
-                  if (mesesAtraso >= 1) {
-                    valorEntradaExibir = calcularJurosProgressivos(valorEntrada, dataEntrada.toISOString().split('T')[0], percentualJuros);
-                    entradaTemJuros = true;
-                  }
+                  const dataEntradaStr = dataEntrada.toISOString().split('T')[0];
+                  valorEntradaExibir = calcularJurosProgressivos(valorEntrada, dataEntradaStr, percentualJuros);
+                  entradaTemJuros = true;
                 }
                 
                 parcelas.push(
@@ -6206,7 +6280,7 @@ const ArrematantePdfReport = ({ arrematante }: { arrematante: ArrematanteExtendi
                 
                 const dataVencimento = calcularDataComAjuste(startYear, startMonth - 1 + index, arrematante.diaVencimentoMensal || 15);
                 const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
-                const valorComJuros = calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros);
+                const valorComJuros = !isPaga ? calcularJurosProgressivos(parcela.valor, dataVencimentoStr, percentualJuros) : parcela.valor;
                 const temJuros = valorComJuros > parcela.valor;
                 
                 parcelas.push(
