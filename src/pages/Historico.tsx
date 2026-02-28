@@ -82,28 +82,25 @@ export default function Historico() {
       if (auction.arrematante && auction.arrematante.documento) {
         const doc = auction.arrematante.documento;
         
+        // Criar objeto com dados do leilão + arrematante
+        const leilaoComDados = {
+          leilaoId: auction.id,
+          leilaoNome: auction.nome,
+          leilaoIdentificacao: auction.identificacao,
+          leilaoData: auction.dataInicio,
+          leilaoStatus: auction.status,
+          percentualJuros: auction.percentualJuros || auction.arrematante.percentualJuros || 0,
+          ...auction.arrematante
+        };
+        
         if (arrematantesMap.has(doc)) {
           // Adicionar leilão à lista existente
-          arrematantesMap.get(doc)!.leiloes.push({
-            leilaoId: auction.id,
-            leilaoNome: auction.nome,
-            leilaoIdentificacao: auction.identificacao,
-            leilaoData: auction.dataInicio,
-            leilaoStatus: auction.status,
-            ...auction.arrematante
-          });
+          arrematantesMap.get(doc)!.leiloes.push(leilaoComDados);
         } else {
           // Criar novo registro
           arrematantesMap.set(doc, {
             ...auction.arrematante,
-            leiloes: [{
-              leilaoId: auction.id,
-              leilaoNome: auction.nome,
-              leilaoIdentificacao: auction.identificacao,
-              leilaoData: auction.dataInicio,
-              leilaoStatus: auction.status,
-              ...auction.arrematante
-            }]
+            leiloes: [leilaoComDados]
           });
         }
       }
@@ -288,7 +285,7 @@ export default function Historico() {
         }
         console.log(`DEBUG Historico - A vista:`, { valorBase, valorTotalComJuros });
       } else if (tipoPagamento === 'entrada_parcelamento') {
-        const valorEntradaBase = leilao.valorEntrada || 0;
+        const valorEntradaBase = parseFloat(leilao.valorEntrada as any) || 0;
         const valorParaParcelas = valorBase - valorEntradaBase;
         
         console.log(`DEBUG Historico - Entrada+Parcelamento:`, {
@@ -339,7 +336,7 @@ export default function Historico() {
         
         console.log(`DEBUG Historico - Total parcelas com juros:`, totalParcelasComJuros);
         
-        valorTotalComJuros = valorEntradaComJuros + totalParcelasComJuros;
+        valorTotalComJuros = Number(valorEntradaComJuros) + Number(totalParcelasComJuros);
         
         console.log(`DEBUG Historico - Valor final entrada+parcelamento:`, {
           valorEntradaComJuros,
@@ -788,7 +785,7 @@ export default function Historico() {
                     valorTotal = valorBase;
                   }
                 } else if (tipoPagamento === 'entrada_parcelamento') {
-                  const valorEntradaBase = leilao.valorEntrada || 0;
+                  const valorEntradaBase = parseFloat(leilao.valorEntrada as any) || 0;
                   const valorParaParcelas = valorBase - valorEntradaBase;
                   
                   const dataEntrada = leilao.dataEntrada;
@@ -817,7 +814,7 @@ export default function Historico() {
                     totalParcelasComJuros = valorParaParcelas;
                   }
                   
-                  valorTotal = valorEntradaComJuros + totalParcelasComJuros;
+                  valorTotal = Number(valorEntradaComJuros) + Number(totalParcelasComJuros);
                 } else {
                   const estruturaParcelas = calcularEstruturaParcelas(
                     valorBase,
@@ -854,7 +851,7 @@ export default function Historico() {
                 if (tipoPagamento === 'a_vista') {
                   descricaoPagamento = 'À vista';
                 } else if (tipoPagamento === 'entrada_parcelamento') {
-                  const valorEntradaBase = leilao.valorEntrada || 0;
+                  const valorEntradaBase = parseFloat(leilao.valorEntrada as any) || 0;
                   const quantidadeParcelas = leilao.quantidadeParcelas || 0;
                   descricaoPagamento = `Entrada de ${formatCurrency(valorEntradaBase)} + ${quantidadeParcelas} parcelas`;
                 } else {
