@@ -1,4 +1,5 @@
 import { useState, useMemo, createContext, useContext } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { logger } from "@/lib/logger";
 import { Button } from "@/components/ui/button";
@@ -267,6 +268,7 @@ const HoverSyncHeader = ({
 
 
 export default function Inadimplencia() {
+  const navigate = useNavigate();
   const { auctions, isLoading } = useSupabaseAuctions();
   const { logReportAction, logBidderAction } = useActivityLogger();
   const { enviarCobranca, enviarLembrete } = useEmailNotifications();
@@ -315,8 +317,11 @@ export default function Inadimplencia() {
 
   // Função para abrir histórico do arrematante
   const handleOpenHistory = (auction: AuctionWithOverdueInfo) => {
-    setSelectedArrematante(auction);
-    setIsHistoryModalOpen(true);
+    const cpf = auction.arrematante?.documento;
+    if (cpf) {
+      // Navegar para a aba Histórico com o CPF na URL
+      navigate(`/historico?cpf=${encodeURIComponent(cpf)}`);
+    }
     try {
       logBidderAction('view', auction.arrematante?.nome || '', auction.nome || '', auction.id, {
         metadata: { context: 'inadimplencia_history', overdue_amount: auction.overdueAmount }
