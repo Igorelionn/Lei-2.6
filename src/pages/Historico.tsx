@@ -233,6 +233,7 @@ export default function Historico() {
   const calcularEstatisticas = (arrematante: ArrematanteComHistorico) => {
     const totalLeiloes = arrematante.leiloes.length;
     let totalArrematado = 0;
+    let totalArrematadoBase = 0;
     let totalPago = 0;
     let totalPendente = 0;
     let leiloesQuitados = 0;
@@ -240,6 +241,8 @@ export default function Historico() {
     arrematante.leiloes.forEach((leilao) => {
       const valorBase = leilao.valorPagarNumerico || 0;
       const percentualJuros = leilao.percentualJuros || 5;
+      
+      totalArrematadoBase += valorBase;
       
       // Inferir tipo de pagamento
       const temEntrada = leilao.valorEntrada || leilao.dataEntrada;
@@ -338,10 +341,13 @@ export default function Historico() {
     });
 
     const progressoPagamento = totalArrematado > 0 ? (totalPago / totalArrematado) * 100 : 0;
+    const totalJurosAcumulados = totalArrematado - totalArrematadoBase;
 
     return {
       totalLeiloes,
       totalArrematado,
+      totalArrematadoBase,
+      totalJurosAcumulados,
       totalPago,
       totalPendente,
       leiloesQuitados,
@@ -558,6 +564,11 @@ export default function Historico() {
               <div>
                 <p className="text-xs text-gray-500 mb-2">Total Arrematado</p>
                 <p className="text-xl font-light text-gray-900">{formatCurrency(stats.totalArrematado)}</p>
+                {stats.totalJurosAcumulados > 0 && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    +{formatCurrency(stats.totalJurosAcumulados)} juros
+                  </p>
+                )}
               </div>
 
               {/* Total Pago */}
@@ -584,6 +595,15 @@ export default function Historico() {
                 <p className="text-2xl font-light text-gray-900">{stats.taxaQuitacao.toFixed(0)}%</p>
               </div>
             </div>
+            
+            {stats.totalJurosAcumulados > 0 && (
+              <div className="mt-6 pt-6 border-t border-gray-100">
+                <p className="text-xs text-gray-500 italic">
+                  * O valor total arrematado inclui juros de mora de 5% ao mês sobre pagamentos em atraso. 
+                  Valor base: {formatCurrency(stats.totalArrematadoBase)} + Juros acumulados: {formatCurrency(stats.totalJurosAcumulados)} = Total: {formatCurrency(stats.totalArrematado)}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Análise Detalhada do Perfil */}
@@ -840,6 +860,11 @@ export default function Historico() {
                         <p className="text-2xl font-light text-gray-900">
                           {formatCurrency(valorTotal)}
                         </p>
+                        {valorTotal > valorBase && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Base: {formatCurrency(valorBase)} + Juros: {formatCurrency(valorTotal - valorBase)}
+                          </p>
+                        )}
                       </div>
 
                       <div>
@@ -847,6 +872,11 @@ export default function Historico() {
                         <p className="text-sm text-gray-900">
                           {descricaoPagamento}
                         </p>
+                        {percentualJuros > 0 && !isPago && (
+                          <p className="text-xs text-gray-500 mt-1">
+                            Juros: {percentualJuros}%/mês
+                          </p>
+                        )}
                       </div>
 
                       {!isPago && (
