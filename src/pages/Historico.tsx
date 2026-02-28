@@ -84,9 +84,8 @@ export default function Historico() {
         
         console.log('DEBUG Historico - Auction data:', {
           nome: auction.nome,
-          percentualJurosAuction: auction.percentualJuros,
-          percentualJurosArrematante: auction.arrematante.percentualJuros,
-          jurosAtraso: auction.jurosAtraso
+          percentualJurosAtraso: auction.arrematante.percentualJurosAtraso,
+          arrematante: auction.arrematante.nome
         });
         
         // Criar objeto com dados do leilão + arrematante
@@ -96,7 +95,7 @@ export default function Historico() {
           leilaoIdentificacao: auction.identificacao,
           leilaoData: auction.dataInicio,
           leilaoStatus: auction.status,
-          percentualJuros: auction.percentualJuros || auction.jurosAtraso || auction.arrematante.percentualJuros || 0,
+          percentualJuros: auction.arrematante.percentualJurosAtraso || 0,
           ...auction.arrematante
         };
         
