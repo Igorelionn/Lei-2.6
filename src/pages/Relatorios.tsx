@@ -4028,17 +4028,9 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                 const ve = arrematante?.valorEntrada ? (typeof arrematante.valorEntrada === 'string' ? parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : arrematante.valorEntrada) : valorTotal * 0.3;
                 const valorParaParcelas = valorTotal - ve;
                 
-                const de = loteArrematado?.dataEntrada || auction.dataEntrada;
+                const de = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada;
                 const valorEntradaComJuros = de ? calcularJurosProgressivos(ve, de, percentualJuros) : ve;
                 valorTotalComJuros += valorEntradaComJuros;
-                
-                console.log('DEBUG - Entrada no Perfil de Risco:', {
-                  ve,
-                  de,
-                  percentualJuros,
-                  valorEntradaComJuros,
-                  jurosEntrada: valorEntradaComJuros - ve
-                });
                 
                 const estruturaParcelas = calcularEstruturaParcelas(
                   valorParaParcelas,
@@ -4052,12 +4044,6 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                 estruturaParcelas.forEach((parcela, idx) => {
                   const d = new Date(sy, sm - 1 + idx, arrematante?.diaVencimentoMensal || 15);
                   valorTotalComJuros += calcularJurosProgressivos(parcela.valor, d.toISOString().split('T')[0], percentualJuros);
-                });
-                
-                console.log('DEBUG - Total final:', {
-                  valorTotalComJuros,
-                  valorBase: valorTotal,
-                  jurosTotal: valorTotalComJuros - valorTotal
                 });
               } else if (tipoPagamento === 'parcelamento' && mip) {
                 const estruturaParcelas = calcularEstruturaParcelas(
