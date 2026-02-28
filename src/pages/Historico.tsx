@@ -58,13 +58,15 @@ export default function Historico() {
   // Hook para buscar automaticamente quando CPF vem na URL
   useEffect(() => {
     const cpfFromUrl = searchParams.get('cpf');
-    if (cpfFromUrl && todosArrematantes.length > 0) {
+    if (cpfFromUrl && todosArrematantes.length > 0 && !searchText) {
       setSearchMode('cpf');
       setSearchText(formatCpfCnpj(cpfFromUrl));
-      // Limpar o parâmetro da URL
-      setSearchParams({});
+      // Limpar o parâmetro da URL após usar
+      const newParams = new URLSearchParams(searchParams);
+      newParams.delete('cpf');
+      setSearchParams(newParams, { replace: true });
     }
-  }, [searchParams, todosArrematantes]);
+  }, [searchParams, todosArrematantes.length, searchText]);
 
   // Formatador CPF/CNPJ
   const formatCpfCnpj = (value: string) => {
