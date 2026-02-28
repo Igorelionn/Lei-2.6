@@ -1279,6 +1279,108 @@ function Arrematantes() {
     return Math.round(valorAtual * 100) / 100;
   };
 
+  // ✅ Função para calcular valor total do arrematante COM juros
+  const calcularValorArrematanteComJuros = (arr: ArrematanteInfo, auction?: Auction, loteArrematado?: LoteInfo): number => {
+    const valorBase = arr.valorPagarNumerico || 0;
+    
+    let tipoPagamento = arr.tipoPagamento || loteArrematado?.tipoPagamento || auction?.tipoPagamento;
+    
+    // Inferir entrada_parcelamento se tem entrada definida
+    const _temVE = arr.valorEntrada && parseFloat(String(arr.valorEntrada).replace(/[^\d,.-]/g, '').replace(',', '.')) > 0;
+    const _temDE = !!arr.dataEntrada;
+    if ((_temVE || _temDE) && tipoPagamento === 'parcelamento') {
+      tipoPagamento = 'entrada_parcelamento';
+    }
+    
+    const percentualJuros = arr.percentualJurosAtraso || 0;
+    const hoje = new Date();
+    
+    const calcularMesesAtraso = (dataVencimento: string): number => {
+      const vencimento = new Date(dataVencimento + 'T23:59:59');
+      const diffTime = Math.max(0, hoje.getTime() - vencimento.getTime());
+      return Math.floor(diffTime / (1000 * 60 * 60 * 24 * 30));
+    };
+    
+    if (tipoPagamento === 'a_vista') {
+      const dataVencimento = loteArrematado?.dataVencimentoVista || auction?.dataVencimentoVista;
+      if (dataVencimento && percentualJuros) {
+        const mesesAtraso = calcularMesesAtraso(dataVencimento);
+        return calcularJurosProgressivos(valorBase, percentualJuros, mesesAtraso);
+      }
+      return valorBase;
+    } else if (tipoPagamento === 'entrada_parcelamento') {
+      const quantidadeParcelas = arr.quantidadeParcelas || 12;
+      const mesInicioPagamento = arr.mesInicioPagamento;
+
+      if (mesInicioPagamento) {
+        const valorEntradaBase = arr.valorEntrada
+          ? (typeof arr.valorEntrada === 'string' ?
+              parseFloat(arr.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) :
+              arr.valorEntrada) :
+          valorBase * 0.3;
+
+        const valorParaParcelas = valorBase - valorEntradaBase;
+        const estruturaParcelas = calcularEstruturaParcelas(
+          valorParaParcelas,
+          arr.parcelasTriplas || 0,
+          arr.parcelasDuplas || 0,
+          arr.parcelasSimples || 0,
+          quantidadeParcelas
+        );
+
+        let totalComJuros = 0;
+
+        const dataEntrada = arr.dataEntrada || loteArrematado?.dataEntrada || auction?.dataEntrada;
+        if (dataEntrada && percentualJuros) {
+          const mesesAtraso = calcularMesesAtraso(dataEntrada);
+          totalComJuros += calcularJurosProgressivos(valorEntradaBase, percentualJuros, mesesAtraso);
+        } else {
+          totalComJuros += valorEntradaBase;
+        }
+
+        const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
+        for (let i = 0; i < quantidadeParcelas; i++) {
+          const dataVencimento = new Date(startYear, startMonth - 1 + i, arr.diaVencimentoMensal || 15, 23, 59, 59);
+          const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+          const valorRealParcela = estruturaParcelas[i]?.valor || 0;
+          const mesesAtraso = calcularMesesAtraso(dataVencimentoStr);
+          totalComJuros += calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso);
+        }
+
+        return totalComJuros;
+      }
+      return valorBase;
+    } else {
+      // Parcelamento simples
+      const quantidadeParcelas = arr.quantidadeParcelas || 1;
+      const mesInicioPagamento = arr.mesInicioPagamento;
+
+      if (mesInicioPagamento && quantidadeParcelas > 0) {
+        const estruturaParcelas = calcularEstruturaParcelas(
+          valorBase,
+          arr.parcelasTriplas || 0,
+          arr.parcelasDuplas || 0,
+          arr.parcelasSimples || 0,
+          quantidadeParcelas
+        );
+
+        let totalComJuros = 0;
+        const [startYear, startMonth] = mesInicioPagamento.split('-').map(Number);
+
+        for (let i = 0; i < quantidadeParcelas; i++) {
+          const dataVencimento = new Date(startYear, startMonth - 1 + i, arr.diaVencimentoMensal || 15, 23, 59, 59);
+          const dataVencimentoStr = dataVencimento.toISOString().split('T')[0];
+          const valorRealParcela = estruturaParcelas[i]?.valor || 0;
+          const mesesAtraso = calcularMesesAtraso(dataVencimentoStr);
+          totalComJuros += calcularJurosProgressivos(valorRealParcela, percentualJuros, mesesAtraso);
+        }
+
+        return totalComJuros;
+      }
+      return valorBase;
+    }
+  };
+
   // Função para calcular juros compostos em parcelas atrasadas
   const calcularJurosAtraso = (arrematante: ArrematanteInfo, auction: Auction, valorParcela: number) => {
     const percentualJuros = (arrematante.percentualJurosAtraso || 0) / 100; // Converter % para decimal
@@ -3956,10 +4058,14 @@ function Arrematantes() {
                       <div>
                         <Label className="text-sm font-medium text-gray-700">Valor a Ser Pago</Label>
                         <p className="mt-1 p-3 bg-gray-50 border border-gray-200 rounded-md text-sm font-medium">
-                          {new Intl.NumberFormat("pt-BR", { 
-                            style: "currency", 
-                            currency: "BRL" 
-                          }).format(selectedArrematante.valorPagarNumerico || 0)}
+                          {(() => {
+                            // ✅ Calcular valor com juros progressivos
+                            const valorComJuros = calcularValorArrematanteComJuros(selectedArrematante, auction, loteArrematado);
+                            return new Intl.NumberFormat("pt-BR", { 
+                              style: "currency", 
+                              currency: "BRL" 
+                            }).format(valorComJuros);
+                          })()}
                         </p>
                       </div>
 
