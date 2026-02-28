@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useSupabaseAuctions } from "@/hooks/use-supabase-auctions";
 import { logger } from "@/lib/logger";
@@ -32,7 +32,7 @@ import { calcularEstruturaParcelas, descreverEstruturaParcelas } from "@/lib/par
 import html2pdf from 'html2pdf.js';
 
 export default function Historico() {
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
   const { auctions } = useSupabaseAuctions();
   const { logBidderAction, logReportAction } = useActivityLogger();
   const [searchText, setSearchText] = useState("");
@@ -42,6 +42,7 @@ export default function Historico() {
   const [isHoveringButton, setIsHoveringButton] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
+  const processedCpfRef = useRef(false);
 
   // Hook para detectar quando está digitando
   useEffect(() => {
@@ -57,16 +58,15 @@ export default function Historico() {
   
   // Hook para buscar automaticamente quando CPF vem na URL
   useEffect(() => {
+    if (processedCpfRef.current) return;
+    
     const cpfFromUrl = searchParams.get('cpf');
-    if (cpfFromUrl && todosArrematantes.length > 0 && !searchText) {
+    if (cpfFromUrl && todosArrematantes.length > 0) {
       setSearchMode('cpf');
       setSearchText(formatCpfCnpj(cpfFromUrl));
-      // Limpar o parâmetro da URL após usar
-      const newParams = new URLSearchParams(searchParams);
-      newParams.delete('cpf');
-      setSearchParams(newParams, { replace: true });
+      processedCpfRef.current = true;
     }
-  }, [searchParams, todosArrematantes.length, searchText]);
+  }, [todosArrematantes.length]);
 
   // Formatador CPF/CNPJ
   const formatCpfCnpj = (value: string) => {
