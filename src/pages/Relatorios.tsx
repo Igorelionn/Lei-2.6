@@ -4073,7 +4073,7 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               const getSituacaoText = () => {
                 const getVencDate = () => { try {
                   if (tipoPagamento === 'a_vista') { const dv = loteArrematado?.dataVencimentoVista || auction.dataVencimentoVista; return dv ? new Date(dv.split('-').map(Number)[0], dv.split('-').map(Number)[1] - 1, dv.split('-').map(Number)[2]).toLocaleDateString('pt-BR') : null; }
-                  if (tipoPagamento === 'entrada_parcelamento') { if (parcelasPagas === 0) { const de = loteArrematado?.dataEntrada || auction.dataEntrada; return de ? new Date(de.split('-').map(Number)[0], de.split('-').map(Number)[1] - 1, de.split('-').map(Number)[2]).toLocaleDateString('pt-BR') : null; } else { const mi = arrematante?.mesInicioPagamento; const dv = arrematante?.diaVencimentoMensal; if (mi && dv) { const [sy, sm] = mi.split('-').map(Number); return new Date(sy, sm - 1 + (parcelasPagas - 1), dv).toLocaleDateString('pt-BR'); } return null; } }
+                  if (tipoPagamento === 'entrada_parcelamento') { if (parcelasPagas === 0) { const de = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada; return de ? new Date(de.split('-').map(Number)[0], de.split('-').map(Number)[1] - 1, de.split('-').map(Number)[2]).toLocaleDateString('pt-BR') : null; } else { const mi = arrematante?.mesInicioPagamento; const dv = arrematante?.diaVencimentoMensal; if (mi && dv) { const [sy, sm] = mi.split('-').map(Number); return new Date(sy, sm - 1 + (parcelasPagas - 1), dv).toLocaleDateString('pt-BR'); } return null; } }
                   const mi = arrematante?.mesInicioPagamento; const dv = arrematante?.diaVencimentoMensal; if (mi && dv) { const [sy, sm] = mi.split('-').map(Number); return new Date(sy, sm - 1 + parcelasPagas, dv).toLocaleDateString('pt-BR'); } return null;
                 } catch { return null; } };
                 const vd = getVencDate(); const vt = vd ? ` com vencimento em ${vd}` : '';
@@ -4083,15 +4083,17 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
                   const st = isCurrentlyOverdue ? 'em atraso' : 'pendente de quitação';
                   if (tipoPagamento === 'entrada_parcelamento') {
                     const ve = arrematante?.valorEntrada ? (typeof arrematante.valorEntrada === 'string' ? parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : arrematante.valorEntrada) : valorTotal * 0.3;
-                    const ep = calcularEstruturaParcelas(valorTotal, arrematante?.parcelasTriplas || 0, arrematante?.parcelasDuplas || 0, arrematante?.parcelasSimples || 0, quantidadeParcelas);
+                    const valorParaParcelas = valorTotal - ve;
+                    const ep = calcularEstruturaParcelas(valorParaParcelas, arrematante?.parcelasTriplas || 0, arrematante?.parcelasDuplas || 0, arrematante?.parcelasSimples || 0, quantidadeParcelas);
                     let pea = 0; let eea = false; let vtpa = 0;
-                    try { const h = new Date(); const de = loteArrematado?.dataEntrada || auction.dataEntrada; if (de && parcelasPagas === 0) { const v = new Date(de); v.setHours(23,59,59,999); eea = h > v; }
+                    try { const h = new Date(); const de = arrematante?.dataEntrada || loteArrematado?.dataEntrada || auction.dataEntrada; if (de && parcelasPagas === 0) { const v = new Date(de); v.setHours(23,59,59,999); eea = h > v; }
                       if (arrematante?.mesInicioPagamento && arrematante?.diaVencimentoMensal) { const [y, m] = arrematante.mesInicioPagamento.split('-').map(Number); const pi = parcelasPagas > 0 ? parcelasPagas - 1 : 0;
-                        for (let i = pi; i < quantidadeParcelas; i++) { const d = new Date(y, m - 1 + i, arrematante.diaVencimentoMensal); d.setHours(23,59,59,999); if (h > d) { pea++; vtpa += ep[i]?.valor || 0; } else break; } }
+                        for (let i = pi; i < quantidadeParcelas; i++) { const d = new Date(y, m - 1 + i, arrematante.diaVencimentoMensal); d.setHours(23,59,59,999); if (h > d) { pea++; const valorParcelaComJuros = calcularJurosProgressivos(ep[i]?.valor || 0, d.toISOString().split('T')[0], percentualJuros); vtpa += valorParcelaComJuros; } else break; } }
                     } catch { /* ignore */ }
                     const ppi = parcelasPagas > 0 ? parcelasPagas - 1 : 0; const vpp = ep[ppi]?.valor || 0;
-                    if (eea && pea > 0) return `Entrada (${formatCurrency(ve)}) e ${pea} parcela${pea > 1 ? 's' : ''} (${formatCurrency(vtpa)}) ${st}, total ${formatCurrency(ve + vtpa)}.`;
-                    if (eea) return `Entrada de ${formatCurrency(ve)} ${st}.`;
+                    const veComJuros = eea ? calcularJurosProgressivos(ve, de, percentualJuros) : ve;
+                    if (eea && pea > 0) return `Entrada (${formatCurrency(veComJuros)}) e ${pea} parcela${pea > 1 ? 's' : ''} (${formatCurrency(vtpa)}) ${st}, total ${formatCurrency(veComJuros + vtpa)}.`;
+                    if (eea) return `Entrada de ${formatCurrency(veComJuros)} ${st}.`;
                     if (pea > 0) return `${pea} parcela${pea > 1 ? 's' : ''} (${formatCurrency(vtpa)}) ${st}.`;
                     return `Próximo vencimento${vt} de ${formatCurrency(parcelasPagas === 0 ? ve : vpp)} ${st}.`;
                   }
