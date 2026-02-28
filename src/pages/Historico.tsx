@@ -82,6 +82,13 @@ export default function Historico() {
       if (auction.arrematante && auction.arrematante.documento) {
         const doc = auction.arrematante.documento;
         
+        console.log('DEBUG Historico - Auction data:', {
+          nome: auction.nome,
+          percentualJurosAuction: auction.percentualJuros,
+          percentualJurosArrematante: auction.arrematante.percentualJuros,
+          jurosAtraso: auction.jurosAtraso
+        });
+        
         // Criar objeto com dados do leilão + arrematante
         const leilaoComDados = {
           leilaoId: auction.id,
@@ -89,9 +96,14 @@ export default function Historico() {
           leilaoIdentificacao: auction.identificacao,
           leilaoData: auction.dataInicio,
           leilaoStatus: auction.status,
-          percentualJuros: auction.percentualJuros || auction.arrematante.percentualJuros || 0,
+          percentualJuros: auction.percentualJuros || auction.jurosAtraso || auction.arrematante.percentualJuros || 0,
           ...auction.arrematante
         };
+        
+        console.log('DEBUG Historico - Leilao com dados criado:', {
+          nome: leilaoComDados.leilaoNome,
+          percentualJuros: leilaoComDados.percentualJuros
+        });
         
         if (arrematantesMap.has(doc)) {
           // Adicionar leilão à lista existente
