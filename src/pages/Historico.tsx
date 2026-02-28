@@ -82,12 +82,6 @@ export default function Historico() {
       if (auction.arrematante && auction.arrematante.documento) {
         const doc = auction.arrematante.documento;
         
-        console.log('DEBUG Historico - Auction data:', {
-          nome: auction.nome,
-          percentualJurosAtraso: auction.arrematante.percentualJurosAtraso,
-          arrematante: auction.arrematante.nome
-        });
-        
         // Criar objeto com dados do leilão + arrematante
         const leilaoComDados = {
           leilaoId: auction.id,
@@ -95,14 +89,9 @@ export default function Historico() {
           leilaoIdentificacao: auction.identificacao,
           leilaoData: auction.dataInicio,
           leilaoStatus: auction.status,
-          percentualJuros: auction.arrematante.percentualJurosAtraso || 0,
+          percentualJuros: auction.arrematante.percentualJurosAtraso || 5,
           ...auction.arrematante
         };
-        
-        console.log('DEBUG Historico - Leilao com dados criado:', {
-          nome: leilaoComDados.leilaoNome,
-          percentualJuros: leilaoComDados.percentualJuros
-        });
         
         if (arrematantesMap.has(doc)) {
           // Adicionar leilão à lista existente
@@ -212,7 +201,6 @@ export default function Historico() {
   // Função para calcular juros progressivos
   const calcularJurosProgressivos = (valorOriginal: number, dataVencimento: string, percentualJuros: number) => {
     if (!dataVencimento || !percentualJuros) {
-      console.log('DEBUG Historico - SEM JUROS (sem data ou percentual):', { valorOriginal, dataVencimento, percentualJuros });
       return valorOriginal;
     }
     
@@ -220,21 +208,12 @@ export default function Historico() {
     const vencimento = new Date(dataVencimento + 'T00:00:00');
     
     if (hoje <= vencimento) {
-      console.log('DEBUG Historico - SEM JUROS (não vencido):', { valorOriginal, dataVencimento });
       return valorOriginal;
     }
     
     const diffTime = Math.abs(hoje.getTime() - vencimento.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
     const mesesAtraso = Math.floor(diffDays / 30);
-    
-    console.log('DEBUG Historico - calcularJurosProgressivos:', {
-      valorOriginal,
-      dataVencimento,
-      percentualJuros,
-      diffDays,
-      mesesAtraso
-    });
     
     if (mesesAtraso < 1) {
       return valorOriginal;
@@ -247,43 +226,24 @@ export default function Historico() {
       valorAtual = valorAtual + jurosMes;
     }
     
-    console.log('DEBUG Historico - Valor com juros:', {
-      valorOriginal,
-      valorFinal: Math.round(valorAtual * 100) / 100,
-      mesesAtraso
-    });
-    
     return Math.round(valorAtual * 100) / 100;
   };
 
   // Calcular estatísticas do arrematante
   const calcularEstatisticas = (arrematante: ArrematanteComHistorico) => {
-    console.log('DEBUG Historico - Iniciando calcularEstatisticas para:', arrematante.nome);
     const totalLeiloes = arrematante.leiloes.length;
     let totalArrematado = 0;
     let totalPago = 0;
     let totalPendente = 0;
     let leiloesQuitados = 0;
 
-    arrematante.leiloes.forEach((leilao, idx) => {
-      console.log(`DEBUG Historico - Processando leilão ${idx + 1}:`, {
-        nome: leilao.leilaoNome,
-        valorPagarNumerico: leilao.valorPagarNumerico,
-        percentualJuros: leilao.percentualJuros,
-        valorEntrada: leilao.valorEntrada,
-        dataEntrada: leilao.dataEntrada,
-        tipoPagamento: leilao.tipoPagamento,
-        quantidadeParcelas: leilao.quantidadeParcelas
-      });
-      
+    arrematante.leiloes.forEach((leilao) => {
       const valorBase = leilao.valorPagarNumerico || 0;
-      const percentualJuros = leilao.percentualJuros || 0;
+      const percentualJuros = leilao.percentualJuros || 5;
       
       // Inferir tipo de pagamento
       const temEntrada = leilao.valorEntrada || leilao.dataEntrada;
       const tipoPagamento = leilao.tipoPagamento || (temEntrada ? 'entrada_parcelamento' : 'parcelamento');
-      
-      console.log(`DEBUG Historico - Leilão ${idx + 1} - Tipo pagamento inferido:`, tipoPagamento);
       
       let valorTotalComJuros = 0;
       
@@ -294,28 +254,15 @@ export default function Historico() {
         } else {
           valorTotalComJuros = valorBase;
         }
-        console.log(`DEBUG Historico - A vista:`, { valorBase, valorTotalComJuros });
       } else if (tipoPagamento === 'entrada_parcelamento') {
         const valorEntradaBase = parseFloat(leilao.valorEntrada as any) || 0;
         const valorParaParcelas = valorBase - valorEntradaBase;
-        
-        console.log(`DEBUG Historico - Entrada+Parcelamento:`, {
-          valorBase,
-          valorEntradaBase,
-          valorParaParcelas
-        });
         
         // Calcular juros da entrada
         const dataEntrada = leilao.dataEntrada;
         const valorEntradaComJuros = dataEntrada && !leilao.pago
           ? calcularJurosProgressivos(valorEntradaBase, dataEntrada, percentualJuros)
           : valorEntradaBase;
-        
-        console.log(`DEBUG Historico - Entrada com juros:`, {
-          valorEntradaBase,
-          valorEntradaComJuros,
-          dataEntrada
-        });
         
         // Calcular estrutura de parcelas
         const estruturaParcelas = calcularEstruturaParcelas(
@@ -325,11 +272,6 @@ export default function Historico() {
           leilao.parcelasSimples || 0,
           leilao.quantidadeParcelas
         );
-        
-        console.log(`DEBUG Historico - Estrutura parcelas:`, {
-          totalParcelas: estruturaParcelas.length,
-          primeiraParcela: estruturaParcelas[0]
-        });
         
         // Calcular juros de cada parcela
         let totalParcelasComJuros = 0;
@@ -345,18 +287,9 @@ export default function Historico() {
           totalParcelasComJuros = valorParaParcelas;
         }
         
-        console.log(`DEBUG Historico - Total parcelas com juros:`, totalParcelasComJuros);
-        
         valorTotalComJuros = Number(valorEntradaComJuros) + Number(totalParcelasComJuros);
-        
-        console.log(`DEBUG Historico - Valor final entrada+parcelamento:`, {
-          valorEntradaComJuros,
-          totalParcelasComJuros,
-          valorTotalComJuros
-        });
       } else {
         // Parcelamento simples
-        console.log(`DEBUG Historico - Parcelamento simples`);
         const estruturaParcelas = calcularEstruturaParcelas(
           valorBase,
           leilao.parcelasTriplas || 0,
@@ -376,13 +309,9 @@ export default function Historico() {
         } else {
           valorTotalComJuros = valorBase;
         }
-        
-        console.log(`DEBUG Historico - Valor final parcelamento simples:`, valorTotalComJuros);
       }
       
-      console.log(`DEBUG Historico - Valor total com juros do leilão:`, valorTotalComJuros);
       totalArrematado += valorTotalComJuros;
-      console.log(`DEBUG Historico - Total arrematado acumulado:`, totalArrematado);
 
       if (leilao.pago) {
         totalPago += valorTotalComJuros;
