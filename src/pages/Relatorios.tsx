@@ -4017,14 +4017,38 @@ const ReportPreview = ({ type, auctions, paymentTypeFilter = 'todos' }: {
               const mip = arrematante?.mesInicioPagamento;
               if (tipoPagamento === 'entrada_parcelamento' && mip) {
                 const ve = arrematante?.valorEntrada ? (typeof arrematante.valorEntrada === 'string' ? parseFloat(arrematante.valorEntrada.replace(/[^\d,]/g, '').replace(',', '.')) : arrematante.valorEntrada) : valorTotal * 0.3;
-                const vpb = valorTotal / quantidadeParcelas;
+                const valorParaParcelas = valorTotal - ve;
+                
                 const de = loteArrematado?.dataEntrada || auction.dataEntrada;
                 valorTotalComJuros += de ? calcularJurosProgressivos(ve, de, percentualJuros) : ve;
+                
+                const estruturaParcelas = calcularEstruturaParcelas(
+                  valorParaParcelas,
+                  arrematante?.parcelasTriplas || 0,
+                  arrematante?.parcelasDuplas || 0,
+                  arrematante?.parcelasSimples || 0,
+                  quantidadeParcelas
+                );
+                
                 const [sy, sm] = mip.split('-').map(Number);
-                for (let i = 0; i < quantidadeParcelas; i++) { const d = new Date(sy, sm - 1 + i, arrematante?.diaVencimentoMensal || 15); valorTotalComJuros += calcularJurosProgressivos(vpb, d.toISOString().split('T')[0], percentualJuros); }
+                estruturaParcelas.forEach((parcela, idx) => {
+                  const d = new Date(sy, sm - 1 + idx, arrematante?.diaVencimentoMensal || 15);
+                  valorTotalComJuros += calcularJurosProgressivos(parcela.valor, d.toISOString().split('T')[0], percentualJuros);
+                });
               } else if (tipoPagamento === 'parcelamento' && mip) {
-                const vpp = valorTotal / quantidadeParcelas; const [sy, sm] = mip.split('-').map(Number);
-                for (let i = 0; i < quantidadeParcelas; i++) { const d = new Date(sy, sm - 1 + i, arrematante?.diaVencimentoMensal || 15); valorTotalComJuros += calcularJurosProgressivos(vpp, d.toISOString().split('T')[0], percentualJuros); }
+                const estruturaParcelas = calcularEstruturaParcelas(
+                  valorTotal,
+                  arrematante?.parcelasTriplas || 0,
+                  arrematante?.parcelasDuplas || 0,
+                  arrematante?.parcelasSimples || 0,
+                  quantidadeParcelas
+                );
+                
+                const [sy, sm] = mip.split('-').map(Number);
+                estruturaParcelas.forEach((parcela, idx) => {
+                  const d = new Date(sy, sm - 1 + idx, arrematante?.diaVencimentoMensal || 15);
+                  valorTotalComJuros += calcularJurosProgressivos(parcela.valor, d.toISOString().split('T')[0], percentualJuros);
+                });
               } else { valorTotalComJuros = valorTotal; }
 
               const avgDelayDays = diasAtrasoMaximo;
